@@ -9,13 +9,13 @@ import { Role } from '../common/constants/roles.enum';
 @ApiTags('Audit Logs')
 @Controller('api/audit-logs')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN)
+@Roles(Role.ADMIN)
 @ApiBearerAuth()
 export class AuditController {
   constructor(private readonly auditService: AuditService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List audit logs (Super Admin only)' })
+  @ApiOperation({ summary: 'List audit logs (Admin only)' })
   findAll(
     @Query('page') page?: number,
     @Query('limit') limit?: number,

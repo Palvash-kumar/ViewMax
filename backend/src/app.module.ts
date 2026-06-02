@@ -17,6 +17,7 @@ import { ShowtimesModule } from './showtimes/showtimes.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AuditModule } from './audit/audit.module';
+import { TheatreDesignModule } from './theatre-design/theatre-design.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 
 @Module({
@@ -59,6 +60,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
     ShowtimesModule,
     BookingsModule,
     PaymentsModule,
+    TheatreDesignModule,
   ],
 })
 export class AppModule implements NestModule {

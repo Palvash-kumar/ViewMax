@@ -1,0 +1,6 @@
+export enum LayoutStatus {
+  DRAFT = 'DRAFT',
+  GENERATING = 'GENERATING',
+  PREVIEW = 'PREVIEW',
+  PUBLISHED = 'PUBLISHED',
+}

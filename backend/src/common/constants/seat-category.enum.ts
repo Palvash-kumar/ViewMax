@@ -1,0 +1,8 @@
+export enum SeatCategory {
+  STANDARD = 'STANDARD',
+  PREMIUM = 'PREMIUM',
+  VIP = 'VIP',
+  RECLINER = 'RECLINER',
+  WHEELCHAIR = 'WHEELCHAIR',
+  CUSTOM = 'CUSTOM',
+}

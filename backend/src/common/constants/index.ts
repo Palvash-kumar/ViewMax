@@ -5,3 +5,6 @@ export * from './theatre-status.enum';
 export * from './screen-type.enum';
 export * from './movie-status.enum';
 export * from './showtime-status.enum';
+export * from './seat-category.enum';
+export * from './layout-status.enum';
+export * from './zone-type.enum';
