@@ -42,27 +42,27 @@ export class MoviesController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create movie (Admin+)' })
+  @ApiOperation({ summary: 'Create movie (Admin)' })
   create(@Body() dto: CreateMovieDto) {
     return this.moviesService.create(dto);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update movie (Admin+)' })
+  @ApiOperation({ summary: 'Update movie (Admin)' })
   update(@Param('id') id: string, @Body() dto: UpdateMovieDto) {
     return this.moviesService.update(id, dto);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete movie (Admin+)' })
+  @ApiOperation({ summary: 'Delete movie (Admin)' })
   remove(@Param('id') id: string) {
     return this.moviesService.delete(id);
   }

@@ -191,7 +191,6 @@ export class TheatresService {
   ) {
     if (
       userRole !== Role.ADMIN &&
-      userRole !== Role.SUPER_ADMIN &&
       theatre.ownerId.toString() !== userId
     ) {
       throw new ForbiddenException('You do not own this theatre');

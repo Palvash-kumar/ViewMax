@@ -28,8 +28,8 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Access denied');
     }
 
-    // Super admin always has access
-    if (user.role === Role.SUPER_ADMIN) {
+    // Admin always has access
+    if (user.role === Role.ADMIN) {
       return true;
     }
 

@@ -33,6 +33,9 @@ export class Screen {
 
   @Prop({ type: [[Object]], default: [] })
   seatMap: SeatInfo[][];
+
+  @Prop({ type: Types.ObjectId, ref: 'TheatreLayout' })
+  layoutId: Types.ObjectId;
 }
 
 export const ScreenSchema = SchemaFactory.createForClass(Screen);

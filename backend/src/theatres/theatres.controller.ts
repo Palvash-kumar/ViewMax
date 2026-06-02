@@ -51,16 +51,16 @@ export class TheatresController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.THEATRE_OWNER, Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.THEATRE_OWNER, Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create theatre (Owner+)' })
+  @ApiOperation({ summary: 'Create theatre (Owner/Admin)' })
   create(@CurrentUser() user: any, @Body() dto: CreateTheatreDto) {
     return this.theatresService.create(user._id.toString(), dto);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.THEATRE_OWNER, Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.THEATRE_OWNER, Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update theatre (Owner/Admin)' })
   update(
@@ -73,25 +73,25 @@ export class TheatresController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete theatre (Admin+)' })
+  @ApiOperation({ summary: 'Delete theatre (Admin)' })
   remove(@Param('id') id: string) {
     return this.theatresService.delete(id);
   }
 
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Approve/reject theatre (Super Admin)' })
+  @ApiOperation({ summary: 'Approve/reject theatre (Admin)' })
   updateStatus(@Param('id') id: string, @Body() dto: UpdateTheatreStatusDto) {
     return this.theatresService.updateStatus(id, dto);
   }
 
   @Post(':id/moderators')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.THEATRE_OWNER, Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.THEATRE_OWNER, Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add moderator to theatre (Owner)' })
   addModerator(
@@ -109,7 +109,7 @@ export class TheatresController {
 
   @Delete(':id/moderators/:userId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.THEATRE_OWNER, Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.THEATRE_OWNER, Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Remove moderator from theatre (Owner)' })
   removeModerator(

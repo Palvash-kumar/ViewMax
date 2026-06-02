@@ -46,7 +46,6 @@ export class ShowtimesController {
     Role.THEATRE_OWNER,
     Role.THEATRE_MODERATOR,
     Role.ADMIN,
-    Role.SUPER_ADMIN,
   )
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create showtime (Owner/Moderator)' })
@@ -60,7 +59,6 @@ export class ShowtimesController {
     Role.THEATRE_OWNER,
     Role.THEATRE_MODERATOR,
     Role.ADMIN,
-    Role.SUPER_ADMIN,
   )
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update showtime (Owner/Moderator)' })
@@ -74,7 +72,6 @@ export class ShowtimesController {
     Role.THEATRE_OWNER,
     Role.THEATRE_MODERATOR,
     Role.ADMIN,
-    Role.SUPER_ADMIN,
   )
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete showtime (Owner/Moderator)' })

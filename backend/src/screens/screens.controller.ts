@@ -35,27 +35,27 @@ export class ScreensController {
 
   @Post('theatres/:theatreId/screens')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.THEATRE_OWNER, Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.THEATRE_OWNER, Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create screen (Owner+)' })
+  @ApiOperation({ summary: 'Create screen (Owner/Admin)' })
   create(@Param('theatreId') theatreId: string, @Body() dto: CreateScreenDto) {
     return this.screensService.create(theatreId, dto);
   }
 
   @Patch('screens/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.THEATRE_OWNER, Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.THEATRE_OWNER, Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update screen (Owner+)' })
+  @ApiOperation({ summary: 'Update screen (Owner/Admin)' })
   update(@Param('id') id: string, @Body() dto: UpdateScreenDto) {
     return this.screensService.update(id, dto);
   }
 
   @Delete('screens/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.THEATRE_OWNER, Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.THEATRE_OWNER, Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete screen (Owner+)' })
+  @ApiOperation({ summary: 'Delete screen (Owner/Admin)' })
   remove(@Param('id') id: string) {
     return this.screensService.delete(id);
   }
