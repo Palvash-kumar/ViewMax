@@ -1,0 +1,39 @@
+# compiled output
+/dist
+/node_modules
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+
+# Tests
+/coverage
+/.nyc_output
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.cproject
+.settings
+/.vscode
+*.sublime-project
+*.sublime-workspace
+
+# NestJS
+.nestcli.json
+
+# Environment variables
+.env
+.env.development
+.env.test
+.env.production
+.env.local
+.env*.local

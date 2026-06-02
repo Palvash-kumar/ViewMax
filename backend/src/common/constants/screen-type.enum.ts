@@ -1,0 +1,10 @@
+export enum ScreenType {
+  TRUE_IMAX = 'TRUE_IMAX',
+  IMAX_DIGITAL = 'IMAX_DIGITAL',
+  EPIC = 'EPIC',
+  DOLBY = 'DOLBY',
+  STANDARD = 'STANDARD',
+  FILM_35MM = 'FILM_35MM',
+  FILM_70MM = 'FILM_70MM',
+  CUSTOM = 'CUSTOM',
+}
