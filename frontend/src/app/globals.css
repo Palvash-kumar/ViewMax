@@ -127,3 +127,44 @@ body {
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
+
+/* ─── Phase 2: Designer Styles ─────────────────────────────────────────── */
+
+.designer-panel {
+  background: rgba(10, 14, 26, 0.95);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-hover) transparent;
+}
+
+.designer-panel::-webkit-scrollbar {
+  width: 4px;
+}
+.designer-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+.designer-panel::-webkit-scrollbar-thumb {
+  background: var(--color-border-hover);
+  border-radius: 2px;
+}
+
+/* Seat category colors */
+.seat-standard { background-color: #64748b; }
+.seat-premium { background-color: #a855f7; }
+.seat-vip { background-color: #f59e0b; }
+.seat-recliner { background-color: #22c55e; }
+.seat-wheelchair { background-color: #3b82f6; }
+.seat-custom { background-color: #ec4899; }
+.seat-blocked { background-color: #1e293b; }
+
+/* Canvas overlay */
+.canvas-overlay {
+  pointer-events: none;
+}
+.canvas-overlay > * {
+  pointer-events: auto;
+}
+
+/* Prevent body scroll when designer is open */
+body:has(.designer-panel) {
+  overflow: hidden;
+}

@@ -1,19 +1,47 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Monitor, Calendar, Plus, Settings } from 'lucide-react';
+import { Building2, Monitor, Pencil, Eye, Box, Plus, Trash2, X, Settings } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 import { useAuthStore } from '@/stores/auth.store';
-import { Button, EmptyState } from '@/components/ui';
-import type { Theatre, Screen, Showtime } from '@/types';
+import { EmptyState, Button } from '@/components/ui';
+import type { Theatre, Screen } from '@/types';
 
 export default function OwnerDashboard() {
   const { user } = useAuthStore();
+  const router = useRouter();
   const [theatres, setTheatres] = useState<Theatre[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTheatre, setSelectedTheatre] = useState<string | null>(null);
   const [screens, setScreens] = useState<Screen[]>([]);
+  const [layoutStatuses, setLayoutStatuses] = useState<Record<string, string>>({});
+
+  // Theatre Modal
+  const [isTheatreModalOpen, setIsTheatreModalOpen] = useState(false);
+  const [theatreModalMode, setTheatreModalMode] = useState<'create' | 'edit'>('create');
+  const [theatreForm, setTheatreForm] = useState({
+    name: '',
+    description: '',
+    address: '',
+    city: '',
+    state: '',
+    country: '',
+  });
+
+  // Screen Modal
+  const [isScreenModalOpen, setIsScreenModalOpen] = useState(false);
+  const [screenModalMode, setScreenModalMode] = useState<'create' | 'edit'>('create');
+  const [selectedScreenForEdit, setSelectedScreenForEdit] = useState<string | null>(null);
+  const [screenForm, setScreenForm] = useState({
+    name: '',
+    screenType: 'STANDARD',
+    rows: 10,
+    columns: 12,
+  });
+
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     api.get('/theatres/my')
@@ -27,11 +55,145 @@ export default function OwnerDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!selectedTheatre) return;
+    if (!selectedTheatre) {
+      setScreens([]);
+      return;
+    }
     api.get(`/theatres/${selectedTheatre}/screens`)
       .then((res) => setScreens(res.data.data || []))
       .catch(() => setScreens([]));
+
+    // Check layout statuses
+    api.get(`/theatre-design/theatres/${selectedTheatre}/layouts`)
+      .then((res) => {
+        const layouts = res.data.data || res.data;
+        const statuses: Record<string, string> = {};
+        for (const layout of layouts) {
+          const screenId = typeof layout.screenId === 'string' ? layout.screenId : layout.screenId?._id;
+          if (screenId) statuses[screenId] = layout.status;
+        }
+        setLayoutStatuses(statuses);
+      })
+      .catch(() => setLayoutStatuses({}));
   }, [selectedTheatre]);
+
+  const handleOpenCreateTheatre = () => {
+    setTheatreForm({
+      name: '',
+      description: '',
+      address: '',
+      city: '',
+      state: '',
+      country: '',
+    });
+    setTheatreModalMode('create');
+    setIsTheatreModalOpen(true);
+  };
+
+  const handleOpenEditTheatre = () => {
+    const activeTheatre = theatres.find((t) => t._id === selectedTheatre);
+    if (!activeTheatre) return;
+    setTheatreForm({
+      name: activeTheatre.name,
+      description: activeTheatre.description || '',
+      address: activeTheatre.address,
+      city: activeTheatre.city,
+      state: activeTheatre.state,
+      country: activeTheatre.country,
+    });
+    setTheatreModalMode('edit');
+    setIsTheatreModalOpen(true);
+  };
+
+  const handleTheatreSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      if (theatreModalMode === 'create') {
+        const res = await api.post('/theatres', theatreForm);
+        const newTheatre = res.data.data;
+        setTheatres((prev) => [...prev, newTheatre]);
+        setSelectedTheatre(newTheatre._id);
+      } else {
+        const res = await api.patch(`/theatres/${selectedTheatre}`, theatreForm);
+        const updatedTheatre = res.data.data;
+        setTheatres((prev) =>
+          prev.map((t) => (t._id === selectedTheatre ? updatedTheatre : t))
+        );
+      }
+      setIsTheatreModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save theatre');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleOpenCreateScreen = () => {
+    setScreenForm({
+      name: '',
+      screenType: 'STANDARD',
+      rows: 10,
+      columns: 12,
+    });
+    setScreenModalMode('create');
+    setIsScreenModalOpen(true);
+  };
+
+  const handleOpenEditScreen = (screen: Screen) => {
+    setScreenForm({
+      name: screen.name,
+      screenType: screen.screenType,
+      rows: screen.rows,
+      columns: screen.columns,
+    });
+    setSelectedScreenForEdit(screen._id);
+    setScreenModalMode('edit');
+    setIsScreenModalOpen(true);
+  };
+
+  const handleScreenSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      if (screenModalMode === 'create') {
+        const res = await api.post(`/theatres/${selectedTheatre}/screens`, {
+          name: screenForm.name,
+          screenType: screenForm.screenType,
+          rows: Number(screenForm.rows),
+          columns: Number(screenForm.columns),
+        });
+        setScreens((prev) => [...prev, res.data.data]);
+      } else {
+        const res = await api.patch(`/screens/${selectedScreenForEdit}`, {
+          name: screenForm.name,
+          screenType: screenForm.screenType,
+        });
+        const updatedScreen = res.data.data;
+        setScreens((prev) =>
+          prev.map((s) => (s._id === selectedScreenForEdit ? updatedScreen : s))
+        );
+      }
+      setIsScreenModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save screen');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleScreenDelete = async (screenId: string) => {
+    if (!confirm('Are you sure you want to delete this screen? This cannot be undone.')) return;
+    try {
+      await api.delete(`/screens/${screenId}`);
+      setScreens((prev) => prev.filter((s) => s._id !== screenId));
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete screen');
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
@@ -42,7 +204,7 @@ export default function OwnerDashboard() {
             Owner Dashboard
           </h1>
           <p className="text-[var(--color-text-muted)] text-sm mt-1">
-            Manage your theatres, screens, and showtimes
+            Manage your theatres, screens, and layouts
           </p>
         </div>
       </div>
@@ -52,11 +214,24 @@ export default function OwnerDashboard() {
           {[...Array(3)].map((_, i) => <div key={i} className="glass-card p-5 animate-shimmer h-24" />)}
         </div>
       ) : theatres.length === 0 ? (
-        <EmptyState title="No Theatres" description="You haven't added any theatres yet. Contact an admin to get started." />
+        <div className="glass-card p-10 text-center flex flex-col items-center justify-center">
+          <EmptyState title="No Theatres" description="You haven't added any theatres yet." />
+          <Button onClick={handleOpenCreateTheatre} className="mt-4">
+            <Plus className="w-4 h-4 mr-2" />
+            Create Your First Theatre
+          </Button>
+        </div>
       ) : (
         <div className="grid lg:grid-cols-4 gap-6">
           {/* Theatre sidebar */}
           <div className="lg:col-span-1 space-y-2">
+            <button
+              onClick={handleOpenCreateTheatre}
+              className="w-full mb-4 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-[var(--color-gold-500)] to-[var(--color-gold-600)] text-[var(--color-bg-primary)] hover:shadow-lg hover:shadow-[var(--color-gold-500)]/25 transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add Theatre
+            </button>
             <h3 className="text-sm font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-3">Your Theatres</h3>
             {theatres.map((theatre) => (
               <button
@@ -78,46 +253,126 @@ export default function OwnerDashboard() {
             ))}
           </div>
 
-          {/* Screens */}
+          {/* Screens & Details */}
           <div className="lg:col-span-3">
-            <div className="flex items-center justify-between mb-4">
+            {selectedTheatre && (
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
+                <div>
+                  <h2 className="text-2xl font-bold flex items-center gap-2">
+                    {theatres.find(t => t._id === selectedTheatre)?.name}
+                  </h2>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                    {theatres.find(t => t._id === selectedTheatre)?.address}, {theatres.find(t => t._id === selectedTheatre)?.city}
+                  </p>
+                </div>
+                <button
+                  onClick={handleOpenEditTheatre}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer text-[var(--color-text-primary)]"
+                >
+                  <Pencil className="w-3.5 h-3.5" /> Edit Theatre
+                </button>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between mb-4 mt-6">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Monitor className="w-5 h-5 text-[var(--color-gold-400)]" /> Screens
               </h3>
+              <button
+                onClick={handleOpenCreateScreen}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--color-gold-500)]/10 text-[var(--color-gold-400)] hover:bg-[var(--color-gold-500)]/20 border border-[var(--color-gold-500)]/20 transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Screen
+              </button>
             </div>
 
             {screens.length > 0 ? (
               <div className="grid sm:grid-cols-2 gap-4">
-                {screens.map((screen, i) => (
-                  <motion.div
-                    key={screen._id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="glass-card p-5"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold">{screen.name}</h4>
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-purple-500/10 text-purple-400">
-                        {screen.screenType.replace('_', ' ')}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3 text-center">
-                      <div>
-                        <p className="text-xl font-bold">{screen.capacity}</p>
-                        <p className="text-[10px] text-[var(--color-text-muted)]">Capacity</p>
+                {screens.map((screen, i) => {
+                  const layoutStatus = layoutStatuses[screen._id];
+
+                  return (
+                    <motion.div
+                      key={screen._id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="glass-card p-5"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="font-semibold">{screen.name}</h4>
+                          <button
+                            onClick={() => handleOpenEditScreen(screen)}
+                            className="p-1 rounded hover:bg-white/5 text-[var(--color-text-muted)] hover:text-white transition-all cursor-pointer"
+                            title="Edit Screen Settings"
+                          >
+                            <Settings className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleScreenDelete(screen._id)}
+                            className="p-1 rounded hover:bg-[var(--color-crimson-500)]/10 text-[var(--color-text-muted)] hover:text-[var(--color-crimson-400)] transition-all cursor-pointer"
+                            title="Delete Screen"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {layoutStatus && (
+                            <span className={`px-2 py-0.5 rounded-md text-[9px] font-semibold uppercase ${
+                              layoutStatus === 'PUBLISHED'
+                                ? 'bg-emerald-500/10 text-emerald-400'
+                                : layoutStatus === 'PREVIEW'
+                                ? 'bg-blue-500/10 text-blue-400'
+                                : 'bg-slate-500/10 text-slate-400'
+                            }`}>
+                              {layoutStatus}
+                            </span>
+                          )}
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-purple-500/10 text-purple-400">
+                            {screen.screenType.replace('_', ' ')}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xl font-bold">{screen.rows}</p>
-                        <p className="text-[10px] text-[var(--color-text-muted)]">Rows</p>
+
+                      <div className="grid grid-cols-3 gap-3 text-center mb-4">
+                        <div>
+                          <p className="text-xl font-bold">{screen.capacity}</p>
+                          <p className="text-[10px] text-[var(--color-text-muted)]">Capacity</p>
+                        </div>
+                        <div>
+                          <p className="text-xl font-bold">{screen.rows}</p>
+                          <p className="text-[10px] text-[var(--color-text-muted)]">Rows</p>
+                        </div>
+                        <div>
+                          <p className="text-xl font-bold">{screen.columns}</p>
+                          <p className="text-[10px] text-[var(--color-text-muted)]">Columns</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xl font-bold">{screen.columns}</p>
-                        <p className="text-[10px] text-[var(--color-text-muted)]">Columns</p>
+
+                      {/* Action buttons */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => router.push(`/owner/theatres/${selectedTheatre}/screens/${screen._id}/designer`)}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-[var(--color-gold-500)]/10 text-[var(--color-gold-400)] hover:bg-[var(--color-gold-500)]/20 transition-all cursor-pointer"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          Design Layout
+                        </button>
+
+                        {(layoutStatus === 'PREVIEW' || layoutStatus === 'PUBLISHED') && (
+                          <button
+                            onClick={() => router.push(`/owner/theatres/${selectedTheatre}/screens/${screen._id}/preview`)}
+                            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all cursor-pointer"
+                          >
+                            <Box className="w-3 h-3" />
+                            3D
+                          </button>
+                        )}
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-12 text-[var(--color-text-muted)]">
@@ -126,6 +381,221 @@ export default function OwnerDashboard() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Theatre Modal */}
+      {isTheatreModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card w-full max-w-lg p-6 shadow-2xl relative"
+          >
+            <button
+              onClick={() => setIsTheatreModalOpen(false)}
+              className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/5 text-[var(--color-text-muted)] hover:text-white transition-all cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-xl font-bold mb-4 font-[var(--font-display)] flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-[var(--color-gold-400)]" />
+              {theatreModalMode === 'create' ? 'Add New Theatre' : 'Edit Theatre Details'}
+            </h3>
+            <form onSubmit={handleTheatreSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Theatre Name</label>
+                <input
+                  type="text"
+                  required
+                  value={theatreForm.name}
+                  onChange={(e) => setTheatreForm({ ...theatreForm, name: e.target.value })}
+                  placeholder="e.g. IMAX Palace"
+                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Description</label>
+                <textarea
+                  value={theatreForm.description}
+                  onChange={(e) => setTheatreForm({ ...theatreForm, description: e.target.value })}
+                  placeholder="Describe your cinematic experience..."
+                  rows={3}
+                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Street Address</label>
+                <input
+                  type="text"
+                  required
+                  value={theatreForm.address}
+                  onChange={(e) => setTheatreForm({ ...theatreForm, address: e.target.value })}
+                  placeholder="e.g. 123 Cinema Parkway"
+                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">City</label>
+                  <input
+                    type="text"
+                    required
+                    value={theatreForm.city}
+                    onChange={(e) => setTheatreForm({ ...theatreForm, city: e.target.value })}
+                    placeholder="Metropolis"
+                    className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">State / Prov</label>
+                  <input
+                    type="text"
+                    required
+                    value={theatreForm.state}
+                    onChange={(e) => setTheatreForm({ ...theatreForm, state: e.target.value })}
+                    placeholder="NY"
+                    className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Country</label>
+                  <input
+                    type="text"
+                    required
+                    value={theatreForm.country}
+                    onChange={(e) => setTheatreForm({ ...theatreForm, country: e.target.value })}
+                    placeholder="USA"
+                    className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="ghost"
+                  type="button"
+                  onClick={() => setIsTheatreModalOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  type="submit"
+                  loading={submitting}
+                  className="flex-1"
+                >
+                  {theatreModalMode === 'create' ? 'Create Theatre' : 'Save Changes'}
+                </Button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Screen Modal */}
+      {isScreenModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card w-full max-w-md p-6 shadow-2xl relative"
+          >
+            <button
+              onClick={() => setIsScreenModalOpen(false)}
+              className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/5 text-[var(--color-text-muted)] hover:text-white transition-all cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-xl font-bold mb-4 font-[var(--font-display)] flex items-center gap-2">
+              <Monitor className="w-5 h-5 text-[var(--color-gold-400)]" />
+              {screenModalMode === 'create' ? 'Add New Screen' : 'Edit Screen Settings'}
+            </h3>
+            <form onSubmit={handleScreenSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Screen Name</label>
+                <input
+                  type="text"
+                  required
+                  value={screenForm.name}
+                  onChange={(e) => setScreenForm({ ...screenForm, name: e.target.value })}
+                  placeholder="e.g. Screen 1 - Laser Max"
+                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Screen Format</label>
+                <select
+                  value={screenForm.screenType}
+                  onChange={(e) => setScreenForm({ ...screenForm, screenType: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all cursor-pointer"
+                >
+                  <option value="STANDARD" className="bg-[var(--color-bg-primary)]">Standard Screen</option>
+                  <option value="TRUE_IMAX" className="bg-[var(--color-bg-primary)]">True IMAX</option>
+                  <option value="IMAX_DIGITAL" className="bg-[var(--color-bg-primary)]">IMAX Digital</option>
+                  <option value="EPIC" className="bg-[var(--color-bg-primary)]">Epic Screen</option>
+                  <option value="DOLBY" className="bg-[var(--color-bg-primary)]">Dolby Cinema</option>
+                  <option value="FILM_35MM" className="bg-[var(--color-bg-primary)]">35mm Film</option>
+                  <option value="FILM_70MM" className="bg-[var(--color-bg-primary)]">70mm Film</option>
+                  <option value="CUSTOM" className="bg-[var(--color-bg-primary)]">Custom Format</option>
+                </select>
+              </div>
+
+              {screenModalMode === 'create' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Rows (Max 30)</label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      max={30}
+                      value={screenForm.rows}
+                      onChange={(e) => setScreenForm({ ...screenForm, rows: Number(e.target.value) })}
+                      className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Columns (Max 50)</label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      max={50}
+                      value={screenForm.columns}
+                      onChange={(e) => setScreenForm({ ...screenForm, columns: Number(e.target.value) })}
+                      className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {screenModalMode === 'edit' && (
+                <div className="text-xs text-[var(--color-text-muted)] bg-white/5 p-3 rounded-xl border border-white/5">
+                  ⚠️ Seat Grid layout (Rows/Columns) cannot be edited once created to prevent data corruption.
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="ghost"
+                  type="button"
+                  onClick={() => setIsScreenModalOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  type="submit"
+                  loading={submitting}
+                  className="flex-1"
+                >
+                  {screenModalMode === 'create' ? 'Create Screen' : 'Save Changes'}
+                </Button>
+              </div>
+            </form>
+          </motion.div>
         </div>
       )}
     </div>

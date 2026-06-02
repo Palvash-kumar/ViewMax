@@ -1,0 +1,135 @@
+'use client';
+
+import { useEffect, useState, use } from 'react';
+import dynamic from 'next/dynamic';
+import { useDesignerStore } from '@/stores/designer.store';
+import DesignerLayout from '@/components/designer/DesignerLayout';
+import DesignerToolbar from '@/components/designer/DesignerToolbar';
+import RowPanel from '@/components/designer/RowPanel';
+import SeatCanvas from '@/components/designer/SeatCanvas';
+import PropertiesPanel from '@/components/designer/PropertiesPanel';
+import TemplateSelector from '@/components/designer/TemplateSelector';
+import api from '@/lib/axios';
+import type { Theatre3DDataResponse } from '@/types';
+
+const TheatreViewer = dynamic(
+  () => import('@/components/theatre3d/TheatreViewer'),
+  { ssr: false },
+);
+
+interface PageProps {
+  params: Promise<{ theatreId: string; screenId: string }>;
+}
+
+export default function DesignerPage({ params }: PageProps) {
+  const { theatreId, screenId } = use(params);
+  const {
+    layout,
+    templates,
+    viewMode,
+    loadTemplates,
+    createLayout,
+    loadLayout,
+  } = useDesignerStore();
+
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [viewer3DData, setViewer3DData] = useState<Theatre3DDataResponse | null>(null);
+
+  // Check if layout already exists for this screen
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await api.get(`/theatre-design/theatres/${theatreId}/layouts`);
+        const layouts = data.data || data;
+        const existing = layouts.find((l: any) => l.screenId === screenId || l.screenId?._id === screenId);
+
+        if (existing) {
+          await loadLayout(existing._id);
+        } else {
+          await loadTemplates();
+          setShowTemplateSelector(true);
+        }
+      } catch {
+        await loadTemplates();
+        setShowTemplateSelector(true);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [theatreId, screenId, loadLayout, loadTemplates]);
+
+  // Load 3D data when switching to 3D view
+  useEffect(() => {
+    if (viewMode === '3d' && layout?.generated3DData && layout?._id) {
+      (async () => {
+        try {
+          const { data } = await api.get(`/theatre-design/layouts/${layout._id}/3d-data`);
+          setViewer3DData(data.data || data);
+        } catch {
+          setViewer3DData(null);
+        }
+      })();
+    }
+  }, [viewMode, layout?.generated3DData, layout?._id]);
+
+  const handleTemplateSelect = async (templateId: string | null) => {
+    setShowTemplateSelector(false);
+    setLoading(true);
+    try {
+      await createLayout(theatreId, screenId, templateId, 'New Layout');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (showTemplateSelector) {
+    return (
+      <TemplateSelector
+        templates={templates}
+        onSelect={handleTemplateSelect}
+      />
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-[var(--color-bg-primary)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-[var(--color-gold-500)]/30 border-t-[var(--color-gold-500)] rounded-full animate-spin" />
+          <p className="text-sm text-[var(--color-text-muted)]">Loading designer...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!layout) {
+    return (
+      <div className="fixed inset-0 bg-[var(--color-bg-primary)] flex items-center justify-center">
+        <p className="text-[var(--color-text-muted)]">Failed to load layout</p>
+      </div>
+    );
+  }
+
+  return (
+    <DesignerLayout
+      toolbar={<DesignerToolbar theatreId={theatreId} />}
+      leftPanel={<RowPanel />}
+      centerPanel={
+        viewMode === '2d' ? (
+          <SeatCanvas />
+        ) : viewer3DData ? (
+          <TheatreViewer data={viewer3DData} />
+        ) : (
+          <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
+            <div className="text-center">
+              <p className="text-sm">No 3D data generated yet</p>
+              <p className="text-xs mt-1">Click &quot;Generate 3D&quot; in the toolbar</p>
+            </div>
+          </div>
+        )
+      }
+      rightPanel={<PropertiesPanel />}
+    />
+  );
+}

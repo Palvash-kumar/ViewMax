@@ -19,7 +19,7 @@ export default function Navbar() {
     { href: '/bookings', label: 'My Bookings', icon: Ticket, auth: true },
   ];
 
-  const adminLinks = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
+  const adminLinks = user?.role === 'ADMIN'
     ? [{ href: '/admin', label: 'Admin', icon: LayoutDashboard }]
     : user?.role === 'THEATRE_OWNER'
     ? [{ href: '/owner', label: 'Dashboard', icon: LayoutDashboard }]

@@ -2,35 +2,56 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Film, Building2, Users, Ticket, BarChart3, Shield, Plus, Search } from 'lucide-react';
+import { Film, Building2, Users, Ticket, BarChart3, Shield, Plus, Search, Loader2 } from 'lucide-react';
 import api from '@/lib/axios';
 import { useAuthStore } from '@/stores/auth.store';
 import { Button } from '@/components/ui';
-import type { Movie, Theatre } from '@/types';
+import type { Movie, Theatre, User, Role } from '@/types';
 
 export default function AdminDashboard() {
-  const { user } = useAuthStore();
+  const { user: currentUser } = useAuthStore();
   const [stats, setStats] = useState({ movies: 0, theatres: 0, users: 0 });
   const [movies, setMovies] = useState<Movie[]>([]);
   const [theatres, setTheatres] = useState<Theatre[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [activeTab, setActiveTab] = useState<'movies' | 'theatres' | 'users'>('movies');
   const [loading, setLoading] = useState(true);
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
       api.get('/movies', { params: { limit: 20 } }),
       api.get('/theatres', { params: { limit: 20 } }),
+      api.get('/users', { params: { limit: 50 } }),
     ])
-      .then(([moviesRes, theatresRes]) => {
+      .then(([moviesRes, theatresRes, usersRes]) => {
         const m = moviesRes.data.data.data || moviesRes.data.data || [];
         const t = theatresRes.data.data.data || theatresRes.data.data || [];
+        const u = usersRes.data.data.data || usersRes.data.data || [];
+        const totalUsers = usersRes.data.data?.total ?? u.length;
         setMovies(m);
         setTheatres(t);
-        setStats({ movies: m.length, theatres: t.length, users: 0 });
+        setUsers(u);
+        setStats({ movies: m.length, theatres: t.length, users: totalUsers });
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const handleRoleChange = async (userId: string, newRole: Role) => {
+    setUpdatingUserId(userId);
+    try {
+      await api.patch(`/users/${userId}/role`, { role: newRole });
+      setUsers((prevUsers) =>
+        prevUsers.map((u) => (u._id === userId ? { ...u, role: newRole } : u))
+      );
+    } catch (err) {
+      console.error('Failed to update user role:', err);
+      alert('Failed to update user role');
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
 
   const statCards = [
     { label: 'Movies', value: stats.movies, icon: Film, color: 'from-[var(--color-gold-500)] to-[var(--color-gold-600)]' },
@@ -54,7 +75,7 @@ export default function AdminDashboard() {
             Admin Dashboard
           </h1>
           <p className="text-[var(--color-text-muted)] text-sm mt-1">
-            Welcome back, {user?.firstName}. Manage your platform.
+            Welcome back, {currentUser?.firstName}. Manage your platform.
           </p>
         </div>
       </div>
@@ -142,9 +163,53 @@ export default function AdminDashboard() {
       )}
 
       {activeTab === 'users' && (
-        <div className="text-center py-12 text-[var(--color-text-muted)]">
-          <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-          <p>User management coming soon</p>
+        <div className="space-y-3">
+          {users.length === 0 ? (
+            <div className="text-center py-12 text-[var(--color-text-muted)]">
+              <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>No users found</p>
+            </div>
+          ) : (
+            users.map((u) => {
+              const initials = `${u.firstName?.charAt(0) || ''}${u.lastName?.charAt(0) || ''}`.toUpperCase() || '?';
+              return (
+                <div key={u._id} className="glass-card p-4 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--color-gold-500)]/20 to-[var(--color-gold-600)]/20 border border-[var(--color-gold-500)]/30 flex items-center justify-center text-[var(--color-gold-400)] font-bold text-sm shrink-0">
+                      {initials}
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-sm flex items-center gap-2">
+                        {u.firstName} {u.lastName}
+                        {u._id === currentUser?._id && (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase bg-white/10 text-[var(--color-text-muted)]">
+                            You
+                          </span>
+                        )}
+                      </h3>
+                      <p className="text-xs text-[var(--color-text-muted)]">{u.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {updatingUserId === u._id && (
+                      <Loader2 className="w-4 h-4 text-[var(--color-gold-400)] animate-spin" />
+                    )}
+                    <select
+                      value={u.role}
+                      onChange={(e) => handleRoleChange(u._id, e.target.value as Role)}
+                      disabled={updatingUserId === u._id || u._id === currentUser?._id}
+                      className="bg-white/5 border border-white/10 hover:border-white/20 text-white rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--color-gold-500)] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      <option value="CUSTOMER" className="bg-[var(--color-bg-primary)]">Customer</option>
+                      <option value="THEATRE_OWNER" className="bg-[var(--color-bg-primary)]">Theatre Owner</option>
+                      <option value="THEATRE_MODERATOR" className="bg-[var(--color-bg-primary)]">Theatre Moderator</option>
+                      <option value="ADMIN" className="bg-[var(--color-bg-primary)]">Admin</option>
+                    </select>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       )}
     </div>
