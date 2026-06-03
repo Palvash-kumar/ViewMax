@@ -42,6 +42,8 @@ export default function OwnerDashboard() {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
 
   useEffect(() => {
     api.get('/theatres/my')
@@ -125,6 +127,40 @@ export default function OwnerDashboard() {
     } catch (err) {
       console.error(err);
       alert('Failed to save theatre');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleOpenDeleteTheatre = () => {
+    setDeleteConfirmName('');
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteTheatreConfirm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const activeTheatre = theatres.find((t) => t._id === selectedTheatre);
+    if (!activeTheatre) return;
+
+    if (deleteConfirmName !== activeTheatre.name) {
+      alert('Theatre name does not match');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await api.delete(`/theatres/${selectedTheatre}`);
+      const remaining = theatres.filter((t) => t._id !== selectedTheatre);
+      setTheatres(remaining);
+      if (remaining.length > 0) {
+        setSelectedTheatre(remaining[0]._id);
+      } else {
+        setSelectedTheatre(null);
+      }
+      setIsDeleteModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete theatre');
     } finally {
       setSubmitting(false);
     }
@@ -265,12 +301,20 @@ export default function OwnerDashboard() {
                     {theatres.find(t => t._id === selectedTheatre)?.address}, {theatres.find(t => t._id === selectedTheatre)?.city}
                   </p>
                 </div>
-                <button
-                  onClick={handleOpenEditTheatre}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer text-[var(--color-text-primary)]"
-                >
-                  <Pencil className="w-3.5 h-3.5" /> Edit Theatre
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleOpenEditTheatre}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer text-[var(--color-text-primary)]"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Edit Theatre
+                  </button>
+                  <button
+                    onClick={handleOpenDeleteTheatre}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 transition-all cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete Theatre
+                  </button>
+                </div>
               </div>
             )}
 
@@ -592,6 +636,73 @@ export default function OwnerDashboard() {
                   className="flex-1"
                 >
                   {screenModalMode === 'create' ? 'Create Screen' : 'Save Changes'}
+                </Button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Delete Theatre Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card w-full max-w-md p-6 shadow-2xl relative"
+          >
+            <button
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/5 text-[var(--color-text-muted)] hover:text-white transition-all cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-xl font-bold mb-4 text-[var(--color-crimson-400)] font-[var(--font-display)] flex items-center gap-2">
+              <Trash2 className="w-5 h-5" />
+              Delete Theatre
+            </h3>
+            
+            <div className="text-sm text-[var(--color-text-muted)] mb-4 space-y-2">
+              <p>
+                Are you sure you want to delete <span className="font-bold text-[var(--color-text-primary)]">{theatres.find(t => t._id === selectedTheatre)?.name}</span>?
+              </p>
+              <p className="text-xs text-[var(--color-crimson-400)]/85 bg-red-500/5 p-3 rounded-lg border border-red-500/10">
+                ⚠️ Warning: This will permanently delete this theatre, including all associated screens, layouts, and seat coordinates. This action cannot be undone.
+              </p>
+            </div>
+
+            <form onSubmit={handleDeleteTheatreConfirm} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">
+                  Type <span className="text-[var(--color-text-primary)] select-all font-mono font-bold">{theatres.find(t => t._id === selectedTheatre)?.name}</span> to confirm:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={deleteConfirmName}
+                  onChange={(e) => setDeleteConfirmName(e.target.value)}
+                  placeholder="Type theatre name"
+                  className="w-full bg-white/5 border border-white/10 focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all font-mono"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="ghost"
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  type="submit"
+                  loading={submitting}
+                  disabled={deleteConfirmName !== theatres.find(t => t._id === selectedTheatre)?.name}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-40 disabled:cursor-not-allowed border-none hover:shadow-lg hover:shadow-red-500/20"
+                >
+                  Delete Permanently
                 </Button>
               </div>
             </form>

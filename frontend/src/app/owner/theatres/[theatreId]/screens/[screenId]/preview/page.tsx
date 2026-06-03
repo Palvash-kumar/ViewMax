@@ -22,6 +22,22 @@ export default function PreviewPage({ params }: PageProps) {
   const [data, setData] = useState<Theatre3DDataResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [publishing, setPublishing] = useState(false);
+
+  const handlePublish = async () => {
+    if (!data?.layout?._id) return;
+    setPublishing(true);
+    try {
+      await api.post(`/theatre-design/layouts/${data.layout._id}/publish`);
+      setData((prev) => prev ? { ...prev, layout: { ...prev.layout, status: 'PUBLISHED' } } : null);
+      alert('Layout published successfully!');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to publish layout');
+    } finally {
+      setPublishing(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -79,7 +95,7 @@ export default function PreviewPage({ params }: PageProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-[var(--color-bg-primary)]">
+    <div className="fixed top-16 bottom-0 left-0 right-0 bg-[var(--color-bg-primary)]">
       {/* Toolbar */}
       <div className="absolute top-0 left-0 right-0 z-20 h-14 border-b border-[var(--color-border)] flex items-center px-4 gap-3"
         style={{ background: 'rgba(10, 14, 26, 0.85)', backdropFilter: 'blur(16px)' }}>
@@ -104,12 +120,25 @@ export default function PreviewPage({ params }: PageProps) {
 
         <div className="flex-1" />
 
-        <button
-          onClick={() => router.push(`/owner/theatres/${theatreId}/screens/${screenId}/designer`)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-white/10 transition-all cursor-pointer"
-        >
-          <Pencil className="w-3 h-3" /> Edit
-        </button>
+        <div className="flex gap-2">
+          {data.layout.status !== 'PUBLISHED' && (
+            <button
+              onClick={handlePublish}
+              disabled={publishing}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-[var(--color-gold-500)] to-[var(--color-gold-600)] text-[var(--color-bg-primary)] hover:shadow-lg hover:shadow-[var(--color-gold-500)]/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              <Rocket className="w-3.5 h-3.5" />
+              {publishing ? 'Publishing...' : 'Publish Design'}
+            </button>
+          )}
+
+          <button
+            onClick={() => router.push(`/owner/theatres/${theatreId}/screens/${screenId}/designer`)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-white/10 transition-all cursor-pointer"
+          >
+            <Pencil className="w-3 h-3" /> Edit
+          </button>
+        </div>
       </div>
 
       {/* 3D Viewer */}

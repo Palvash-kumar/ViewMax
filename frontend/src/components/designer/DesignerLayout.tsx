@@ -16,7 +16,7 @@ export default function DesignerLayout({
   rightPanel,
 }: DesignerLayoutProps) {
   return (
-    <div className="fixed inset-0 bg-[var(--color-bg-primary)] flex flex-col overflow-hidden">
+    <div className="fixed top-16 bottom-0 left-0 right-0 bg-[var(--color-bg-primary)] flex flex-col overflow-hidden">
       {/* Toolbar */}
       <div className="h-14 border-b border-[var(--color-border)] flex-shrink-0">
         {toolbar}

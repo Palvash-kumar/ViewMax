@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Film, Building2, Users, Ticket, BarChart3, Shield, Plus, Search, Loader2 } from 'lucide-react';
+import { Film, Building2, Users, Ticket, BarChart3, Shield, Plus, Search, Loader2, Trash2, X } from 'lucide-react';
 import api from '@/lib/axios';
 import { useAuthStore } from '@/stores/auth.store';
 import { Button } from '@/components/ui';
@@ -17,6 +17,21 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'movies' | 'theatres' | 'users'>('movies');
   const [loading, setLoading] = useState(true);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Movie Modal
+  const [isMovieModalOpen, setIsMovieModalOpen] = useState(false);
+  const [movieForm, setMovieForm] = useState({
+    title: '',
+    description: '',
+    poster: '',
+    trailer: '',
+    duration: 120,
+    genres: '',
+    language: '',
+    releaseDate: '',
+    status: 'UPCOMING',
+  });
 
   useEffect(() => {
     Promise.all([
@@ -50,6 +65,57 @@ export default function AdminDashboard() {
       alert('Failed to update user role');
     } finally {
       setUpdatingUserId(null);
+    }
+  };
+
+  const handleOpenAddMovie = () => {
+    setMovieForm({
+      title: '',
+      description: '',
+      poster: '',
+      trailer: '',
+      duration: 120,
+      genres: '',
+      language: '',
+      releaseDate: '',
+      status: 'UPCOMING',
+    });
+    setIsMovieModalOpen(true);
+  };
+
+  const handleMovieSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const payload = {
+        ...movieForm,
+        duration: Number(movieForm.duration),
+        genres: movieForm.genres.split(',').map((g) => g.trim()).filter(Boolean),
+        releaseDate: new Date(movieForm.releaseDate).toISOString(),
+      };
+      
+      const res = await api.post('/movies', payload);
+      const newMovie = res.data.data;
+      setMovies((prev) => [newMovie, ...prev]);
+      setStats((prev) => ({ ...prev, movies: prev.movies + 1 }));
+      setIsMovieModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to add movie');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteMovie = async (movieId: string) => {
+    if (!confirm('Are you sure you want to delete this movie? This will also affect showtimes.')) return;
+    try {
+      await api.delete(`/movies/${movieId}`);
+      setMovies((prev) => prev.filter((m) => m._id !== movieId));
+      setStats((prev) => ({ ...prev, movies: Math.max(0, prev.movies - 1) }));
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete movie');
     }
   };
 
@@ -120,26 +186,51 @@ export default function AdminDashboard() {
 
       {/* Content */}
       {activeTab === 'movies' && (
-        <div className="space-y-3">
-          {movies.map((movie) => (
-            <div key={movie._id} className="glass-card p-4 flex items-center gap-4">
-              <div className="w-12 h-16 rounded-lg overflow-hidden bg-[var(--color-bg-elevated)] shrink-0">
-                {movie.poster ? (
-                  <img src={movie.poster} alt={movie.title} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-lg">🎬</div>
-                )}
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <Button onClick={handleOpenAddMovie} className="flex items-center gap-1.5 text-xs">
+              <Plus className="w-4 h-4" /> Add Movie
+            </Button>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            {movies.map((movie) => (
+              <div key={movie._id} className="glass-card p-4 flex gap-4 relative group">
+                <div className="w-16 h-24 rounded-lg overflow-hidden bg-[var(--color-bg-elevated)] shrink-0">
+                  {movie.poster ? (
+                    <img src={movie.poster} alt={movie.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-2xl bg-white/5">🎬</div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-semibold truncate text-sm text-[var(--color-text-primary)]">{movie.title}</h3>
+                    <p className="text-xs text-[var(--color-text-muted)] mt-1 line-clamp-2">{movie.description}</p>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-[10px] text-[var(--color-text-muted)] font-medium">
+                      {movie.language} · {movie.duration}m
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase ${
+                      movie.status === 'NOW_SHOWING' ? 'bg-emerald-500/10 text-emerald-400' :
+                      movie.status === 'UPCOMING' ? 'bg-[var(--color-gold-500)]/10 text-[var(--color-gold-400)]' :
+                      'bg-slate-500/10 text-slate-400'
+                    }`}>
+                      {movie.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteMovie(movie._id)}
+                  className="absolute top-4 right-4 p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer animate-fade-in"
+                  title="Delete Movie"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium truncate">{movie.title}</h3>
-                <p className="text-xs text-[var(--color-text-muted)]">{movie.language} · {movie.genres.join(', ')}</p>
-              </div>
-              <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase
-                ${movie.status === 'NOW_SHOWING' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/5 text-[var(--color-text-muted)]'}`}>
-                {movie.status.replace('_', ' ')}
-              </span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
@@ -210,6 +301,157 @@ export default function AdminDashboard() {
               );
             })
           )}
+        </div>
+      )}
+
+      {/* Movie Modal */}
+      {isMovieModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card w-full max-w-lg p-6 shadow-2xl relative my-8"
+          >
+            <button
+              onClick={() => setIsMovieModalOpen(false)}
+              className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/5 text-[var(--color-text-muted)] hover:text-white transition-all cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-xl font-bold mb-4 font-[var(--font-display)] flex items-center gap-2">
+              <Film className="w-5 h-5 text-[var(--color-gold-400)]" />
+              Add New Movie
+            </h3>
+            
+            <form onSubmit={handleMovieSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Movie Title</label>
+                  <input
+                    type="text"
+                    required
+                    value={movieForm.title}
+                    onChange={(e) => setMovieForm({ ...movieForm, title: e.target.value })}
+                    placeholder="e.g. Inception"
+                    className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Description</label>
+                  <textarea
+                    required
+                    value={movieForm.description}
+                    onChange={(e) => setMovieForm({ ...movieForm, description: e.target.value })}
+                    placeholder="Brief movie synopsis..."
+                    rows={3}
+                    className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all resize-none font-sans"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Duration (mins)</label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={movieForm.duration}
+                    onChange={(e) => setMovieForm({ ...movieForm, duration: Number(e.target.value) })}
+                    className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Language</label>
+                  <input
+                    type="text"
+                    required
+                    value={movieForm.language}
+                    onChange={(e) => setMovieForm({ ...movieForm, language: e.target.value })}
+                    placeholder="English"
+                    className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Release Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={movieForm.releaseDate}
+                    onChange={(e) => setMovieForm({ ...movieForm, releaseDate: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Status</label>
+                  <select
+                    value={movieForm.status}
+                    onChange={(e) => setMovieForm({ ...movieForm, status: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all cursor-pointer text-white"
+                  >
+                    <option value="UPCOMING" className="bg-[var(--color-bg-primary)]">Upcoming</option>
+                    <option value="NOW_SHOWING" className="bg-[var(--color-bg-primary)]">Now Showing</option>
+                    <option value="ENDED" className="bg-[var(--color-bg-primary)]">Ended</option>
+                  </select>
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Genres (comma separated)</label>
+                  <input
+                    type="text"
+                    required
+                    value={movieForm.genres}
+                    onChange={(e) => setMovieForm({ ...movieForm, genres: e.target.value })}
+                    placeholder="Action, Sci-Fi, Adventure"
+                    className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Poster Image URL</label>
+                  <input
+                    type="text"
+                    value={movieForm.poster}
+                    onChange={(e) => setMovieForm({ ...movieForm, poster: e.target.value })}
+                    placeholder="https://example.com/poster.jpg"
+                    className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Trailer Video URL</label>
+                  <input
+                    type="text"
+                    value={movieForm.trailer}
+                    onChange={(e) => setMovieForm({ ...movieForm, trailer: e.target.value })}
+                    placeholder="https://youtube.com/watch?v=..."
+                    className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="ghost"
+                  type="button"
+                  onClick={() => setIsMovieModalOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  type="submit"
+                  loading={submitting}
+                  className="flex-1"
+                >
+                  Add Movie
+                </Button>
+              </div>
+            </form>
+          </motion.div>
         </div>
       )}
     </div>

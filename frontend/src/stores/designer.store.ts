@@ -120,8 +120,10 @@ export const useDesignerStore = create<DesignerState>((set, get) => ({
 
     const existingLabels = layout.rows.map((r) => r.label);
     let nextLabel = 'A';
-    for (let i = 0; i < 26; i++) {
-      const label = String.fromCharCode(65 + i);
+    for (let i = 0; i < 1000; i++) {
+      const letter = String.fromCharCode(65 + (i % 26));
+      const suffix = Math.floor(i / 26);
+      const label = suffix > 0 ? `${letter}${suffix}` : letter;
       if (!existingLabels.includes(label)) {
         nextLabel = label;
         break;

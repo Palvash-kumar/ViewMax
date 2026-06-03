@@ -47,17 +47,36 @@ export default function DesignerPage({ params }: PageProps) {
         if (existing) {
           await loadLayout(existing._id);
         } else {
-          await loadTemplates();
-          setShowTemplateSelector(true);
+          // Fetch the screen to obtain its screenType format
+          const { data: screenRes } = await api.get(`/screens/${screenId}`);
+          const screen = screenRes.data || screenRes;
+
+          // Fetch the templates list to find a match
+          const { data: templatesRes } = await api.get('/theatre-design/templates');
+          const templatesList = templatesRes.data || templatesRes;
+
+          // Find the template that matches the screenType format
+          const matchingTemplate = templatesList.find(
+            (t: any) => t.screenType === screen.screenType
+          );
+
+          if (matchingTemplate) {
+            await createLayout(theatreId, screenId, matchingTemplate._id, `${screen.name} Layout`);
+          } else {
+            // Fallback if no matching template is found in database
+            await loadTemplates();
+            setShowTemplateSelector(true);
+          }
         }
-      } catch {
+      } catch (err) {
+        console.error('Failed to auto-resolve layout template:', err);
         await loadTemplates();
         setShowTemplateSelector(true);
       } finally {
         setLoading(false);
       }
     })();
-  }, [theatreId, screenId, loadLayout, loadTemplates]);
+  }, [theatreId, screenId, loadLayout, loadTemplates, createLayout]);
 
   // Load 3D data when switching to 3D view
   useEffect(() => {
