@@ -19,6 +19,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { AuditModule } from './audit/audit.module';
 import { TheatreDesignModule } from './theatre-design/theatre-design.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { CinemaIntelligenceModule } from './cinema-intelligence/cinema-intelligence.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
     BookingsModule,
     PaymentsModule,
     TheatreDesignModule,
+    CinemaIntelligenceModule,
   ],
 })
 export class AppModule implements NestModule {
