@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Screen, ScreenDocument, SeatInfo } from './schemas/screen.schema';
 import { CreateScreenDto, UpdateScreenDto } from './dto';
 import { ScreenType } from '../common/constants/screen-type.enum';
@@ -79,7 +79,7 @@ export class ScreensService {
     );
 
     const screen = new this.screenModel({
-      theatreId,
+      theatreId: new Types.ObjectId(theatreId),
       name: dto.name,
       screenType: dto.screenType,
       capacity,
@@ -92,7 +92,7 @@ export class ScreensService {
   }
 
   async findByTheatre(theatreId: string): Promise<ScreenDocument[]> {
-    return this.screenModel.find({ theatreId }).exec();
+    return this.screenModel.find({ theatreId: new Types.ObjectId(theatreId) }).exec();
   }
 
   async findById(id: string): Promise<ScreenDocument> {
@@ -123,7 +123,9 @@ export class ScreensService {
     const seatMap: SeatInfo[][] = [];
 
     for (let r = 0; r < rows; r++) {
-      const rowLabel = String.fromCharCode(65 + r); // A, B, C, ...
+      const letter = String.fromCharCode(65 + (r % 26));
+      const suffix = Math.floor(r / 26);
+      const rowLabel = suffix > 0 ? `${letter}${suffix}` : letter;
       const row: SeatInfo[] = [];
 
       let seatType: SeatInfo['type'] = 'STANDARD';

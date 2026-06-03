@@ -25,6 +25,7 @@ import { GeometryEngine } from './engines/geometry-engine';
 import { LayoutStatus } from '../common/constants/layout-status.enum';
 import { SeatCategory } from '../common/constants/seat-category.enum';
 import { TheatresService } from '../theatres/theatres.service';
+import { ScreensService } from '../screens/screens.service';
 import { Role } from '../common/constants/roles.enum';
 
 @Injectable()
@@ -40,6 +41,7 @@ export class TheatreDesignService {
     @InjectModel(TheatreCoordinate.name)
     private coordinateModel: Model<TheatreCoordinateDocument>,
     private theatresService: TheatresService,
+    private screensService: ScreensService,
   ) {}
 
   // ─── Templates ────────────────────────────────────────────────────────────
@@ -77,9 +79,26 @@ export class TheatreDesignService {
     const aisles = dto.aisles || [];
     const zones = dto.zones || [];
 
-    // If a template is specified, use its defaults
-    if (dto.templateId) {
-      const template = await this.findTemplateById(dto.templateId);
+    let templateId = dto.templateId;
+    if (!templateId && dto.screenId) {
+      try {
+        const screen = await this.screensService.findById(dto.screenId);
+        if (screen) {
+          const matchingTemplate = await this.templateModel
+            .findOne({ screenType: screen.screenType })
+            .exec();
+          if (matchingTemplate) {
+            templateId = matchingTemplate._id.toString();
+          }
+        }
+      } catch (err) {
+        console.error('Failed to automatically find screen template:', err);
+      }
+    }
+
+    // If a template is specified or found, use its defaults
+    if (templateId) {
+      const template = await this.findTemplateById(templateId);
 
       if (!screenConfig) {
         screenConfig = {
@@ -94,7 +113,9 @@ export class TheatreDesignService {
         // Generate default rows from template
         rows = [];
         for (let i = 0; i < template.defaultRows; i++) {
-          const label = String.fromCharCode(65 + i);
+          const letter = String.fromCharCode(65 + (i % 26));
+          const suffix = Math.floor(i / 26);
+          const label = suffix > 0 ? `${letter}${suffix}` : letter;
           rows.push({
             label,
             order: i,
@@ -391,24 +412,28 @@ export class TheatreDesignService {
   }
 
   private async validateTheatreAccess(
-    theatreId: string,
-    userId: string,
-    userRole: Role,
-  ): Promise<void> {
-    if (userRole === Role.ADMIN) {
-      return;
-    }
-
-    const theatre = await this.theatresService.findById(theatreId);
-    if (theatre.ownerId.toString() !== userId) {
-      // Check moderator access
-      const isMod = await this.theatresService.isModeratorOf(
-        theatreId,
-        userId,
-      );
-      if (!isMod) {
-        throw new ForbiddenException('You do not have access to this theatre');
+      theatreId: string,
+      userId: string,
+      userRole: Role,
+    ): Promise<void> {
+      if (userRole === Role.ADMIN) {
+        return;
+      }
+  
+      const theatre = await this.theatresService.findById(theatreId);
+      const ownerIdStr = (theatre.ownerId as any)?._id
+        ? (theatre.ownerId as any)._id.toString()
+        : (theatre.ownerId as any)?.toString();
+  
+      if (ownerIdStr !== userId) {
+        // Check moderator access
+        const isMod = await this.theatresService.isModeratorOf(
+          theatreId,
+          userId,
+        );
+        if (!isMod) {
+          throw new ForbiddenException('You do not have access to this theatre');
+        }
       }
     }
-  }
 }

@@ -73,11 +73,14 @@ export class TheatresController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.THEATRE_OWNER, Role.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete theatre (Admin)' })
-  remove(@Param('id') id: string) {
-    return this.theatresService.delete(id);
+  @ApiOperation({ summary: 'Delete theatre (Owner/Admin)' })
+  remove(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.theatresService.delete(id, user._id.toString(), user.role);
   }
 
   @Patch(':id/status')

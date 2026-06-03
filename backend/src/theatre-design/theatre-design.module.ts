@@ -15,6 +15,7 @@ import {
   TheatreCoordinateSchema,
 } from './schemas/theatre-coordinate.schema';
 import { TheatresModule } from '../theatres/theatres.module';
+import { ScreensModule } from '../screens/screens.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { TheatresModule } from '../theatres/theatres.module';
       { name: TheatreCoordinate.name, schema: TheatreCoordinateSchema },
     ]),
     TheatresModule,
+    ScreensModule,
   ],
   controllers: [TheatreDesignController],
   providers: [TheatreDesignService],
