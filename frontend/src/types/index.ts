@@ -267,3 +267,110 @@ export interface Theatre3DDataResponse {
   geometryData: GeometryData;
   coordinates: TheatreCoordinate[];
 }
+
+// ─── Phase 3: Cinema Intelligence Types ─────────────────────────────────────
+
+export type SeatQualityCategory = 'ELITE' | 'EXCELLENT' | 'RECOMMENDED' | 'AVERAGE' | 'AVOID';
+export type HeatmapMode = 'immersion' | 'comfort' | 'coverage' | 'overall';
+export type ViewingPreference = 'IMMERSION' | 'COMFORT' | 'BALANCED';
+export type PositionPreference = 'FRONT' | 'MIDDLE' | 'BACK';
+export type PriorityPreference = 'AUDIO' | 'VISUALS' | 'BOTH';
+export type WatchingWith = 'ALONE' | 'COUPLE' | 'GROUP' | 'FAMILY';
+
+export interface SeatScore {
+  _id: string;
+  layoutId: string;
+  seatId: string;
+  screenType: ScreenType;
+  row: string;
+  seatNumber: number;
+
+  // Individual scores (0-100)
+  distanceScore: number;
+  horizontalAngleScore: number;
+  verticalAngleScore: number;
+  centerAlignmentScore: number;
+  screenCoverageScore: number;
+
+  // Composite scores (0-100)
+  immersionScore: number;
+  comfortScore: number;
+  premiumExperienceScore: number;
+
+  // Raw measurements
+  neckStrainDegrees: number;
+  distanceMeters: number;
+  horizontalAngleDegrees: number;
+  verticalAngleDegrees: number;
+  screenCoverageFovPercent: number;
+
+  // Classification
+  category: SeatQualityCategory;
+  heatmapColor: string;
+}
+
+export interface SeatRankEntry {
+  seatId: string;
+  row: string;
+  seatNumber: number;
+  premiumExperienceScore: number;
+  immersionScore: number;
+  comfortScore: number;
+  screenCoverageScore: number;
+  category: string;
+}
+
+export interface CategoryDistribution {
+  elite: number;
+  excellent: number;
+  recommended: number;
+  average: number;
+  avoid: number;
+}
+
+export interface SeatRanking {
+  _id: string;
+  layoutId: string;
+  screenType: ScreenType;
+  top5: SeatRankEntry[];
+  top10: SeatRankEntry[];
+  topVip: SeatRankEntry[];
+  topValue: SeatRankEntry[];
+  topAccessible: SeatRankEntry[];
+  categoryDistribution: CategoryDistribution;
+  generatedAt: string;
+}
+
+export interface HeatmapEntry {
+  seatId: string;
+  color: string;
+  score: number;
+  category: SeatQualityCategory;
+}
+
+export interface SeatExplanation {
+  explanation: string;
+  shortSummary: string;
+}
+
+export interface SeatComparisonResult {
+  seats: SeatScore[];
+  insights: string[];
+  winner: string;
+}
+
+export interface CinemaUserPreference {
+  _id?: string;
+  userId: string;
+  viewingPreference: ViewingPreference;
+  positionPreference: PositionPreference;
+  priorityPreference: PriorityPreference;
+  watchingWith: WatchingWith;
+}
+
+export interface PersonalizedRecommendation {
+  primary: SeatRankEntry;
+  alternates: SeatRankEntry[];
+  explanation: string;
+}
+
