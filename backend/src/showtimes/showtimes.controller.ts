@@ -18,7 +18,7 @@ import { Roles } from '../decorators/roles.decorator';
 import { Role } from '../common/constants/roles.enum';
 
 @ApiTags('Showtimes')
-@Controller('api/showtimes')
+@Controller('showtimes')
 export class ShowtimesController {
   constructor(private readonly showtimesService: ShowtimesService) {}
 

@@ -18,7 +18,7 @@ import { Roles } from '../decorators/roles.decorator';
 import { Role } from '../common/constants/roles.enum';
 
 @ApiTags('Movies')
-@Controller('api/movies')
+@Controller('movies')
 export class MoviesController {
   constructor(private readonly moviesService: MoviesService) {}
 

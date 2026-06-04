@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Types, Schema as MongooseSchema } from 'mongoose';
 import { ScreenType } from '../../common/constants/screen-type.enum';
 
 export interface SeatInfo {
@@ -13,7 +13,7 @@ export type ScreenDocument = Screen & Document;
 
 @Schema({ timestamps: true })
 export class Screen {
-  @Prop({ type: Types.ObjectId, ref: 'Theatre', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Theatre', required: true })
   theatreId: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
@@ -34,7 +34,7 @@ export class Screen {
   @Prop({ type: [[Object]], default: [] })
   seatMap: SeatInfo[][];
 
-  @Prop({ type: Types.ObjectId, ref: 'TheatreLayout' })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'TheatreLayout' })
   layoutId: Types.ObjectId;
 }
 

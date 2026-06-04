@@ -1,12 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Types, Schema as MongooseSchema } from 'mongoose';
 import { TheatreStatus } from '../../common/constants/theatre-status.enum';
 
 export type TheatreDocument = Theatre & Document;
 
 @Schema({ timestamps: true })
 export class Theatre {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
   ownerId: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
@@ -30,7 +30,7 @@ export class Theatre {
   @Prop({ type: String, enum: TheatreStatus, default: TheatreStatus.PENDING })
   status: TheatreStatus;
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
+  @Prop({ type: [{ type: MongooseSchema.Types.ObjectId, ref: 'User' }], default: [] })
   moderators: Types.ObjectId[];
 }
 

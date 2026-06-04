@@ -25,7 +25,7 @@ import { CurrentUser } from '../decorators/current-user.decorator';
 import { Role } from '../common/constants/roles.enum';
 
 @ApiTags('Theatres')
-@Controller('api/theatres')
+@Controller('theatres')
 export class TheatresController {
   constructor(private readonly theatresService: TheatresService) {}
 

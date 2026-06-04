@@ -1,4 +1,7 @@
 import * as mongoose from 'mongoose';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 const TheatreSchema = new mongoose.Schema({
   ownerId: mongoose.Types.ObjectId,
@@ -8,9 +11,13 @@ const TheatreSchema = new mongoose.Schema({
   address: String
 }, { collection: 'theatres' });
 
-const MONGO_URI = 'mongodb+srv://viewmax010699_db_user:12345678900@viewmax.d2fhkax.mongodb.net/';
+const MONGO_URI = process.env.MONGODB_URI;
 
 async function run() {
+  if (!MONGO_URI) {
+    console.error('❌ MONGODB_URI is not defined in the environment variables');
+    process.exit(1);
+  }
   await mongoose.connect(MONGO_URI);
   const Theatre = mongoose.model('Theatre', TheatreSchema);
   const theatres = await Theatre.find({});

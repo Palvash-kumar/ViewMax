@@ -1,98 +1,332 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# ViewMax Backend Services — Core API & Infrastructure Engine
+> Enterprise-grade Cinema Experience Platform API, built with NestJS, TypeScript, MongoDB, Redis, and Stripe.
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+---
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 🚀 Architectural Overview
+The **ViewMax Backend** serves as the high-throughput, secure core of the ViewMax ecosystem. Designed using the **NestJS** framework for robust structural patterns (controllers, services, guards, pipes, and interceptors), it provides scalable RESTful endpoints, cryptographically secure ticket handling, real-time analytics, and transactional workflow management.
 
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
-```bash
-$ npm install
+### System Integration Schema
+```
+                                 +-----------------------+
+                                 |   Next.js Frontend    |
+                                 +-----------+-----------+
+                                             | (REST / HTTPS)
+                                             v
+                                 +-----------+-----------+
+                                 |     NestJS API        |
+                                 |  (Global Prefix: api) |
+                                 +-----+-----+-----+-----+
+                                       |     |     |
+                 +---------------------+     |     +---------------------+
+                 v                           v                           v
+      +----------+----------+     +----------+----------+     +----------+----------+
+      |  MongoDB (Mongoose) |     |  Redis (ioredis)    |     |  Third-Party APIs   |
+      |                     |     |                     |     |                     |
+      |  - User Collections |     |  - Seat Locks (TTL) |     |  - Stripe Payments  |
+      |  - Movie Metadata   |     |  - Nonces & Sessions|     |  - Cloudinary Media |
+      |  - Audit Log Docs   |     |  - BullMQ Workers   |     |  - SMTP Server      |
+      +---------------------+     +---------------------+     +---------------------+
 ```
 
-## Compile and run the project
+---
 
+## ✨ Features & Production Advantages
+
+### 1. High-Performance Seat Locking & Booking Engine
+* **Atomic Redis Locks**: Prevents double-bookings by acquiring atomic, Redis-backed locks on seat numbers (with a 3-minute TTL) during checkout.
+* **Stripe Webhook Synchronization**: Captures payment events asynchronously to automatically confirm bookings and clean up associated Redis locks.
+* **Automated Expiration Processing**: Integrated with BullMQ to clean up unpaid pending reservations and automatically release seats back to the theatre inventory.
+
+### 2. Cryptographically Secure Ticket Lifecycle
+* **HMAC-SHA256 QR Engine**: Generates unique, tamper-proof QR codes containing signed booking payloads.
+* **One-Time Nonce System**: Redis-based nonces verify that a QR code is checked in exactly once, eliminating replay attacks.
+* **Anti-Fraud Guard rails**: Features IP-based request tracking, check-in rate limits, and suspicious activity logs to prevent duplicate entry attempts.
+* **Transfer Protocol**: Allows users to transfer confirmed tickets to other registered accounts securely.
+
+### 3. Asynchronous Task Architecture (BullMQ + Redis)
+* **Background Processing**: Heavy tasks like notification deliveries, seat release timers, and analytics logging are deferred to BullMQ queues.
+* **Resiliency**: BullMQ automatically retries failed background jobs using exponential back-off strategies, keeping user-facing REST routes fast and unblocked.
+
+### 4. Dynamic Theatre Design Engine
+* **2D Grid Layouts**: Custom layouts support multiple seating designs with varying coordinates, rows, and screen boundaries.
+* **AI-Powered Recommendation (Cinema Intelligence)**: Implements scoring algorithms that evaluate viewing angles, comfort, group sizes, and accessibility needs to suggest the premium seating locations.
+
+### 5. Advanced BI Analytics & Metrics
+* **Financial Timelines**: Aggregates booking totals to generate revenue trends.
+* **Metrics Aggregator**: Details occupancy rates, booking distributions across cinemas, and top-performing films.
+
+### 6. Security Hardening & Isolation
+* **Security Headers**: Managed by `helmet` to restrict CORS policies, prevent cross-site scripting (XSS), and set rigid Content Security Policies.
+* **Mongo Injection Sanitizer**: Prevents NoSQL injection attacks by filtering query parameters for MongoDB command keys (e.g., `$gt`, `$ne`).
+* **Multi-Origin CORS**: Configurable list of origins with strict credentials support.
+* **Tiered Rate Limiter**: Enforces short (10 req/s), medium (100 req/min), and long-term (1000 req/hr) throttler limits.
+
+---
+
+## 🛠️ Technology Stack
+
+| Component | Technology | Description |
+| :--- | :--- | :--- |
+| **Runtime & Core** | Node.js (v20+), NestJS, TypeScript | Type-safe, modular, enterprise backend framework. |
+| **Primary Database**| MongoDB, Mongoose | Schema-based modeling for collections, indexing, and transactions. |
+| **Cache & Queues**  | Redis, ioredis, BullMQ | Atomic locking, session state management, and async queues. |
+| **Payments**        | Stripe SDK | Handles billing, card checkouts, and asynchronous webhooks. |
+| **Media Store**     | Cloudinary | Handles image hosting and processing (posters, avatars). |
+| **Mailing**         | Nodemailer | Transactional emails for password resets and verification. |
+| **Security**        | Argon2, JWT, Helmet | Argon2 password hashing, double JWT tokens, and security filters. |
+
+---
+
+## 📋 Prerequisites
+Before running the backend locally, make sure you have the following installed:
+* **Node.js** (v20.0.0 or higher)
+* **npm** (v10.0.0 or higher)
+* **MongoDB** (Local instance or MongoDB Atlas cluster connection URI)
+* **Redis Server** (Local service or Redis Cloud instance)
+
+---
+
+## ⚙️ Environment Configuration
+
+Create a `.env` file in the root of the `backend/` directory by copying `.env.example`:
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cp .env.example .env
 ```
 
-## Run tests
+Define the configuration variables according to your local services:
 
-```bash
-# unit tests
-$ npm run test
+```ini
+# Environment settings
+NODE_ENV=development
+PORT=4000
 
-# e2e tests
-$ npm run test:e2e
+# MongoDB Connection String (Atlas or Local)
+MONGODB_URI=mongodb://localhost:27017/viewmax
 
-# test coverage
-$ npm run test:cov
+# JWT Access and Refresh Secrets
+JWT_ACCESS_SECRET=your_jwt_access_secret_key_here
+JWT_REFRESH_SECRET=your_jwt_refresh_secret_key_here
+JWT_ACCESS_EXPIRY=15m
+JWT_REFRESH_EXPIRY=7d
+
+# Google OAuth Credentials (for social logins)
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CALLBACK_URL=http://localhost:4000/api/auth/google/callback
+
+# Redis Service
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+
+# Stripe Settings (Test Keys)
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Allowed Frontend Origin (for CORS)
+FRONTEND_URL=http://localhost:3000
+
+# Transactional SMTP Settings
+SMTP_HOST=smtp.mailtrap.io
+SMTP_PORT=2525
+SMTP_USER=your_smtp_user
+SMTP_PASS=your_smtp_password
+
+# Cloudinary Assets
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
 
-## Deployment
+---
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## 🚀 Running Locally
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Follow these steps to run the backend in a development or production environment:
 
+### 1. Install Dependencies
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm install
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 2. Seed Seating Layout Templates
+Initialize default theatre design templates (essential for the seating configurations to function correctly):
+```bash
+npm run seed:templates
+```
 
-## Resources
+### 3. Start Development Server
+Starts the application in watch mode with automatic hot reloading:
+```bash
+npm run start:dev
+```
+The server will start running on **`http://localhost:4000`** with the global prefix `/api`.
+* API Root: [http://localhost:4000/api](http://localhost:4000/api)
+* Swagger Docs: [http://localhost:4000/api/docs](http://localhost:4000/api/docs)
+* Health Probe: [http://localhost:4000/api/health](http://localhost:4000/api/health)
 
-Check out a few resources that may come in handy when working with NestJS:
+### 4. Build for Production
+To compile the TypeScript code into optimized JavaScript in the `dist` directory:
+```bash
+npm run build
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### 5. Run in Production Mode
+Ensure you've run the build step, then start the compiled files:
+```bash
+npm run start:prod
+```
 
-## Support
+### 6. Run Tests
+The repository features E2E tests, unit tests, and coverage reporting:
+```bash
+# Unit tests
+npm run test
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+# Integration (E2E) tests
+npm run test:e2e
 
-## Stay in touch
+# Test coverage report
+npm run test:cov
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+---
 
-## License
+## 📂 Directory Structure
+```
+backend/
+├── src/
+│   ├── analytics/           # Analytics, occupancy reporting, and business intelligence
+│   ├── audit/               # Request & entity audit interceptors and storage
+│   ├── auth/                # JWT Passport strategies, local login, and Google OAuth
+│   ├── bookings/            # Transactional reservations and Redis-based seat locks
+│   ├── cinema-intelligence/ # AI seat recommendations and scoring engines
+│   ├── cloudinary/          # Cloudinary file uploading configuration
+│   ├── common/              # Global constants, decorators, filters, and exceptions
+│   ├── config/              # Environment configurations & Joi schema validation
+│   ├── health/              # Kubernetes liveness/readiness indicators
+│   ├── middleware/          # Security middlewares (Mongo Sanitizer, cookieParser)
+│   ├── movies/              # Movie catalog management
+│   ├── notifications/       # Multi-channel notifications system (in-app + emails)
+│   ├── payments/            # Stripe integration and payment webhooks
+│   ├── queue/               # BullMQ queue modules and background processors
+│   ├── redis/               # Global Redis configuration and connection services
+│   ├── screens/             # Screening auditoriums setup
+│   ├── search/              # Aggregated cross-entity regex search
+│   ├── security/            # User sessions revocation and security logs
+│   ├── showtimes/           # Show scheduling and seat layouts assignment
+│   ├── theatre-design/      # 2D designer, templates, and coordinates calculators
+│   ├── theatres/            # Cinema halls locations, moderators allocation
+│   ├── tickets/             # QR generators, checking counters, and fraud detectors
+│   ├── users/               # Accounts and profiles
+│   ├── main.ts              # Global bootstrapping, CORS, helmet filters
+│   └── app.module.ts        # Modular tree dependency compiler
+├── test/                    # Integration and End-to-End tests
+└── package.json             # Scripts and packages manifest
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+---
+
+## 🔌 API Endpoints Catalog
+
+All routes are prefixed by `/api`. Detailed schema descriptions and models are available interactively at `/api/docs` via Swagger (in development mode).
+
+### 🔑 Authentication Module (`/api/auth`)
+| Route | Method | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `/register` | `POST` | Public | Register a new user |
+| `/login` | `POST` | Public | Authenticates using email/password, returns tokens |
+| `/refresh` | `POST` | Public | Rotates expired access JWT via valid refresh JWT |
+| `/logout` | `POST` | User | Invalidate the refresh session |
+| `/forgot-password` | `POST` | Public | Requests a password reset email |
+| `/reset-password` | `POST` | Public | Reset password using a valid email token |
+| `/verify-email` | `POST` | Public | Verifies email using a valid confirmation token |
+| `/google` | `GET` | Public | Initiates Google OAuth2 redirection |
+| `/me` | `GET` | User | Returns the current user's profile metadata |
+
+### 🎟️ Tickets & Check-In Module (`/api/tickets`)
+| Route | Method | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `/verify` | `POST` | Public | Cryptographically verify a ticket QR signature |
+| `/check-in` | `POST` | Staff / Admin | Performs check-in, invalidates nonce (Replay prevention) |
+| `/:id/transfer` | `POST` | Owner | Transfer ticket ownership to another user's email |
+| `/admin/all` | `GET` | Admin | Get paginated list of all system tickets |
+
+### 🔔 Notifications Module (`/api/notifications`)
+| Route | Method | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `/` | `GET` | User | Get paginated list of user notifications |
+| `/unread-count` | `GET` | User | Get count of unread notifications |
+| `/:id/read` | `PATCH` | User | Mark a notification as read |
+| `/read-all` | `PATCH` | User | Mark all notifications as read |
+| `/:id` | `DELETE` | User | Remove a notification |
+
+### 🛡️ Security & Session Module (`/api/security`)
+| Route | Method | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `/dashboard` | `GET` | User | Retrieve current user's account risk profile |
+| `/sessions` | `GET` | User | Get list of active sessions for the user |
+| `/sessions/:sessionId` | `DELETE` | User | Revoke an active session by ID |
+| `/sessions` | `DELETE` | User | Revoke all other active sessions (Log out elsewhere) |
+| `/events` | `GET` | User | Get log of recent account security events |
+| `/admin/overview` | `GET` | Admin | Overall system threat metrics and activity |
+
+### 📊 Analytics & BI Module (`/api/analytics`)
+| Route | Method | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `/admin/dashboard` | `GET` | Admin | Financial, occupancy, and booking metrics |
+
+### 🔍 Search Module (`/api/search`)
+| Route | Method | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `/` | `GET` | User | Paginated full-text regex search across movies & theatres |
+
+### 📥 Data Export Module (`/api/export`)
+| Route | Method | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `/bookings` | `GET` | Admin | Export bookings list as CSV or styled Excel sheet |
+| `/users` | `GET` | Admin | Export users list as CSV or styled Excel sheet |
+| `/audit-logs` | `GET` | Admin | Export logs as CSV or styled Excel sheet |
+
+### 🎬 Movies Module (`/api/movies`)
+| Route | Method | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `/` | `GET` | Public | List and search all movies (supports pagination/sorting) |
+| `/now-showing` | `GET` | Public | List movies currently active in showtimes |
+| `/:id` | `GET` | Public | Get single movie metadata by ID |
+| `/` | `POST` | Admin | Create a new movie entry |
+| `/:id` | `PATCH` | Admin | Update movie details |
+| `/:id` | `DELETE` | Admin | Remove a movie from the database |
+
+### 🏛️ Theatres & Layout Module (`/api/theatres` & `/api/theatre-design`)
+| Route | Method | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `/theatres` | `GET` | Public | List and query theatres by city and status |
+| `/theatres/my` | `GET` | Owner | List theatres owned by the requesting owner |
+| `/theatres` | `POST` | Owner / Admin | Create a theatre |
+| `/theatres/:id` | `PATCH` | Owner / Admin | Update theatre info |
+| `/theatres/:id/status` | `PATCH` | Admin | Approve or reject a theatre listing |
+| `/theatres/:id/moderators` | `POST` | Owner | Add a moderator to the theatre |
+| `/theatres/:id/moderators/:userId`| `DELETE` | Owner | Remove moderator access |
+| `/theatre-design/templates` | `GET` | Public | List layout design templates |
+| `/theatre-design/layouts` | `POST` | Owner / Admin | Save a seating grid design |
+| `/theatre-design/layouts/:id/generate` | `POST` | Owner / Admin | Generate 3D grid data & seating configurations |
+| `/theatre-design/layouts/:id/publish` | `POST` | Owner / Admin | Finalize and publish design layout |
+
+### 🎫 Bookings Module (`/api/bookings`)
+| Route | Method | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `/` | `POST` | User | Book selected seats (returns Stripe Checkout URL) |
+| `/` | `GET` | User | Get personal booking history |
+| `/:id` | `GET` | User / Staff | Get full booking invoice/ticket breakdown |
+| `/:id/cancel`| `POST` | User | Cancel booking and release locked seats |
+
+---
+
+## 🛑 Production Deployment Tips
+
+1. **Eviction Policy**: Ensure your Redis instance eviction policy is set to `noeviction` for critical workflows like BullMQ and seat locking, preventing premature key evictions.
+2. **Database Indexes**: The MongoDB collections are indexed automatically during bootstrap. In cluster environments, ensure MongoDB CPU loads are monitored during high write volumes.
+3. **Stripe Webhooks**: Webhooks must have the raw payload passed to verify signatures correctly. NestJS is configured with `rawBody: true` in `main.ts` for this reason.
+4. **PM2/Docker Graceful Shutdown**: NestJS is configured with `app.enableShutdownHooks()` to allow Mongoose, Redis client, and BullMQ workers to gracefully exit during rolling container updates.

@@ -1,18 +1,18 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Types, Schema as MongooseSchema } from 'mongoose';
 import { ShowtimeStatus } from '../../common/constants/showtime-status.enum';
 
 export type ShowtimeDocument = Showtime & Document;
 
 @Schema({ timestamps: true })
 export class Showtime {
-  @Prop({ type: Types.ObjectId, ref: 'Movie', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Movie', required: true })
   movieId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Theatre', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Theatre', required: true })
   theatreId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Screen', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Screen', required: true })
   screenId: Types.ObjectId;
 
   @Prop({ required: true })

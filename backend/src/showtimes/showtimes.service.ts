@@ -123,9 +123,10 @@ export class ShowtimesService {
    */
   async getSeatAvailability(showtimeId: string) {
     const showtime = await this.findById(showtimeId);
-    const screen = await this.screensService.findById(
-      showtime.screenId.toString(),
-    );
+    // screenId is populated by findById, so extract the _id from the populated object
+    const screenIdRaw = showtime.screenId as any;
+    const screenIdStr = screenIdRaw?._id?.toString() ?? screenIdRaw.toString();
+    const screen = await this.screensService.findById(screenIdStr);
 
     const seatMap = screen.seatMap;
     const bookedSeats = new Set(showtime.bookedSeats);
