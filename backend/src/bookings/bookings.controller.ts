@@ -14,7 +14,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
 
 @ApiTags('Bookings')
-@Controller('api/bookings')
+@Controller('bookings')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class BookingsController {

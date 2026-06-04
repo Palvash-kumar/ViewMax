@@ -22,7 +22,7 @@ import { CurrentUser } from '../decorators/current-user.decorator';
 import { Role } from '../common/constants/roles.enum';
 
 @ApiTags('Cinema Intelligence')
-@Controller('api/cinema-intelligence')
+@Controller('cinema-intelligence')
 export class CinemaIntelligenceController {
   constructor(
     private readonly intelligenceService: CinemaIntelligenceService,

@@ -7,7 +7,7 @@ import { Roles } from '../decorators/roles.decorator';
 import { Role } from '../common/constants/roles.enum';
 
 @ApiTags('Audit Logs')
-@Controller('api/audit-logs')
+@Controller('audit-logs')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 @ApiBearerAuth()
