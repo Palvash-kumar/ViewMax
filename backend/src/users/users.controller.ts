@@ -19,7 +19,7 @@ import { CurrentUser } from '../decorators/current-user.decorator';
 import { Role } from '../common/constants/roles.enum';
 
 @ApiTags('Users')
-@Controller('api/users')
+@Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
