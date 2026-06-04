@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
-import { Film, User, LogOut, Menu, X, Ticket, LayoutDashboard, ChevronDown } from 'lucide-react';
+import { Film, User, LogOut, Menu, X, Ticket, LayoutDashboard, ChevronDown, Shield, Scan } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
+import NotificationCenter from './NotificationCenter';
+import CommandPalette from './CommandPalette';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -72,6 +74,8 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="hidden md:flex items-center gap-3">
+            <CommandPalette />
+            {isAuthenticated && <NotificationCenter />}
             {isAuthenticated && user ? (
               <div className="relative">
                 <button
@@ -104,6 +108,18 @@ export default function Navbar() {
                         onClick={() => setProfileOpen(false)}>
                         <User className="w-4 h-4" /> Profile
                       </Link>
+                      <Link href="/profile/security"
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[var(--color-text-secondary)] hover:bg-white/5 hover:text-[var(--color-text-primary)] transition-all"
+                        onClick={() => setProfileOpen(false)}>
+                        <Shield className="w-4 h-4" /> Security
+                      </Link>
+                      {['ADMIN', 'THEATRE_OWNER', 'THEATRE_MODERATOR'].includes(user.role) && (
+                        <Link href="/scanner"
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[var(--color-text-secondary)] hover:bg-white/5 hover:text-[var(--color-text-primary)] transition-all"
+                          onClick={() => setProfileOpen(false)}>
+                          <Scan className="w-4 h-4" /> Scanner
+                        </Link>
+                      )}
                       <button
                         onClick={() => { logout().then(() => router.push('/')); setProfileOpen(false); }}
                         className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-[var(--color-crimson-400)] hover:bg-[var(--color-crimson-500)]/10 transition-all cursor-pointer">
