@@ -16,7 +16,7 @@ import { BookingsService } from '../bookings/bookings.service';
 import { PaymentStatus } from '../common/constants/payment-status.enum';
 
 @ApiTags('Payments')
-@Controller('api/payments')
+@Controller('payments')
 export class PaymentsController {
   private readonly logger = new Logger(PaymentsController.name);
 

@@ -17,7 +17,7 @@ import { Roles } from '../decorators/roles.decorator';
 import { Role } from '../common/constants/roles.enum';
 
 @ApiTags('Screens')
-@Controller('api')
+@Controller()
 export class ScreensController {
   constructor(private readonly screensService: ScreensService) {}
 
