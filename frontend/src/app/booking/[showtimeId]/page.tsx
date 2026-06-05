@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Clock, MapPin, CreditCard, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, CreditCard, AlertCircle, Eye } from 'lucide-react';
 import api from '@/lib/axios';
 import SeatMap from '@/components/SeatMap';
 import { Button } from '@/components/ui';
 import { useBookingStore } from '@/stores/booking.store';
 import { useAuthStore } from '@/stores/auth.store';
+import SeatView3DModal from '@/components/theatre3d/SeatView3DModal';
 import type { SeatAvailability } from '@/types';
 
 export default function BookingPage() {
@@ -30,6 +31,9 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [error, setError] = useState('');
+  const [show3DModal, setShow3DModal] = useState(false);
+  const [layoutId, setLayoutId] = useState<string | null>(null);
+  const [screenId, setScreenId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!params.showtimeId) return;
@@ -39,10 +43,25 @@ export default function BookingPage() {
       api.get(`/showtimes/${params.showtimeId}/seats`),
     ])
       .then(([stRes, seatsRes]) => {
-        setShowtimeData(stRes.data.data);
+        const st = stRes.data.data;
+        setShowtimeData(st);
         const seats = seatsRes.data.data;
         setSeatData(seats);
         setShowtime(params.showtimeId as string, seats.ticketPrice);
+
+        // Try to get layoutId from the screen for 3D view
+        const sId = typeof st.screenId === 'string' ? st.screenId : st.screenId?._id;
+        if (sId) {
+          setScreenId(sId);
+          api.get(`/theatre-design/public/screens/${sId}/layout`)
+            .then((layoutRes) => {
+              const layoutData = layoutRes.data.data || layoutRes.data;
+              if (layoutData?._id) {
+                setLayoutId(typeof layoutData._id === 'string' ? layoutData._id : layoutData._id.toString());
+              }
+            })
+            .catch(() => {}); // Non-fatal — 3D view just won't be available
+        }
       })
       .catch(() => setError('Failed to load seat data'))
       .finally(() => setLoading(false));
@@ -154,9 +173,20 @@ export default function BookingPage() {
 
             {/* Selected seats */}
             <div className="mb-5">
-              <p className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
-                Selected Seats ({selectedSeats.length})
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">
+                  Selected Seats ({selectedSeats.length})
+                </p>
+                {selectedSeats.length > 0 && layoutId && (
+                  <button
+                    onClick={() => setShow3DModal(true)}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border border-purple-500/20 transition-all cursor-pointer"
+                  >
+                    <Eye className="w-3 h-3" />
+                    View from Seat
+                  </button>
+                )}
+              </div>
               {selectedSeats.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                   {selectedSeats.sort().map((seat) => (
@@ -213,6 +243,17 @@ export default function BookingPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* 3D Seat View Modal */}
+      {layoutId && screenId && (
+        <SeatView3DModal
+          isOpen={show3DModal}
+          onClose={() => setShow3DModal(false)}
+          layoutId={layoutId}
+          screenId={screenId}
+          seatLabel={selectedSeats[0] || ''}
+        />
+      )}
     </div>
   );
 }

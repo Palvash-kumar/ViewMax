@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Monitor, Pencil, Eye, Box, Plus, Trash2, X, Settings } from 'lucide-react';
+import { Building2, Monitor, Pencil, Eye, Box, Plus, Trash2, X, Settings, Film, Upload, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 import { useAuthStore } from '@/stores/auth.store';
 import { EmptyState, Button } from '@/components/ui';
-import type { Theatre, Screen } from '@/types';
+import type { Theatre, Screen, DemoVideo } from '@/types';
 
 export default function OwnerDashboard() {
   const { user } = useAuthStore();
@@ -44,6 +44,17 @@ export default function OwnerDashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
+
+  // Demo Video state
+  const [isDemoVideoModalOpen, setIsDemoVideoModalOpen] = useState(false);
+  const [demoVideoScreenId, setDemoVideoScreenId] = useState<string | null>(null);
+  const [demoVideoScreenName, setDemoVideoScreenName] = useState('');
+  const [demoVideos, setDemoVideos] = useState<DemoVideo[]>([]);
+  const [demoVideoLoading, setDemoVideoLoading] = useState(false);
+  const [demoVideoUploading, setDemoVideoUploading] = useState(false);
+  const [demoVideoTitle, setDemoVideoTitle] = useState('');
+  const posterInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     api.get('/theatres/my')
@@ -231,6 +242,67 @@ export default function OwnerDashboard() {
     }
   };
 
+  // ─── Demo Video Handlers ──────────────────────────────────────────────────
+
+  const handleOpenDemoVideos = async (screen: Screen) => {
+    setDemoVideoScreenId(screen._id);
+    setDemoVideoScreenName(screen.name);
+    setIsDemoVideoModalOpen(true);
+    setDemoVideoLoading(true);
+    try {
+      const res = await api.get(`/screens/${screen._id}/demo-videos`);
+      setDemoVideos(res.data.data || res.data || []);
+    } catch {
+      setDemoVideos([]);
+    } finally {
+      setDemoVideoLoading(false);
+    }
+  };
+
+  const handleDemoVideoUpload = async () => {
+    if (!demoVideoScreenId) return;
+    const posterFile = posterInputRef.current?.files?.[0];
+    const videoFile = videoInputRef.current?.files?.[0];
+    if (!posterFile || !videoFile) {
+      alert('Please select both a poster image and a video file');
+      return;
+    }
+
+    setDemoVideoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('poster', posterFile);
+      formData.append('video', videoFile);
+      formData.append('title', demoVideoTitle || 'Demo Video');
+
+      const res = await api.post(
+        `/screens/${demoVideoScreenId}/demo-videos`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+      const newVideo = res.data.data || res.data;
+      setDemoVideos((prev) => [...prev, newVideo]);
+      setDemoVideoTitle('');
+      if (posterInputRef.current) posterInputRef.current.value = '';
+      if (videoInputRef.current) videoInputRef.current.value = '';
+    } catch (err) {
+      console.error(err);
+      alert('Failed to upload demo video');
+    } finally {
+      setDemoVideoUploading(false);
+    }
+  };
+
+  const handleDemoVideoDelete = async (videoId: string) => {
+    if (!confirm('Delete this demo video?')) return;
+    try {
+      await api.delete(`/demo-videos/${videoId}`);
+      setDemoVideos((prev) => prev.filter((v) => v._id !== videoId));
+    } catch {
+      alert('Failed to delete demo video');
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
       <div className="flex items-center justify-between mb-8">
@@ -402,6 +474,14 @@ export default function OwnerDashboard() {
                         >
                           <Pencil className="w-3 h-3" />
                           Design Layout
+                        </button>
+
+                        <button
+                          onClick={() => handleOpenDemoVideos(screen)}
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition-all cursor-pointer"
+                        >
+                          <Film className="w-3 h-3" />
+                          Videos
                         </button>
 
                         {(layoutStatus === 'PREVIEW' || layoutStatus === 'PUBLISHED') && (
@@ -706,6 +786,134 @@ export default function OwnerDashboard() {
                 </Button>
               </div>
             </form>
+          </motion.div>
+        </div>
+      )}
+      {/* Demo Video Management Modal */}
+      {isDemoVideoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card w-full max-w-xl p-6 shadow-2xl relative max-h-[85vh] overflow-y-auto"
+          >
+            <button
+              onClick={() => setIsDemoVideoModalOpen(false)}
+              className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/5 text-[var(--color-text-muted)] hover:text-white transition-all cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-xl font-bold mb-1 font-[var(--font-display)] flex items-center gap-2">
+              <Film className="w-5 h-5 text-purple-400" />
+              Demo Videos
+            </h3>
+            <p className="text-xs text-[var(--color-text-muted)] mb-5">
+              {demoVideoScreenName} — Upload demo videos for customers to preview the format experience
+            </p>
+
+            {/* Upload new video */}
+            <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-5">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Upload className="w-4 h-4 text-[var(--color-gold-400)]" />
+                Upload New Demo Video
+              </h4>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={demoVideoTitle}
+                    onChange={(e) => setDemoVideoTitle(e.target.value)}
+                    placeholder="e.g. IMAX Laser Demo, Dolby Atmos Trailer"
+                    className="w-full bg-white/5 border border-white/10 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">
+                      Poster Image
+                    </label>
+                    <input
+                      ref={posterInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="w-full text-xs text-[var(--color-text-muted)] file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-500/10 file:text-purple-400 file:cursor-pointer hover:file:bg-purple-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">
+                      Video File
+                    </label>
+                    <input
+                      ref={videoInputRef}
+                      type="file"
+                      accept="video/*"
+                      className="w-full text-xs text-[var(--color-text-muted)] file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-500/10 file:text-purple-400 file:cursor-pointer hover:file:bg-purple-500/20"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-[var(--color-text-muted)]">
+                  Videos ≤ 50MB go to Cloudinary CDN. Larger files are stored locally on the server.
+                </p>
+                <Button
+                  variant="primary"
+                  onClick={handleDemoVideoUpload}
+                  loading={demoVideoUploading}
+                  className="w-full bg-purple-600 hover:bg-purple-700 border-none"
+                >
+                  <Upload className="w-4 h-4" />
+                  Upload Demo Video
+                </Button>
+              </div>
+            </div>
+
+            {/* Existing videos */}
+            <h4 className="text-sm font-semibold mb-3">
+              Uploaded Videos ({demoVideos.length})
+            </h4>
+
+            {demoVideoLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
+              </div>
+            ) : demoVideos.length === 0 ? (
+              <div className="text-center py-8 text-[var(--color-text-muted)]">
+                <Film className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No demo videos uploaded yet</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {demoVideos.map((video) => (
+                  <div
+                    key={video._id}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10"
+                  >
+                    <div className="w-16 h-10 rounded-md overflow-hidden shrink-0 bg-white/5">
+                      <img
+                        src={video.posterUrl}
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{video.title}</p>
+                      <p className="text-[10px] text-[var(--color-text-muted)]">
+                        Storage: {video.videoStorage === 'cloudinary' ? '☁️ Cloudinary CDN' : '💾 Local Server'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDemoVideoDelete(video._id)}
+                      className="shrink-0 p-1.5 rounded-lg hover:bg-red-500/10 text-[var(--color-text-muted)] hover:text-red-400 transition-all cursor-pointer"
+                      title="Delete video"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </motion.div>
         </div>
       )}

@@ -374,3 +374,15 @@ export interface PersonalizedRecommendation {
   explanation: string;
 }
 
+// ─── Phase 5: Demo Video Types ──────────────────────────────────────────────
+
+export interface DemoVideo {
+  _id: string;
+  screenId: string;
+  title: string;
+  posterUrl: string;
+  videoUrl: string;
+  videoStorage: 'cloudinary' | 'local';
+  order: number;
+}
+
