@@ -393,6 +393,29 @@ export class TheatreDesignService {
     return this.get3DData(layoutId);
   }
 
+  async findPublishedLayoutByScreen(screenId: string): Promise<any> {
+    // Find the most recent published layout for this screen
+    const layout = await this.layoutModel
+      .findOne({
+        screenId: new Types.ObjectId(screenId),
+        status: LayoutStatus.PUBLISHED,
+      })
+      .sort({ publishedAt: -1 })
+      .exec();
+
+    if (!layout) {
+      throw new NotFoundException('No published layout found for this screen');
+    }
+
+    return {
+      _id: layout._id,
+      layoutName: layout.layoutName,
+      screenId: layout.screenId,
+      theatreId: layout.theatreId,
+      status: layout.status,
+    };
+  }
+
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
   private generateSeatMapFromRows(rows: any[]): SeatMapItem[] {

@@ -1,9 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import compression from 'compression';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
@@ -14,7 +16,7 @@ import { AuditService } from './audit/audit.service';
 const logger = new Logger('Bootstrap');
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true, // Required for Stripe webhook signature verification
     logger: process.env.NODE_ENV === 'production'
       ? ['error', 'warn', 'log']
@@ -79,6 +81,11 @@ async function bootstrap() {
   // Audit interceptor (needs DI context)
   const auditService = app.get(AuditService);
   app.useGlobalInterceptors(new AuditInterceptor(auditService));
+
+  // ── Static file serving (local demo videos) ──────────────────────────────
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads/',
+  });
 
   // ── API prefix ────────────────────────────────────────────────────────────
   app.setGlobalPrefix('api');

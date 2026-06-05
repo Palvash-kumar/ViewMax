@@ -156,4 +156,10 @@ export class TheatreDesignController {
   getPublic3DData(@Param('id') id: string) {
     return this.designService.getPublic3DData(id);
   }
+
+  @Get('public/screens/:screenId/layout')
+  @ApiOperation({ summary: 'Get published layout for a screen (public)' })
+  getPublicLayoutByScreen(@Param('screenId') screenId: string) {
+    return this.designService.findPublishedLayoutByScreen(screenId);
+  }
 }

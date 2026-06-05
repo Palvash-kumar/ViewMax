@@ -36,7 +36,42 @@ export class CloudinaryService {
     });
   }
 
+  async uploadVideo(
+    file: Express.Multer.File,
+    folder: string = 'viewmax/demo-videos',
+  ): Promise<UploadApiResponse> {
+    if (!file) {
+      throw new BadRequestException('No file provided');
+    }
+
+    return new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder,
+          resource_type: 'video',
+          transformation: [
+            { quality: 'auto' },
+          ],
+        },
+        (error, result) => {
+          if (error) return reject(error);
+          if (!result) return reject(new Error('Upload failed'));
+          resolve(result);
+        },
+      );
+
+      const readable = new Readable();
+      readable.push(file.buffer);
+      readable.push(null);
+      readable.pipe(uploadStream);
+    });
+  }
+
   async deleteImage(publicId: string): Promise<void> {
     await cloudinary.uploader.destroy(publicId);
+  }
+
+  async deleteVideo(publicId: string): Promise<void> {
+    await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
   }
 }
