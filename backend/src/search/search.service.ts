@@ -26,11 +26,15 @@ export class SearchService {
     if (!type || type === 'movies') {
       searches.push(
         this.movieModel
-          .find({ $or: [{ title: regex }, { genres: regex }, { language: regex }] })
+          .find({
+            $or: [{ title: regex }, { genres: regex }, { language: regex }],
+          })
           .select('title poster genres releaseDate language status')
           .limit(limit)
           .exec()
-          .then((r) => { results.movies = r; }),
+          .then((r) => {
+            results.movies = r;
+          }),
       );
     }
 
@@ -41,18 +45,24 @@ export class SearchService {
           .select('name city address status')
           .limit(limit)
           .exec()
-          .then((r) => { results.theatres = r; }),
+          .then((r) => {
+            results.theatres = r;
+          }),
       );
     }
 
     if (!type || type === 'users') {
       searches.push(
         this.userModel
-          .find({ $or: [{ firstName: regex }, { lastName: regex }, { email: regex }] })
+          .find({
+            $or: [{ firstName: regex }, { lastName: regex }, { email: regex }],
+          })
           .select('firstName lastName email role avatar isVerified')
           .limit(limit)
           .exec()
-          .then((r) => { results.users = r; }),
+          .then((r) => {
+            results.users = r;
+          }),
       );
     }
 

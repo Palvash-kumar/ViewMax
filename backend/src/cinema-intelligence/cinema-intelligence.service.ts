@@ -20,13 +20,20 @@ import {
 } from './schemas/recommendation-history.schema';
 import { TheatreDesignService } from '../theatre-design/theatre-design.service';
 import { ScreensService } from '../screens/screens.service';
-import { ScoringEngine, SeatGeometry, ScreenGeometry } from './engines/scoring-engine';
+import {
+  ScoringEngine,
+  SeatGeometry,
+  ScreenGeometry,
+} from './engines/scoring-engine';
 import { RankingEngine } from './engines/ranking-engine';
 import {
   RecommendationEngine,
   UserPrefs,
 } from './engines/recommendation-engine';
-import { ExplanationEngine, ExplanationInput } from './engines/explanation-engine';
+import {
+  ExplanationEngine,
+  ExplanationInput,
+} from './engines/explanation-engine';
 import { getScreenFormatProfile } from './engines/screen-format-profiles';
 import {
   CompareSeatsDto,
@@ -195,9 +202,7 @@ export class CinemaIntelligenceService {
       .exec();
 
     if (!ranking) {
-      throw new NotFoundException(
-        'No rankings found. Run calculate first.',
-      );
+      throw new NotFoundException('No rankings found. Run calculate first.');
     }
 
     return ranking;
@@ -252,7 +257,9 @@ export class CinemaIntelligenceService {
 
   // ─── Explain Seat ───────────────────────────────────────────────────────────
 
-  async explainSeat(seatScoreId: string): Promise<{ explanation: string; shortSummary: string }> {
+  async explainSeat(
+    seatScoreId: string,
+  ): Promise<{ explanation: string; shortSummary: string }> {
     const score = await this.seatScoreModel.findById(seatScoreId).exec();
     if (!score) {
       throw new NotFoundException('Seat score not found.');
@@ -341,9 +348,7 @@ export class CinemaIntelligenceService {
       .exec() as Promise<UserPreferenceDocument>;
   }
 
-  async getPreferences(
-    userId: string,
-  ): Promise<UserPreferenceDocument | null> {
+  async getPreferences(userId: string): Promise<UserPreferenceDocument | null> {
     return this.userPrefModel
       .findOne({ userId: new Types.ObjectId(userId) })
       .exec();
@@ -385,8 +390,10 @@ export class CinemaIntelligenceService {
       if (stored) {
         prefs = {
           viewingPreference: dto.viewingPreference || stored.viewingPreference,
-          positionPreference: dto.positionPreference || stored.positionPreference,
-          priorityPreference: dto.priorityPreference || stored.priorityPreference,
+          positionPreference:
+            dto.positionPreference || stored.positionPreference,
+          priorityPreference:
+            dto.priorityPreference || stored.priorityPreference,
           watchingWith: dto.watchingWith || stored.watchingWith,
         };
       }

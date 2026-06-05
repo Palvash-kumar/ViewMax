@@ -29,4 +29,3 @@ import { UsersModule } from '../users/users.module';
   exports: [TheatresService],
 })
 export class TheatresModule {}
-

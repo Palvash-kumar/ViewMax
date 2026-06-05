@@ -18,24 +18,27 @@ const logger = new Logger('Bootstrap');
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true, // Required for Stripe webhook signature verification
-    logger: process.env.NODE_ENV === 'production'
-      ? ['error', 'warn', 'log']
-      : ['error', 'warn', 'log', 'debug', 'verbose'],
+    logger:
+      process.env.NODE_ENV === 'production'
+        ? ['error', 'warn', 'log']
+        : ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
   // ── Security headers ─────────────────────────────────────────────────────
-  app.use(helmet({
-    crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: ["'self'"],
+  app.use(
+    helmet({
+      crossOriginEmbedderPolicy: false,
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'"],
+        },
       },
-    },
-  }));
+    }),
+  );
 
   // ── Compression ───────────────────────────────────────────────────────────
   app.use(compression());
@@ -44,7 +47,9 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // ── CORS ──────────────────────────────────────────────────────────────────
-  const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',');
+  const allowedOrigins = (
+    process.env.FRONTEND_URL || 'http://localhost:3000'
+  ).split(',');
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin || allowedOrigins.includes(origin)) {
@@ -94,7 +99,9 @@ async function bootstrap() {
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
       .setTitle('ViewMax API v4')
-      .setDescription('Enterprise Cinema Platform — Full Phase 4 Production API')
+      .setDescription(
+        'Enterprise Cinema Platform — Full Phase 4 Production API',
+      )
       .setVersion('4.0.0')
       .addBearerAuth()
       // Phase 1-3

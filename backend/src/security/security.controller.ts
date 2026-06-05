@@ -1,5 +1,18 @@
-import { Controller, Get, Delete, Param, Query, UseGuards, Req } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Delete,
+  Param,
+  Query,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { SecurityService } from './security.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
@@ -27,7 +40,10 @@ export class SecurityController {
 
   @Delete('sessions/:sessionId')
   @ApiOperation({ summary: 'Terminate a specific session' })
-  async terminateSession(@Param('sessionId') sessionId: string, @Req() req: any) {
+  async terminateSession(
+    @Param('sessionId') sessionId: string,
+    @Req() req: any,
+  ) {
     await this.securityService.terminateSession(req.user.sub, sessionId);
     return { message: 'Session terminated successfully' };
   }

@@ -7,9 +7,7 @@
  */
 import mongoose from 'mongoose';
 import * as dotenv from 'dotenv';
-import {
-  TheatreTemplateSchema,
-} from '../schemas/theatre-template.schema';
+import { TheatreTemplateSchema } from '../schemas/theatre-template.schema';
 import { ScreenType } from '../../common/constants/screen-type.enum';
 
 dotenv.config();
@@ -56,11 +54,35 @@ function generateCameraPresets(
   const screenCenterY = 1.5 + screenHeight / 2;
 
   return [
-    { name: 'Front', position: [0, 2, stageDepth + 2] as [number, number, number], target: [0, screenCenterY, 0] as [number, number, number] },
-    { name: 'Middle', position: [0, midY + 1, midZ] as [number, number, number], target: [0, screenCenterY, 0] as [number, number, number] },
-    { name: 'Back', position: [0, maxY + 2, totalDepth - 1] as [number, number, number], target: [0, screenCenterY, 0] as [number, number, number] },
-    { name: 'Top', position: [0, maxY + 15, midZ] as [number, number, number], target: [0, 0, midZ] as [number, number, number] },
-    { name: 'Isometric', position: [screenWidth * 0.6, maxY + 8, totalDepth * 0.6] as [number, number, number], target: [0, midY, midZ * 0.5] as [number, number, number] },
+    {
+      name: 'Front',
+      position: [0, 2, stageDepth + 2] as [number, number, number],
+      target: [0, screenCenterY, 0] as [number, number, number],
+    },
+    {
+      name: 'Middle',
+      position: [0, midY + 1, midZ] as [number, number, number],
+      target: [0, screenCenterY, 0] as [number, number, number],
+    },
+    {
+      name: 'Back',
+      position: [0, maxY + 2, totalDepth - 1] as [number, number, number],
+      target: [0, screenCenterY, 0] as [number, number, number],
+    },
+    {
+      name: 'Top',
+      position: [0, maxY + 15, midZ] as [number, number, number],
+      target: [0, 0, midZ] as [number, number, number],
+    },
+    {
+      name: 'Isometric',
+      position: [screenWidth * 0.6, maxY + 8, totalDepth * 0.6] as [
+        number,
+        number,
+        number,
+      ],
+      target: [0, midY, midZ * 0.5] as [number, number, number],
+    },
   ];
 }
 
@@ -73,11 +95,17 @@ const TEMPLATES: TemplateSeed[] = [
     aspectRatio: '1.43:1',
     defaultRows: 20,
     defaultSeatsPerRow: 30,
-    aisleConfiguration: { leftAisle: true, rightAisle: true, centerAisles: [15], aisleWidth: 1.2 },
+    aisleConfiguration: {
+      leftAisle: true,
+      rightAisle: true,
+      centerAisles: [15],
+      aisleWidth: 1.2,
+    },
     seatSpacing: 0.65,
     rowSpacing: 1.2,
     rakeAngle: 18,
-    description: 'Massive IMAX with 1.43:1 aspect ratio. Tall vertical screen for maximum immersion.',
+    description:
+      'Massive IMAX with 1.43:1 aspect ratio. Tall vertical screen for maximum immersion.',
     isDefault: true,
     cameraPresets: [],
   },
@@ -89,11 +117,17 @@ const TEMPLATES: TemplateSeed[] = [
     aspectRatio: '1.90:1',
     defaultRows: 18,
     defaultSeatsPerRow: 26,
-    aisleConfiguration: { leftAisle: true, rightAisle: true, centerAisles: [13], aisleWidth: 1.0 },
+    aisleConfiguration: {
+      leftAisle: true,
+      rightAisle: true,
+      centerAisles: [13],
+      aisleWidth: 1.0,
+    },
     seatSpacing: 0.62,
     rowSpacing: 1.1,
     rakeAngle: 15,
-    description: 'Wide IMAX Digital with 1.90:1 aspect ratio. Immersive wide-format experience.',
+    description:
+      'Wide IMAX Digital with 1.90:1 aspect ratio. Immersive wide-format experience.',
     isDefault: true,
     cameraPresets: [],
   },
@@ -105,7 +139,12 @@ const TEMPLATES: TemplateSeed[] = [
     aspectRatio: '2.39:1',
     defaultRows: 16,
     defaultSeatsPerRow: 24,
-    aisleConfiguration: { leftAisle: true, rightAisle: true, centerAisles: [12], aisleWidth: 1.0 },
+    aisleConfiguration: {
+      leftAisle: true,
+      rightAisle: true,
+      centerAisles: [12],
+      aisleWidth: 1.0,
+    },
     seatSpacing: 0.6,
     rowSpacing: 1.1,
     rakeAngle: 14,
@@ -121,11 +160,17 @@ const TEMPLATES: TemplateSeed[] = [
     aspectRatio: '2.39:1',
     defaultRows: 14,
     defaultSeatsPerRow: 20,
-    aisleConfiguration: { leftAisle: true, rightAisle: true, centerAisles: [10], aisleWidth: 1.2 },
+    aisleConfiguration: {
+      leftAisle: true,
+      rightAisle: true,
+      centerAisles: [10],
+      aisleWidth: 1.2,
+    },
     seatSpacing: 0.7,
     rowSpacing: 1.2,
     rakeAngle: 12,
-    description: 'Premium Dolby Cinema auditorium with wider seat spacing for luxury recliners.',
+    description:
+      'Premium Dolby Cinema auditorium with wider seat spacing for luxury recliners.',
     isDefault: true,
     cameraPresets: [],
   },
@@ -137,7 +182,12 @@ const TEMPLATES: TemplateSeed[] = [
     aspectRatio: '1.90:1',
     defaultRows: 10,
     defaultSeatsPerRow: 14,
-    aisleConfiguration: { leftAisle: false, rightAisle: false, centerAisles: [7], aisleWidth: 0.8 },
+    aisleConfiguration: {
+      leftAisle: false,
+      rightAisle: false,
+      centerAisles: [7],
+      aisleWidth: 0.8,
+    },
     seatSpacing: 0.55,
     rowSpacing: 1.0,
     rakeAngle: 10,
@@ -153,7 +203,12 @@ const TEMPLATES: TemplateSeed[] = [
     aspectRatio: '2.39:1',
     defaultRows: 15,
     defaultSeatsPerRow: 22,
-    aisleConfiguration: { leftAisle: true, rightAisle: true, centerAisles: [11], aisleWidth: 1.0 },
+    aisleConfiguration: {
+      leftAisle: true,
+      rightAisle: true,
+      centerAisles: [11],
+      aisleWidth: 1.0,
+    },
     seatSpacing: 0.6,
     rowSpacing: 1.1,
     rakeAngle: 14,
@@ -169,7 +224,12 @@ const TEMPLATES: TemplateSeed[] = [
     aspectRatio: '2.39:1',
     defaultRows: 12,
     defaultSeatsPerRow: 16,
-    aisleConfiguration: { leftAisle: false, rightAisle: false, centerAisles: [8], aisleWidth: 0.8 },
+    aisleConfiguration: {
+      leftAisle: false,
+      rightAisle: false,
+      centerAisles: [8],
+      aisleWidth: 0.8,
+    },
     seatSpacing: 0.55,
     rowSpacing: 1.0,
     rakeAngle: 10,
@@ -185,7 +245,12 @@ const TEMPLATES: TemplateSeed[] = [
     aspectRatio: '1.90:1',
     defaultRows: 10,
     defaultSeatsPerRow: 16,
-    aisleConfiguration: { leftAisle: false, rightAisle: false, centerAisles: [], aisleWidth: 0.8 },
+    aisleConfiguration: {
+      leftAisle: false,
+      rightAisle: false,
+      centerAisles: [],
+      aisleWidth: 0.8,
+    },
     seatSpacing: 0.6,
     rowSpacing: 1.0,
     rakeAngle: 12,

@@ -31,8 +31,10 @@ export class TheatresService {
   constructor(
     @InjectModel(Theatre.name) private theatreModel: Model<TheatreDocument>,
     @InjectModel(Screen.name) private screenModel: Model<ScreenDocument>,
-    @InjectModel(TheatreLayout.name) private layoutModel: Model<TheatreLayoutDocument>,
-    @InjectModel(TheatreCoordinate.name) private coordinateModel: Model<TheatreCoordinateDocument>,
+    @InjectModel(TheatreLayout.name)
+    private layoutModel: Model<TheatreLayoutDocument>,
+    @InjectModel(TheatreCoordinate.name)
+    private coordinateModel: Model<TheatreCoordinateDocument>,
     private usersService: UsersService,
   ) {}
 
@@ -98,7 +100,9 @@ export class TheatresService {
   }
 
   async findByOwner(ownerId: string): Promise<TheatreDocument[]> {
-    return this.theatreModel.find({ ownerId: new Types.ObjectId(ownerId) }).exec();
+    return this.theatreModel
+      .find({ ownerId: new Types.ObjectId(ownerId) })
+      .exec();
   }
 
   async update(
@@ -121,15 +125,24 @@ export class TheatresService {
     this.checkOwnershipOrAdmin(theatre, userId, userRole);
 
     // Delete all coordinates for layouts of this theatre
-    const layouts = await this.layoutModel.find({ theatreId: new Types.ObjectId(id) }).select('_id').exec();
-    const layoutIds = layouts.map(l => l._id);
+    const layouts = await this.layoutModel
+      .find({ theatreId: new Types.ObjectId(id) })
+      .select('_id')
+      .exec();
+    const layoutIds = layouts.map((l) => l._id);
     if (layoutIds.length > 0) {
-      await this.coordinateModel.deleteMany({ layoutId: { $in: layoutIds } }).exec();
+      await this.coordinateModel
+        .deleteMany({ layoutId: { $in: layoutIds } })
+        .exec();
     }
     // Delete all layouts for this theatre
-    await this.layoutModel.deleteMany({ theatreId: new Types.ObjectId(id) }).exec();
+    await this.layoutModel
+      .deleteMany({ theatreId: new Types.ObjectId(id) })
+      .exec();
     // Delete all screens for this theatre
-    await this.screenModel.deleteMany({ theatreId: new Types.ObjectId(id) }).exec();
+    await this.screenModel
+      .deleteMany({ theatreId: new Types.ObjectId(id) })
+      .exec();
     // Delete the theatre itself
     const result = await this.theatreModel.findByIdAndDelete(id).exec();
     if (!result) throw new NotFoundException('Theatre not found');

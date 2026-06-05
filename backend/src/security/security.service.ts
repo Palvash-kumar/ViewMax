@@ -58,14 +58,23 @@ export class SecurityService {
   }
 
   private getSeverity(eventType: SecurityEventType): SecuritySeverity {
-    const highSeverity = [SecurityEventType.SUSPICIOUS_ACTIVITY, SecurityEventType.SESSION_TERMINATED];
-    const mediumSeverity = [SecurityEventType.LOGIN_FAILED, SecurityEventType.DEVICE_CHANGE];
+    const highSeverity = [
+      SecurityEventType.SUSPICIOUS_ACTIVITY,
+      SecurityEventType.SESSION_TERMINATED,
+    ];
+    const mediumSeverity = [
+      SecurityEventType.LOGIN_FAILED,
+      SecurityEventType.DEVICE_CHANGE,
+    ];
     if (highSeverity.includes(eventType)) return SecuritySeverity.HIGH;
     if (mediumSeverity.includes(eventType)) return SecuritySeverity.MEDIUM;
     return SecuritySeverity.LOW;
   }
 
-  async createSession(userId: string, sessionInfo: Omit<SessionInfo, 'sessionId'>): Promise<string> {
+  async createSession(
+    userId: string,
+    sessionInfo: Omit<SessionInfo, 'sessionId'>,
+  ): Promise<string> {
     const sessionId = crypto.randomBytes(32).toString('hex');
     const sessionData: SessionInfo = { sessionId, ...sessionInfo };
     const key = `session:${userId}:${sessionId}`;
@@ -73,7 +82,10 @@ export class SecurityService {
     return sessionId;
   }
 
-  async getActiveSessions(userId: string, currentSessionId?: string): Promise<SessionInfo[]> {
+  async getActiveSessions(
+    userId: string,
+    currentSessionId?: string,
+  ): Promise<SessionInfo[]> {
     const client = this.redisService.getClient();
     const pattern = `session:${userId}:*`;
     const keys = await client.keys(pattern);
@@ -82,12 +94,16 @@ export class SecurityService {
     for (const key of keys) {
       const data = await this.redisService.getJson<SessionInfo>(key);
       if (data) {
-        sessions.push({ ...data, isCurrent: data.sessionId === currentSessionId });
+        sessions.push({
+          ...data,
+          isCurrent: data.sessionId === currentSessionId,
+        });
       }
     }
 
     return sessions.sort(
-      (a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime(),
+      (a, b) =>
+        new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime(),
     );
   }
 
@@ -118,7 +134,9 @@ export class SecurityService {
         .skip(skip)
         .limit(limit)
         .exec(),
-      this.securityEventModel.countDocuments({ userId: new Types.ObjectId(userId) }).exec(),
+      this.securityEventModel
+        .countDocuments({ userId: new Types.ObjectId(userId) })
+        .exec(),
     ]);
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
@@ -130,17 +148,20 @@ export class SecurityService {
         .sort({ createdAt: -1 })
         .limit(10)
         .exec(),
-      this.securityEventModel.countDocuments({
-        userId: new Types.ObjectId(userId),
-        eventType: SecurityEventType.LOGIN_FAILED,
-        createdAt: { $gte: new Date(Date.now() - 7 * 24 * 3600 * 1000) },
-      }).exec(),
+      this.securityEventModel
+        .countDocuments({
+          userId: new Types.ObjectId(userId),
+          eventType: SecurityEventType.LOGIN_FAILED,
+          createdAt: { $gte: new Date(Date.now() - 7 * 24 * 3600 * 1000) },
+        })
+        .exec(),
     ]);
 
     return {
       recentEvents: events,
       failedLoginsLast7Days: failedLogins,
-      riskLevel: failedLogins > 5 ? 'HIGH' : failedLogins > 2 ? 'MEDIUM' : 'LOW',
+      riskLevel:
+        failedLogins > 5 ? 'HIGH' : failedLogins > 2 ? 'MEDIUM' : 'LOW',
     };
   }
 
@@ -149,23 +170,32 @@ export class SecurityService {
    */
   async getAdminSecurityOverview() {
     const oneDayAgo = new Date(Date.now() - 24 * 3600 * 1000);
-    const [totalEvents, recentFailedLogins, suspiciousActivity, recentEvents] = await Promise.all([
-      this.securityEventModel.countDocuments().exec(),
-      this.securityEventModel.countDocuments({
-        eventType: SecurityEventType.LOGIN_FAILED,
-        createdAt: { $gte: oneDayAgo },
-      }).exec(),
-      this.securityEventModel.countDocuments({
-        eventType: SecurityEventType.SUSPICIOUS_ACTIVITY,
-        resolved: false,
-      }).exec(),
-      this.securityEventModel
-        .find({ severity: { $in: [SecuritySeverity.HIGH, SecuritySeverity.CRITICAL] } })
-        .populate('userId', 'firstName lastName email')
-        .sort({ createdAt: -1 })
-        .limit(20)
-        .exec(),
-    ]);
+    const [totalEvents, recentFailedLogins, suspiciousActivity, recentEvents] =
+      await Promise.all([
+        this.securityEventModel.countDocuments().exec(),
+        this.securityEventModel
+          .countDocuments({
+            eventType: SecurityEventType.LOGIN_FAILED,
+            createdAt: { $gte: oneDayAgo },
+          })
+          .exec(),
+        this.securityEventModel
+          .countDocuments({
+            eventType: SecurityEventType.SUSPICIOUS_ACTIVITY,
+            resolved: false,
+          })
+          .exec(),
+        this.securityEventModel
+          .find({
+            severity: {
+              $in: [SecuritySeverity.HIGH, SecuritySeverity.CRITICAL],
+            },
+          })
+          .populate('userId', 'firstName lastName email')
+          .sort({ createdAt: -1 })
+          .limit(20)
+          .exec(),
+      ]);
 
     return {
       totalEvents,

@@ -18,7 +18,10 @@ export class ExportService {
     @InjectModel(AuditLog.name) private auditLogModel: Model<AuditLogDocument>,
   ) {}
 
-  async exportBookingsToCsv(filters?: { status?: string; userId?: string }): Promise<Buffer> {
+  async exportBookingsToCsv(filters?: {
+    status?: string;
+    userId?: string;
+  }): Promise<Buffer> {
     const query: Record<string, any> = {};
     if (filters?.status) query.bookingStatus = filters.status;
     if (filters?.userId) query.userId = filters.userId;
@@ -26,7 +29,10 @@ export class ExportService {
     const bookings = await this.bookingModel
       .find(query)
       .populate('userId', 'firstName lastName email')
-      .populate({ path: 'showtimeId', populate: [{ path: 'movieId', select: 'title' }] })
+      .populate({
+        path: 'showtimeId',
+        populate: [{ path: 'movieId', select: 'title' }],
+      })
       .sort({ createdAt: -1 })
       .limit(10000)
       .exec();
@@ -54,7 +60,10 @@ export class ExportService {
     const bookings = await this.bookingModel
       .find(query)
       .populate('userId', 'firstName lastName email')
-      .populate({ path: 'showtimeId', populate: [{ path: 'movieId', select: 'title' }] })
+      .populate({
+        path: 'showtimeId',
+        populate: [{ path: 'movieId', select: 'title' }],
+      })
       .sort({ createdAt: -1 })
       .limit(10000)
       .exec();
@@ -79,7 +88,11 @@ export class ExportService {
     // Style header row
     ws.getRow(1).eachCell((cell) => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0a0e1a' } };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF0a0e1a' },
+      };
       cell.alignment = { vertical: 'middle', horizontal: 'center' };
     });
 
@@ -148,13 +161,15 @@ export class ExportService {
 
     const rows = (logs as any[]).map((l) => ({
       LogID: l._id.toString(),
-      Actor: l.actorId ? `${l.actorId.firstName} ${l.actorId.lastName}` : String(l.actorId),
+      Actor: l.actorId
+        ? `${l.actorId.firstName} ${l.actorId.lastName}`
+        : String(l.actorId),
       ActorEmail: l.actorId?.email || '',
       ActorRole: l.actorId?.role || '',
       Action: l.action,
       Resource: l.resource,
       Metadata: JSON.stringify(l.metadata || {}),
-      Timestamp: (l as any).createdAt?.toISOString() || '',
+      Timestamp: l.createdAt?.toISOString() || '',
     }));
 
     return this.toCsvBuffer(rows);

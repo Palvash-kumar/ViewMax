@@ -53,7 +53,11 @@ export class Notification {
   isRead: boolean;
 
   /** Delivery channel – defaults to IN_APP */
-  @Prop({ type: String, enum: NotificationChannel, default: NotificationChannel.IN_APP })
+  @Prop({
+    type: String,
+    enum: NotificationChannel,
+    default: NotificationChannel.IN_APP,
+  })
   channel: NotificationChannel;
 
   /** Arbitrary structured payload (bookingId, movieTitle, amount, etc.) */

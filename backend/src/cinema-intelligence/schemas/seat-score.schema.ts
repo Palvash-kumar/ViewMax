@@ -4,7 +4,12 @@ import { ScreenType } from '../../common/constants/screen-type.enum';
 
 export type SeatScoreDocument = SeatScore & Document;
 
-export type SeatQualityCategory = 'ELITE' | 'EXCELLENT' | 'RECOMMENDED' | 'AVERAGE' | 'AVOID';
+export type SeatQualityCategory =
+  | 'ELITE'
+  | 'EXCELLENT'
+  | 'RECOMMENDED'
+  | 'AVERAGE'
+  | 'AVOID';
 
 @Schema({ timestamps: true, collection: 'seat_scores' })
 export class SeatScore {

@@ -53,11 +53,7 @@ export class TheatreDesignController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create layout (Owner/Admin)' })
   createLayout(@Body() dto: CreateLayoutDto, @CurrentUser() user: any) {
-    return this.designService.createLayout(
-      dto,
-      user._id.toString(),
-      user.role,
-    );
+    return this.designService.createLayout(dto, user._id.toString(), user.role);
   }
 
   @Get('layouts/:id')
@@ -92,11 +88,7 @@ export class TheatreDesignController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete layout (Owner/Admin)' })
   deleteLayout(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.designService.deleteLayout(
-      id,
-      user._id.toString(),
-      user.role,
-    );
+    return this.designService.deleteLayout(id, user._id.toString(), user.role);
   }
 
   @Post('layouts/:id/generate')
@@ -105,11 +97,7 @@ export class TheatreDesignController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Generate 3D data + coordinates (Owner/Admin)' })
   generate3D(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.designService.generate3D(
-      id,
-      user._id.toString(),
-      user.role,
-    );
+    return this.designService.generate3D(id, user._id.toString(), user.role);
   }
 
   @Get('layouts/:id/coordinates')
@@ -134,11 +122,7 @@ export class TheatreDesignController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Publish layout (Owner/Admin)' })
   publishLayout(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.designService.publishLayout(
-      id,
-      user._id.toString(),
-      user.role,
-    );
+    return this.designService.publishLayout(id, user._id.toString(), user.role);
   }
 
   @Get('theatres/:theatreId/layouts')

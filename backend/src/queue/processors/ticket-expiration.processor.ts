@@ -3,7 +3,10 @@ import { Logger, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Job } from 'bullmq';
-import { Booking, BookingDocument } from '../../bookings/schemas/booking.schema';
+import {
+  Booking,
+  BookingDocument,
+} from '../../bookings/schemas/booking.schema';
 import { BookingStatus } from '../../common/constants/booking-status.enum';
 import { PaymentStatus } from '../../common/constants/payment-status.enum';
 import { QUEUE_NAMES } from '../queue.constants';

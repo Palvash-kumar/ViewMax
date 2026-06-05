@@ -76,10 +76,7 @@ export class TheatresController {
   @Roles(Role.THEATRE_OWNER, Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete theatre (Owner/Admin)' })
-  remove(
-    @Param('id') id: string,
-    @CurrentUser() user: any,
-  ) {
+  remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.theatresService.delete(id, user._id.toString(), user.role);
   }
 

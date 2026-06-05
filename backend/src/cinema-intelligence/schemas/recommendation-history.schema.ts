@@ -32,8 +32,9 @@ export class RecommendationHistory {
   scores: RecommendationScores;
 }
 
-export const RecommendationHistorySchema =
-  SchemaFactory.createForClass(RecommendationHistory);
+export const RecommendationHistorySchema = SchemaFactory.createForClass(
+  RecommendationHistory,
+);
 
 RecommendationHistorySchema.index({ userId: 1 });
 RecommendationHistorySchema.index({ layoutId: 1, userId: 1 });

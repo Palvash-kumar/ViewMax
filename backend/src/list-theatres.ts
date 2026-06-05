@@ -3,13 +3,16 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-const TheatreSchema = new mongoose.Schema({
-  ownerId: mongoose.Types.ObjectId,
-  name: String,
-  city: String,
-  status: String,
-  address: String
-}, { collection: 'theatres' });
+const TheatreSchema = new mongoose.Schema(
+  {
+    ownerId: mongoose.Types.ObjectId,
+    name: String,
+    city: String,
+    status: String,
+    address: String,
+  },
+  { collection: 'theatres' },
+);
 
 const MONGO_URI = process.env.MONGODB_URI;
 
@@ -22,8 +25,10 @@ async function run() {
   const Theatre = mongoose.model('Theatre', TheatreSchema);
   const theatres = await Theatre.find({});
   console.log('\n--- Theatres in Database ---');
-  theatres.forEach(t => {
-    console.log(`- ID: ${t._id} | Name: ${t.name} | City: ${t.city} | OwnerId: ${t.ownerId} | Status: ${t.status}`);
+  theatres.forEach((t) => {
+    console.log(
+      `- ID: ${t._id} | Name: ${t.name} | City: ${t.city} | OwnerId: ${t.ownerId} | Status: ${t.status}`,
+    );
   });
   await mongoose.disconnect();
 }

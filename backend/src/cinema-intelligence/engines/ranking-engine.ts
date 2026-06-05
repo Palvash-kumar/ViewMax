@@ -9,11 +9,11 @@ import {
  * Heatmap color palette — cinema-grade colors for seat quality visualization.
  */
 const HEATMAP_COLORS: Record<SeatQualityCategory, string> = {
-  ELITE: '#22c55e',        // Vibrant green
-  EXCELLENT: '#3b82f6',    // Rich blue
-  RECOMMENDED: '#eab308',  // Warm yellow
-  AVERAGE: '#f97316',      // Warning orange
-  AVOID: '#ef4444',        // Alert red
+  ELITE: '#22c55e', // Vibrant green
+  EXCELLENT: '#3b82f6', // Rich blue
+  RECOMMENDED: '#eab308', // Warm yellow
+  AVERAGE: '#f97316', // Warning orange
+  AVOID: '#ef4444', // Alert red
 };
 
 const CATEGORY_THRESHOLDS: { min: number; category: SeatQualityCategory }[] = [
@@ -131,7 +131,10 @@ export class RankingEngine {
   generateHeatmapData(
     scores: SeatScoringResult[],
     mode: 'immersion' | 'comfort' | 'coverage' | 'overall' = 'overall',
-  ): Map<string, { color: string; score: number; category: SeatQualityCategory }> {
+  ): Map<
+    string,
+    { color: string; score: number; category: SeatQualityCategory }
+  > {
     const heatmap = new Map<
       string,
       { color: string; score: number; category: SeatQualityCategory }

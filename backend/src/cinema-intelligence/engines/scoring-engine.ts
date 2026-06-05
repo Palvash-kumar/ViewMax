@@ -11,9 +11,9 @@ export interface SeatGeometry {
   seatId: string;
   row: string;
   seatNumber: number;
-  x: number;  // left/right, 0 = screen center
-  y: number;  // elevation above floor
-  z: number;  // depth from screen
+  x: number; // left/right, 0 = screen center
+  y: number; // elevation above floor
+  z: number; // depth from screen
 }
 
 export interface ScreenGeometry {
@@ -96,11 +96,14 @@ export class ScoringEngine {
       Math.abs(Math.atan2(screenCenterY - seat.y, seat.z)) * (180 / Math.PI);
 
     // Neck strain is essentially the vertical angle with emphasis on upward tilt
-    const neckStrainDeg = screenCenterY > seat.y ? verticalAngleDeg : verticalAngleDeg * 0.6;
+    const neckStrainDeg =
+      screenCenterY > seat.y ? verticalAngleDeg : verticalAngleDeg * 0.6;
 
     // Screen coverage: angular width of screen as seen from seat
     const screenAngularWidth =
-      2 * Math.atan(screen.width / (2 * Math.max(seat.z, 0.5))) * (180 / Math.PI);
+      2 *
+      Math.atan(screen.width / (2 * Math.max(seat.z, 0.5))) *
+      (180 / Math.PI);
     const screenCoverageFovPercent =
       (screenAngularWidth / HUMAN_FOV_HORIZONTAL_DEG) * 100;
 
@@ -228,7 +231,8 @@ export class ScoringEngine {
     profile: ScreenFormatProfile,
   ): number {
     if (angleDeg <= 5) return 100;
-    if (angleDeg >= profile.maxHorizontalAngleDeg) return Math.max(0, 10 - (angleDeg - profile.maxHorizontalAngleDeg));
+    if (angleDeg >= profile.maxHorizontalAngleDeg)
+      return Math.max(0, 10 - (angleDeg - profile.maxHorizontalAngleDeg));
 
     // Smooth cosine falloff
     const ratio = (angleDeg - 5) / (profile.maxHorizontalAngleDeg - 5);
@@ -260,10 +264,7 @@ export class ScoringEngine {
   /**
    * Center alignment: how horizontally centered the seat is.
    */
-  private calcCenterAlignmentScore(
-    seatX: number,
-    screenWidth: number,
-  ): number {
+  private calcCenterAlignmentScore(seatX: number, screenWidth: number): number {
     const halfWidth = screenWidth / 2;
     const absOffset = Math.abs(seatX);
 

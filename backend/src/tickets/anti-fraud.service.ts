@@ -109,7 +109,9 @@ export class AntiFraudService {
     const requests = await this.redisService.incrementRateLimit(key, 60);
 
     if (requests > this.MAX_IP_REQUESTS_PER_MINUTE) {
-      this.logger.warn(`Suspicious IP activity from ${ipAddress}: ${requests} req/min`);
+      this.logger.warn(
+        `Suspicious IP activity from ${ipAddress}: ${requests} req/min`,
+      );
       return true;
     }
 

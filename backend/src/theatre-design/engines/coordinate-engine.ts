@@ -37,7 +37,15 @@ export interface CoordinateEngineInput {
  */
 export class CoordinateEngine {
   generate(input: CoordinateEngineInput): CoordinateResult[] {
-    const { rows, seatMap, aisles, screenConfig, seatSpacing, rowSpacing, rakeAngle } = input;
+    const {
+      rows,
+      seatMap,
+      aisles,
+      screenConfig,
+      seatSpacing,
+      rowSpacing,
+      rakeAngle,
+    } = input;
     const coordinates: CoordinateResult[] = [];
 
     // Sort rows by order

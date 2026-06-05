@@ -1,6 +1,11 @@
 import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { ExportService } from './export.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
@@ -39,7 +44,8 @@ export class ExportController {
   ) {
     const buffer = await this.exportService.exportBookingsToExcel({ status });
     res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="viewmax-bookings-${Date.now()}.xlsx"`,
     });
     res.end(buffer);
@@ -67,7 +73,11 @@ export class ExportController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const buffer = await this.exportService.exportAuditLogsToCsv({ action, startDate, endDate });
+    const buffer = await this.exportService.exportAuditLogsToCsv({
+      action,
+      startDate,
+      endDate,
+    });
     res.set({
       'Content-Type': 'text/csv',
       'Content-Disposition': `attachment; filename="viewmax-audit-${Date.now()}.csv"`,

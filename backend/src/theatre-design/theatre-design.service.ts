@@ -128,7 +128,12 @@ export class TheatreDesignService {
     }
 
     if (!screenConfig) {
-      screenConfig = { width: 14, height: 5.9, aspectRatio: '2.39:1', elevation: 1.5 };
+      screenConfig = {
+        width: 14,
+        height: 5.9,
+        aspectRatio: '2.39:1',
+        elevation: 1.5,
+      };
     }
 
     // Generate seatMap from rows
@@ -201,9 +206,18 @@ export class TheatreDesignService {
         (s) => s.status === 'ACTIVE',
       ).length;
     }
-    if (dto.aisles) layout.aisles = dto.aisles.map((a) => ({ ...a, width: a.width ?? 1.0 }));
-    if (dto.zones) layout.zones = dto.zones.map((z) => ({ ...z, color: z.color ?? '#6366f1' }));
-    if (dto.screenConfig) layout.screenConfig = { ...dto.screenConfig, elevation: dto.screenConfig.elevation ?? 1.5 };
+    if (dto.aisles)
+      layout.aisles = dto.aisles.map((a) => ({ ...a, width: a.width ?? 1.0 }));
+    if (dto.zones)
+      layout.zones = dto.zones.map((z) => ({
+        ...z,
+        color: z.color ?? '#6366f1',
+      }));
+    if (dto.screenConfig)
+      layout.screenConfig = {
+        ...dto.screenConfig,
+        elevation: dto.screenConfig.elevation ?? 1.5,
+      };
 
     // Reset generated data since layout changed
     layout.status = LayoutStatus.DRAFT;
@@ -373,9 +387,7 @@ export class TheatreDesignService {
     );
 
     if (!layout.generated3DData) {
-      throw new BadRequestException(
-        'Generate 3D data before publishing.',
-      );
+      throw new BadRequestException('Generate 3D data before publishing.');
     }
 
     layout.status = LayoutStatus.PUBLISHED;
@@ -435,28 +447,25 @@ export class TheatreDesignService {
   }
 
   private async validateTheatreAccess(
-      theatreId: string,
-      userId: string,
-      userRole: Role,
-    ): Promise<void> {
-      if (userRole === Role.ADMIN) {
-        return;
-      }
-  
-      const theatre = await this.theatresService.findById(theatreId);
-      const ownerIdStr = (theatre.ownerId as any)?._id
-        ? (theatre.ownerId as any)._id.toString()
-        : (theatre.ownerId as any)?.toString();
-  
-      if (ownerIdStr !== userId) {
-        // Check moderator access
-        const isMod = await this.theatresService.isModeratorOf(
-          theatreId,
-          userId,
-        );
-        if (!isMod) {
-          throw new ForbiddenException('You do not have access to this theatre');
-        }
+    theatreId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<void> {
+    if (userRole === Role.ADMIN) {
+      return;
+    }
+
+    const theatre = await this.theatresService.findById(theatreId);
+    const ownerIdStr = (theatre.ownerId as any)?._id
+      ? (theatre.ownerId as any)._id.toString()
+      : (theatre.ownerId as any)?.toString();
+
+    if (ownerIdStr !== userId) {
+      // Check moderator access
+      const isMod = await this.theatresService.isModeratorOf(theatreId, userId);
+      if (!isMod) {
+        throw new ForbiddenException('You do not have access to this theatre');
       }
     }
+  }
 }

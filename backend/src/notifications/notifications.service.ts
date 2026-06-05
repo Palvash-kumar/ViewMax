@@ -98,7 +98,9 @@ export class NotificationsService {
     const baseFilter: Record<string, any> = {
       userId: new Types.ObjectId(userId),
     };
-    const queryFilter = unreadOnly ? { ...baseFilter, isRead: false } : baseFilter;
+    const queryFilter = unreadOnly
+      ? { ...baseFilter, isRead: false }
+      : baseFilter;
 
     const [data, total, unreadCount] = await Promise.all([
       this.notificationModel
@@ -169,7 +171,10 @@ export class NotificationsService {
   /**
    * Delete a specific notification. Validates ownership.
    */
-  async deleteNotification(notificationId: string, userId: string): Promise<void> {
+  async deleteNotification(
+    notificationId: string,
+    userId: string,
+  ): Promise<void> {
     const result = await this.notificationModel
       .findOneAndDelete({
         _id: notificationId,
@@ -228,7 +233,10 @@ export class NotificationsService {
   /**
    * Notify a user that their booking was cancelled.
    */
-  async notifyBookingCancelled(userId: string, bookingId: string): Promise<void> {
+  async notifyBookingCancelled(
+    userId: string,
+    bookingId: string,
+  ): Promise<void> {
     await this.create({
       userId,
       type: NotificationType.BOOKING_CANCELLED,
@@ -282,7 +290,10 @@ export class NotificationsService {
   /**
    * Notify a user that they have been assigned as a theatre moderator.
    */
-  async notifyModeratorAssigned(userId: string, theatreName: string): Promise<void> {
+  async notifyModeratorAssigned(
+    userId: string,
+    theatreName: string,
+  ): Promise<void> {
     await this.create({
       userId,
       type: NotificationType.MODERATOR_ASSIGNED,

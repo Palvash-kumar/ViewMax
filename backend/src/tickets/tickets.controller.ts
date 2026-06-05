@@ -67,7 +67,9 @@ export class TicketsController {
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
   async verifyTicket(@Body() dto: VerifyTicketDto, @Req() req: Request) {
     const ip =
-      (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0].trim() ??
+      (req.headers['x-forwarded-for'] as string | undefined)
+        ?.split(',')[0]
+        .trim() ??
       req.ip ??
       'unknown';
     return this.ticketsService.verifyTicket(dto.bookingId, dto.token, ip);
@@ -91,14 +93,27 @@ export class TicketsController {
       'Marks a CONFIRMED booking as CHECKED_IN. Invalidates the QR nonce to prevent reuse.',
   })
   @ApiResponse({ status: 200, description: 'Check-in result' })
-  @ApiResponse({ status: 400, description: 'Booking not in CONFIRMED state or fraud detected' })
+  @ApiResponse({
+    status: 400,
+    description: 'Booking not in CONFIRMED state or fraud detected',
+  })
   @ApiResponse({ status: 403, description: 'Insufficient role' })
-  async checkIn(@Body() dto: CheckInTicketDto, @Req() req: Request & { user: { sub: string } }) {
+  async checkIn(
+    @Body() dto: CheckInTicketDto,
+    @Req() req: Request & { user: { sub: string } },
+  ) {
     const ip =
-      (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0].trim() ??
+      (req.headers['x-forwarded-for'] as string | undefined)
+        ?.split(',')[0]
+        .trim() ??
       req.ip ??
       'unknown';
-    return this.ticketsService.checkIn(dto.bookingId, dto.token, req.user.sub, ip);
+    return this.ticketsService.checkIn(
+      dto.bookingId,
+      dto.token,
+      req.user.sub,
+      ip,
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -119,7 +134,10 @@ export class TicketsController {
   })
   @ApiParam({ name: 'id', description: 'Booking ID to transfer' })
   @ApiResponse({ status: 200, description: 'Transfer successful' })
-  @ApiResponse({ status: 400, description: 'Invalid transfer (wrong status, self-transfer, etc.)' })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid transfer (wrong status, self-transfer, etc.)',
+  })
   @ApiResponse({ status: 403, description: 'Not the ticket owner' })
   @ApiResponse({ status: 404, description: 'Booking or recipient not found' })
   async transferTicket(
@@ -127,7 +145,11 @@ export class TicketsController {
     @Body() dto: TransferTicketDto,
     @Req() req: Request & { user: { sub: string } },
   ) {
-    return this.ticketsService.transferTicket(id, req.user.sub, dto.recipientEmail);
+    return this.ticketsService.transferTicket(
+      id,
+      req.user.sub,
+      dto.recipientEmail,
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -143,11 +165,26 @@ export class TicketsController {
   @Roles(Role.ADMIN)
   @ApiOperation({
     summary: 'List all bookings (admin)',
-    description: 'Returns a paginated list of all bookings with enriched showtime and user data.',
+    description:
+      'Returns a paginated list of all bookings with enriched showtime and user data.',
   })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 20, max: 100)' })
-  @ApiQuery({ name: 'status', required: false, description: 'Filter by BookingStatus value' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 20, max: 100)',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Filter by BookingStatus value',
+  })
   @ApiResponse({ status: 200, description: 'Paginated booking list' })
   async getAllBookings(
     @Query('page') page = 1,

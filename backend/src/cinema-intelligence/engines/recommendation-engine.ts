@@ -46,7 +46,9 @@ export class RecommendationEngine {
     reweighted.sort((a, b) => b.personalizedScore - a.personalizedScore);
 
     // Step 4: Pick primary + alternates
-    const toEntry = (s: SeatScoringResult & { personalizedScore: number }): SeatRankEntry => ({
+    const toEntry = (
+      s: SeatScoringResult & { personalizedScore: number },
+    ): SeatRankEntry => ({
       seatId: s.seatId,
       row: s.row,
       seatNumber: s.seatNumber,
@@ -61,10 +63,7 @@ export class RecommendationEngine {
     const alternates = reweighted.slice(1, 4).map(toEntry);
 
     // Step 5: Generate explanation
-    const explanation = this.generateExplanation(
-      reweighted[0],
-      prefs,
-    );
+    const explanation = this.generateExplanation(reweighted[0], prefs);
 
     return { primary, alternates, explanation };
   }
@@ -115,19 +114,19 @@ export class RecommendationEngine {
   ): number {
     let immW = 0.35;
     let comfW = 0.35;
-    let covW = 0.30;
+    let covW = 0.3;
 
     // Adjust for viewing preference
     switch (prefs.viewingPreference) {
       case 'IMMERSION':
-        immW = 0.50;
-        comfW = 0.20;
-        covW = 0.30;
+        immW = 0.5;
+        comfW = 0.2;
+        covW = 0.3;
         break;
       case 'COMFORT':
-        immW = 0.20;
-        comfW = 0.50;
-        covW = 0.30;
+        immW = 0.2;
+        comfW = 0.5;
+        covW = 0.3;
         break;
       // BALANCED uses defaults
     }
@@ -159,12 +158,14 @@ export class RecommendationEngine {
         break;
     }
 
-    return Math.round(
-      (seat.immersionScore * immW +
-        seat.comfortScore * comfW +
-        seat.screenCoverageScore * covW) *
-        100,
-    ) / 100;
+    return (
+      Math.round(
+        (seat.immersionScore * immW +
+          seat.comfortScore * comfW +
+          seat.screenCoverageScore * covW) *
+          100,
+      ) / 100
+    );
   }
 
   /**
@@ -192,13 +193,12 @@ export class RecommendationEngine {
     if (seat.immersionScore >= 80) strengths.push('strong immersion');
     if (seat.comfortScore >= 80) strengths.push('excellent comfort');
     if (seat.screenCoverageScore >= 80) strengths.push('great screen coverage');
-    if (seat.centerAlignmentScore >= 85) strengths.push('perfect center alignment');
+    if (seat.centerAlignmentScore >= 85)
+      strengths.push('perfect center alignment');
     if (seat.distanceScore >= 85) strengths.push('optimal viewing distance');
 
     const strengthText =
-      strengths.length > 0
-        ? ` It offers ${strengths.join(', ')}.`
-        : '';
+      strengths.length > 0 ? ` It offers ${strengths.join(', ')}.` : '';
 
     return `Seat ${seat.seatId} is recommended for ${prefLabel} in the ${posLabel}.${strengthText} Personalized score: ${seat.personalizedScore}/100.`;
   }

@@ -189,7 +189,10 @@ export class QrEngineService {
       }>(`qr:nonce:${payload.nonce}`);
 
       if (!nonceData) {
-        return { valid: false, reason: 'Ticket nonce expired or already invalidated' };
+        return {
+          valid: false,
+          reason: 'Ticket nonce expired or already invalidated',
+        };
       }
 
       return { valid: true, payload };

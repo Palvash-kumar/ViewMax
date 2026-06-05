@@ -111,7 +111,9 @@ export class TicketsService {
 
     // 4. Assert token-to-booking binding
     if (result.payload?.bookingId !== bookingId) {
-      throw new ForbiddenException('Token does not match the requested booking');
+      throw new ForbiddenException(
+        'Token does not match the requested booking',
+      );
     }
 
     // 5. Update audit counters (non-blocking)
@@ -182,7 +184,10 @@ export class TicketsService {
     }
 
     // 5. Atomic Redis lock — prevents simultaneous check-in from two devices
-    const claimed = await this.antiFraudService.markCheckedIn(bookingId, staffId);
+    const claimed = await this.antiFraudService.markCheckedIn(
+      bookingId,
+      staffId,
+    );
     if (!claimed) {
       return {
         success: false,
@@ -213,7 +218,11 @@ export class TicketsService {
 
     this.logger.log(`Booking ${bookingId} checked in by staff ${staffId}`);
 
-    return { success: true, message: 'Ticket checked in successfully', checkedInAt };
+    return {
+      success: true,
+      message: 'Ticket checked in successfully',
+      checkedInAt,
+    };
   }
 
   /**
@@ -300,11 +309,7 @@ export class TicketsService {
    * @param limit   Items per page (max 100)
    * @param status  Optional BookingStatus filter string
    */
-  async getAllBookingsForAdmin(
-    page = 1,
-    limit = 20,
-    status?: string,
-  ) {
+  async getAllBookingsForAdmin(page = 1, limit = 20, status?: string) {
     const safePage = Math.max(1, Number(page));
     const safeLimit = Math.min(100, Math.max(1, Number(limit)));
     const skip = (safePage - 1) * safeLimit;

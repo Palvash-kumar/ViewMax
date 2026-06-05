@@ -42,11 +42,7 @@ export class ShowtimesController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(
-    Role.THEATRE_OWNER,
-    Role.THEATRE_MODERATOR,
-    Role.ADMIN,
-  )
+  @Roles(Role.THEATRE_OWNER, Role.THEATRE_MODERATOR, Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create showtime (Owner/Moderator)' })
   create(@Body() dto: CreateShowtimeDto) {
@@ -55,11 +51,7 @@ export class ShowtimesController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(
-    Role.THEATRE_OWNER,
-    Role.THEATRE_MODERATOR,
-    Role.ADMIN,
-  )
+  @Roles(Role.THEATRE_OWNER, Role.THEATRE_MODERATOR, Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update showtime (Owner/Moderator)' })
   update(@Param('id') id: string, @Body() dto: UpdateShowtimeDto) {
@@ -68,11 +60,7 @@ export class ShowtimesController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(
-    Role.THEATRE_OWNER,
-    Role.THEATRE_MODERATOR,
-    Role.ADMIN,
-  )
+  @Roles(Role.THEATRE_OWNER, Role.THEATRE_MODERATOR, Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete showtime (Owner/Moderator)' })
   remove(@Param('id') id: string) {

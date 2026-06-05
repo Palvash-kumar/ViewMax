@@ -92,7 +92,9 @@ export class ScreensService {
   }
 
   async findByTheatre(theatreId: string): Promise<ScreenDocument[]> {
-    return this.screenModel.find({ theatreId: new Types.ObjectId(theatreId) }).exec();
+    return this.screenModel
+      .find({ theatreId: new Types.ObjectId(theatreId) })
+      .exec();
   }
 
   async findById(id: string): Promise<ScreenDocument> {

@@ -25,9 +25,7 @@ interface NotificationJobData {
 export class NotificationProcessor extends WorkerHost {
   private readonly logger = new Logger(NotificationProcessor.name);
 
-  constructor(
-    private readonly notificationsService: NotificationsService,
-  ) {
+  constructor(private readonly notificationsService: NotificationsService) {
     super();
   }
 
@@ -79,7 +77,10 @@ export class NotificationProcessor extends WorkerHost {
         break;
 
       case NotificationType.BOOKING_CANCELLED:
-        await this.notificationsService.notifyBookingCancelled(userId, data.bookingId);
+        await this.notificationsService.notifyBookingCancelled(
+          userId,
+          data.bookingId,
+        );
         break;
 
       case NotificationType.REFUND_PROCESSED:
@@ -100,7 +101,10 @@ export class NotificationProcessor extends WorkerHost {
         break;
 
       case NotificationType.MODERATOR_ASSIGNED:
-        await this.notificationsService.notifyModeratorAssigned(userId, data.theatreName);
+        await this.notificationsService.notifyModeratorAssigned(
+          userId,
+          data.theatreName,
+        );
         break;
 
       case NotificationType.SHOW_REMINDER:

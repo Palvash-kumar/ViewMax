@@ -30,7 +30,10 @@ export class Theatre {
   @Prop({ type: String, enum: TheatreStatus, default: TheatreStatus.PENDING })
   status: TheatreStatus;
 
-  @Prop({ type: [{ type: MongooseSchema.Types.ObjectId, ref: 'User' }], default: [] })
+  @Prop({
+    type: [{ type: MongooseSchema.Types.ObjectId, ref: 'User' }],
+    default: [],
+  })
   moderators: Types.ObjectId[];
 }
 

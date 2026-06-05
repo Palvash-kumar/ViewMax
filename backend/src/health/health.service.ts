@@ -37,7 +37,8 @@ export class HealthService {
       redisStatus = 'unhealthy';
     }
 
-    const overallHealthy = mongoStatus === 'healthy' && redisStatus === 'healthy';
+    const overallHealthy =
+      mongoStatus === 'healthy' && redisStatus === 'healthy';
     const totalMemory = os.totalmem();
     const freeMemory = os.freemem();
     const usedMemory = totalMemory - freeMemory;

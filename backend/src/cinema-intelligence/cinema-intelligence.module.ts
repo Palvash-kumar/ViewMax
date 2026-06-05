@@ -3,10 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { CinemaIntelligenceController } from './cinema-intelligence.controller';
 import { CinemaIntelligenceService } from './cinema-intelligence.service';
 import { SeatScore, SeatScoreSchema } from './schemas/seat-score.schema';
-import {
-  SeatRanking,
-  SeatRankingSchema,
-} from './schemas/seat-ranking.schema';
+import { SeatRanking, SeatRankingSchema } from './schemas/seat-ranking.schema';
 import {
   UserPreference,
   UserPreferenceSchema,

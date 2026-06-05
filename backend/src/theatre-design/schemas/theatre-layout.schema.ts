@@ -133,8 +133,7 @@ export class TheatreLayout {
   totalRows: number;
 }
 
-export const TheatreLayoutSchema =
-  SchemaFactory.createForClass(TheatreLayout);
+export const TheatreLayoutSchema = SchemaFactory.createForClass(TheatreLayout);
 
 TheatreLayoutSchema.index({ theatreId: 1 });
 TheatreLayoutSchema.index({ screenId: 1 });

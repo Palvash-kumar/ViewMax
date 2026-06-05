@@ -51,7 +51,9 @@ export class NotificationsController {
     type: Boolean,
     description: 'If true, only unread notifications are returned',
   })
-  @ApiOkResponse({ description: 'Paginated notification list with unread count' })
+  @ApiOkResponse({
+    description: 'Paginated notification list with unread count',
+  })
   async getNotifications(
     @Req() req: any,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
@@ -72,7 +74,10 @@ export class NotificationsController {
    */
   @Get('unread-count')
   @ApiOperation({ summary: 'Get unread notification count (for badge)' })
-  @ApiOkResponse({ description: 'Unread notification count', schema: { example: { count: 3 } } })
+  @ApiOkResponse({
+    description: 'Unread notification count',
+    schema: { example: { count: 3 } },
+  })
   async getUnreadCount(@Req() req: any) {
     const count = await this.notificationsService.getUnreadCount(req.user.sub);
     return { count };

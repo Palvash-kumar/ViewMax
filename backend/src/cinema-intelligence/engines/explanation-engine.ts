@@ -84,7 +84,8 @@ export class ExplanationEngine {
     // Weaknesses (if any)
     if (weaknesses.length > 0 && input.category !== 'ELITE') {
       const weakParts = weaknesses.slice(0, 2).map((w) => {
-        if (w.suggestion) return `${w.label} (${w.score}/100) — ${w.suggestion}`;
+        if (w.suggestion)
+          return `${w.label} (${w.score}/100) — ${w.suggestion}`;
         return `${w.label} (${w.score}/100)`;
       });
       explanation += ` Note: ${weakParts.join('; ')}.`;
@@ -99,7 +100,8 @@ export class ExplanationEngine {
       if (bestMetric) {
         explanation += ` While ${bestMetric} is acceptable, the overall experience is significantly below optimal.`;
       }
-      explanation += ' Consider seats in the center rows for a better experience.';
+      explanation +=
+        ' Consider seats in the center rows for a better experience.';
     } else if (input.category === 'ELITE') {
       explanation += ' This is among the best seats in the theatre.';
     }
@@ -118,10 +120,7 @@ export class ExplanationEngine {
   /**
    * Generate comparison insight between two seats.
    */
-  generateComparison(
-    seatA: ExplanationInput,
-    seatB: ExplanationInput,
-  ): string {
+  generateComparison(seatA: ExplanationInput, seatB: ExplanationInput): string {
     const diff = seatA.premiumExperienceScore - seatB.premiumExperienceScore;
     const winner = diff >= 0 ? seatA : seatB;
     const loser = diff >= 0 ? seatB : seatA;
@@ -142,9 +141,7 @@ export class ExplanationEngine {
       advantages.push('better center alignment');
 
     const advText =
-      advantages.length > 0
-        ? ` with ${advantages.join(' and ')}`
-        : '';
+      advantages.length > 0 ? ` with ${advantages.join(' and ')}` : '';
 
     return `Seat ${winner.seatId} outperforms ${loser.seatId} by ${absDiff} points${advText}.`;
   }
@@ -172,17 +169,24 @@ export class ExplanationEngine {
       {
         label: 'screen coverage',
         score: input.screenCoverageScore,
-        suggestion: input.screenCoverageScore < 30 ? 'move closer to the screen' : undefined,
+        suggestion:
+          input.screenCoverageScore < 30
+            ? 'move closer to the screen'
+            : undefined,
       },
       {
         label: 'viewing distance',
         score: input.distanceScore,
-        suggestion: input.distanceScore < 30 ? 'consider mid-range rows' : undefined,
+        suggestion:
+          input.distanceScore < 30 ? 'consider mid-range rows' : undefined,
       },
       {
         label: 'center alignment',
         score: input.centerAlignmentScore,
-        suggestion: input.centerAlignmentScore < 30 ? 'try seats closer to the center aisle' : undefined,
+        suggestion:
+          input.centerAlignmentScore < 30
+            ? 'try seats closer to the center aisle'
+            : undefined,
       },
       {
         label: 'neck strain',
@@ -195,7 +199,10 @@ export class ExplanationEngine {
       {
         label: 'horizontal angle',
         score: input.horizontalAngleScore,
-        suggestion: input.horizontalAngleScore < 30 ? 'avoid extreme side seats' : undefined,
+        suggestion:
+          input.horizontalAngleScore < 30
+            ? 'avoid extreme side seats'
+            : undefined,
       },
     ];
 

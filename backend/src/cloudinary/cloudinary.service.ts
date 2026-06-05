@@ -49,9 +49,7 @@ export class CloudinaryService {
         {
           folder,
           resource_type: 'video',
-          transformation: [
-            { quality: 'auto' },
-          ],
+          transformation: [{ quality: 'auto' }],
         },
         (error, result) => {
           if (error) return reject(error);

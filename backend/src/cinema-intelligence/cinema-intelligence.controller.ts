@@ -7,7 +7,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { CinemaIntelligenceService } from './cinema-intelligence.service';
 import {
   CalculateScoresDto,
@@ -51,7 +56,8 @@ export class CinemaIntelligenceController {
   @Get('layouts/:layoutId/scores')
   @ApiOperation({
     summary: 'Get all seat scores for a layout (Public)',
-    description: 'Returns precomputed scores for all seats, sorted by premium experience score.',
+    description:
+      'Returns precomputed scores for all seats, sorted by premium experience score.',
   })
   getScores(@Param('layoutId') layoutId: string) {
     return this.intelligenceService.getScores(layoutId);
@@ -62,7 +68,8 @@ export class CinemaIntelligenceController {
   @Get('layouts/:layoutId/rankings')
   @ApiOperation({
     summary: 'Get seat rankings (Public)',
-    description: 'Returns top 5, top 10, VIP, value, and accessible seat lists.',
+    description:
+      'Returns top 5, top 10, VIP, value, and accessible seat lists.',
   })
   getRankings(@Param('layoutId') layoutId: string) {
     return this.intelligenceService.getRankings(layoutId);
@@ -93,7 +100,8 @@ export class CinemaIntelligenceController {
   @Get('seats/:seatScoreId/explain')
   @ApiOperation({
     summary: 'Get explanation for a seat score (Public)',
-    description: 'Returns human-readable explanation of why a seat received its score.',
+    description:
+      'Returns human-readable explanation of why a seat received its score.',
   })
   explainSeat(@Param('seatScoreId') seatScoreId: string) {
     return this.intelligenceService.explainSeat(seatScoreId);
@@ -120,16 +128,10 @@ export class CinemaIntelligenceController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Save viewing preferences (Authenticated)',
-    description: 'Stores or updates the user\'s cinema viewing preferences.',
+    description: "Stores or updates the user's cinema viewing preferences.",
   })
-  savePreferences(
-    @Body() dto: SavePreferencesDto,
-    @CurrentUser() user: any,
-  ) {
-    return this.intelligenceService.savePreferences(
-      user._id.toString(),
-      dto,
-    );
+  savePreferences(@Body() dto: SavePreferencesDto, @CurrentUser() user: any) {
+    return this.intelligenceService.savePreferences(user._id.toString(), dto);
   }
 
   @Get('preferences')

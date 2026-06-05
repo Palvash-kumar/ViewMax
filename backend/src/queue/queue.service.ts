@@ -79,7 +79,9 @@ export class QueueService {
    */
   async cancelTicketExpiration(bookingId: string): Promise<void> {
     try {
-      const job = await this.ticketExpirationQueue.getJob(`expire:${bookingId}`);
+      const job = await this.ticketExpirationQueue.getJob(
+        `expire:${bookingId}`,
+      );
       if (job) {
         await job.remove();
         this.logger.debug(`Cancelled expiration job for booking ${bookingId}`);
@@ -112,7 +114,9 @@ export class QueueService {
         { type, userId, data },
         { attempts: 3, removeOnComplete: 100, removeOnFail: 50 },
       );
-      this.logger.debug(`Enqueued notification type=${type} for user=${userId}`);
+      this.logger.debug(
+        `Enqueued notification type=${type} for user=${userId}`,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to enqueue notification (type=${type}) for user ${userId}: ${error.message}`,
@@ -184,7 +188,10 @@ export class QueueService {
    */
   async getQueueHealth(): Promise<Record<string, Record<string, number>>> {
     const queues = [
-      { name: QUEUE_NAMES.TICKET_EXPIRATION, queue: this.ticketExpirationQueue },
+      {
+        name: QUEUE_NAMES.TICKET_EXPIRATION,
+        queue: this.ticketExpirationQueue,
+      },
       { name: QUEUE_NAMES.NOTIFICATION, queue: this.notificationQueue },
       { name: QUEUE_NAMES.ANALYTICS, queue: this.analyticsQueue },
       { name: QUEUE_NAMES.EMAIL, queue: this.emailQueue },
@@ -194,13 +201,15 @@ export class QueueService {
 
     await Promise.all(
       queues.map(async ({ name, queue }) => {
-        const [waiting, active, completed, failed, delayed] = await Promise.all([
-          queue.getWaitingCount(),
-          queue.getActiveCount(),
-          queue.getCompletedCount(),
-          queue.getFailedCount(),
-          queue.getDelayedCount(),
-        ]);
+        const [waiting, active, completed, failed, delayed] = await Promise.all(
+          [
+            queue.getWaitingCount(),
+            queue.getActiveCount(),
+            queue.getCompletedCount(),
+            queue.getFailedCount(),
+            queue.getDelayedCount(),
+          ],
+        );
         health[name] = { waiting, active, completed, failed, delayed };
       }),
     );

@@ -32,7 +32,11 @@ export class GeometryEngine {
         totalWidth: screenConfig.width,
         totalDepth: 10,
         maxElevation: 0,
-        screenPosition: [0, screenConfig.elevation + screenConfig.height / 2, 0],
+        screenPosition: [
+          0,
+          screenConfig.elevation + screenConfig.height / 2,
+          0,
+        ],
         stageDepth: 2,
       };
     }
@@ -67,7 +71,8 @@ export class GeometryEngine {
 
     // Screen
     const screenCurvature =
-      screenConfig.aspectRatio === '1.43:1' || screenConfig.aspectRatio === '1.90:1'
+      screenConfig.aspectRatio === '1.43:1' ||
+      screenConfig.aspectRatio === '1.90:1'
         ? 0.05
         : 0;
 
@@ -114,7 +119,11 @@ export class GeometryEngine {
           intensity: 0.6,
         },
         {
-          position: [0, screenConfig.height + 2, -1] as [number, number, number],
+          position: [0, screenConfig.height + 2, -1] as [
+            number,
+            number,
+            number,
+          ],
           intensity: 0.4,
         },
       ],
