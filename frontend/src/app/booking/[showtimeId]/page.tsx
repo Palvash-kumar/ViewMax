@@ -9,7 +9,12 @@ import SeatMap from '@/components/SeatMap';
 import { Button } from '@/components/ui';
 import { useBookingStore } from '@/stores/booking.store';
 import { useAuthStore } from '@/stores/auth.store';
-import SeatView3DModal from '@/components/theatre3d/SeatView3DModal';
+import dynamic from 'next/dynamic';
+
+const SeatView3DModal = dynamic(
+  () => import('@/components/theatre3d/SeatView3DModal'),
+  { ssr: false },
+);
 import type { SeatAvailability } from '@/types';
 
 export default function BookingPage() {

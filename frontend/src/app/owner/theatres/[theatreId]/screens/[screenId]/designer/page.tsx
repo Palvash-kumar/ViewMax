@@ -42,10 +42,31 @@ export default function DesignerPage({ params }: PageProps) {
       try {
         const { data } = await api.get(`/theatre-design/theatres/${theatreId}/layouts`);
         const layouts = data.data || data;
-        const existing = layouts.find((l: any) => l.screenId === screenId || l.screenId?._id === screenId);
+        
+        // Filter layouts for this specific screen
+        const screenLayouts = layouts.filter(
+          (l: any) => l.screenId === screenId || l.screenId?._id === screenId
+        );
 
-        if (existing) {
-          await loadLayout(existing._id);
+        // Prioritize draft/editable (non-published) layouts
+        const draftLayout = screenLayouts.find((l: any) => l.status !== 'PUBLISHED');
+
+        if (draftLayout) {
+          await loadLayout(draftLayout._id);
+        } else if (screenLayouts.length > 0) {
+          // If only published layouts exist, create a new editable draft layout version based on it
+          const published = screenLayouts[0];
+          const { data: newLayoutRes } = await api.post('/theatre-design/layouts', {
+            theatreId,
+            screenId,
+            layoutName: published.layoutName,
+            rows: published.rows,
+            aisles: published.aisles,
+            zones: published.zones,
+            screenConfig: published.screenConfig,
+          });
+          const newLayout = newLayoutRes.data || newLayoutRes;
+          await loadLayout(newLayout._id);
         } else {
           // Fetch the screen to obtain its screenType format
           const { data: screenRes } = await api.get(`/screens/${screenId}`);

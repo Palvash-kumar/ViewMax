@@ -75,15 +75,15 @@ export default function TheatreScene({
 
   return (
     <group>
-      {/* 1. Global Ambient Light (kept dim for cinematic feel) */}
-      <ambientLight intensity={generated3DData.lighting.ambient || 0.12} />
+      {/* 1. Global Ambient Light (boosted for a lighter room) */}
+      <ambientLight intensity={0.38} />
 
-      {/* 2. Spotlights (simulating recessed overhead aisle/stage lights) */}
+      {/* 2. Spotlights (simulating recessed overhead lights, dimmed during movie play) */}
       {generated3DData.lighting.spots.map((spot, i) => (
         <spotLight
           key={i}
           position={spot.position}
-          intensity={spot.intensity * 0.8}
+          intensity={videoUrl ? spot.intensity * 0.15 : spot.intensity * 1.6}
           angle={0.5}
           penumbra={0.6}
           castShadow
@@ -99,10 +99,10 @@ export default function TheatreScene({
         isVideoPlaying={!!videoUrl}
       />
 
-      {/* 4. Rear/Backlight wash for architectural outline */}
+      {/* 4. Rear/Backlight wash for architectural outline (dimmed during movie play) */}
       <pointLight
         position={[0, generated3DData.floor.depth / 2, generated3DData.floor.depth - 2]}
-        intensity={0.25}
+        intensity={videoUrl ? 0.1 : 0.65}
         color="#fbbf24"
         distance={25}
       />
@@ -116,8 +116,12 @@ export default function TheatreScene({
         volume={volume}
       />
 
-      {/* 6. Enclosed Room (floor, walls, ceiling) */}
-      <FloorMesh floor={generated3DData.floor} stage={generated3DData.stage} />
+      {/* 6. Enclosed Room (floor, walls, ceiling) with dynamic lights dimming and projector beam */}
+      <FloorMesh 
+        floor={generated3DData.floor} 
+        stage={generated3DData.stage} 
+        isVideoPlaying={!!videoUrl} 
+      />
 
       {/* 7. Enhanced Seating Model Mesh */}
       <SeatInstances coordinates={coordinates} seatMap={layout.seatMap} />

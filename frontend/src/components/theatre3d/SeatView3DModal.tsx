@@ -423,9 +423,10 @@ export default function SeatView3DModal({
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-white transition-all cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/15 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 text-red-400 hover:text-red-300 transition-all cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
+              <span className="text-sm font-semibold">Exit 3D View</span>
             </button>
           </div>
 
@@ -458,7 +459,7 @@ export default function SeatView3DModal({
                 >
                   <PerspectiveCamera
                     makeDefault
-                    fov={60}
+                    fov={72}
                     near={0.05}
                     far={300}
                   />

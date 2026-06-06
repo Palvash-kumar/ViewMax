@@ -7,9 +7,10 @@ import type { Generated3DFloor, Generated3DStage } from '@/types';
 interface FloorMeshProps {
   floor: Generated3DFloor;
   stage: Generated3DStage;
+  isVideoPlaying?: boolean;
 }
 
-export default function FloorMesh({ floor, stage }: FloorMeshProps) {
+export default function FloorMesh({ floor, stage, isVideoPlaying = false }: FloorMeshProps) {
   // Calculate max elevation in the theater to scale walls/ceiling height
   const maxElevation = useMemo(() => {
     if (!floor.segments || floor.segments.length === 0) return 0;
@@ -37,9 +38,41 @@ export default function FloorMesh({ floor, stage }: FloorMeshProps) {
     return leds;
   }, [floor.segments, roomDepth, roomHeight]);
 
+  // Acoustic panels positions along the side walls
+  const acousticPanels = useMemo(() => {
+    const panels: { z: number; height: number; y: number }[] = [];
+    const step = 4.0;
+    for (let z = 2.0; z < roomDepth - 2.0; z += step) {
+      const segment = floor.segments.find((s) => z >= s.zStart && z <= s.zEnd);
+      const floorY = segment ? segment.y : 0;
+      const panelHeight = roomHeight - floorY - 1.2;
+      panels.push({
+        z,
+        height: panelHeight,
+        y: floorY + panelHeight / 2 + 0.3,
+      });
+    }
+    return panels;
+  }, [floor.segments, roomDepth, roomHeight]);
+
+  // Projector beam rotation and length calculation
+  const projectorBeamGeometry = useMemo(() => {
+    const startY = roomHeight - 1.2;
+    const targetY = 3.0; // center of screen approx
+    const deltaY = targetY - startY;
+    const length = Math.sqrt(roomDepth * roomDepth + deltaY * deltaY);
+    const angle = Math.atan2(deltaY, roomDepth);
+
+    // Cylinder pointing along Z
+    const geo = new THREE.CylinderGeometry(0.08, 12.0, length, 32, 1, true);
+    // Rotate to point forward/downward
+    geo.rotateX(Math.PI / 2 + angle);
+    return { geo, length, yOffset: startY + deltaY / 2 };
+  }, [roomHeight, roomDepth]);
+
   return (
     <group>
-      {/* 1. Stage Area (Flat, dark non-reflective finish) */}
+      {/* 1. Stage Area (Flat, dark wood floor planks feel) */}
       <mesh
         position={stage.position}
         rotation={[-Math.PI / 2, 0, 0]}
@@ -47,13 +80,13 @@ export default function FloorMesh({ floor, stage }: FloorMeshProps) {
       >
         <planeGeometry args={[stage.width, stage.depth]} />
         <meshStandardMaterial
-          color="#0a0d14"
-          roughness={0.9}
-          metalness={0.05}
+          color="#0d0e14"
+          roughness={0.7}
+          metalness={0.2}
         />
       </mesh>
 
-      {/* 2. Stepped Seating Floor Segments */}
+      {/* 2. Stepped Seating Floor Segments (Dark carpet textures) */}
       {floor.segments.map((segment, i) => {
         const depth = segment.zEnd - segment.zStart;
         const zCenter = (segment.zStart + segment.zEnd) / 2;
@@ -67,15 +100,15 @@ export default function FloorMesh({ floor, stage }: FloorMeshProps) {
           >
             <planeGeometry args={[floor.width, depth]} />
             <meshStandardMaterial
-              color="#0d111b"
-              roughness={0.9}
-              metalness={0.05}
+              color="#0a0c12" // charcoal slate cinema carpet
+              roughness={0.95}
+              metalness={0.02}
             />
           </mesh>
         );
       })}
 
-      {/* 3. Aisle Safety Path Lights (Amber-glowing lines on the floor edges) */}
+      {/* 3. Aisle Safety Path Lights (Amber-glowing lines on the floor edges, always active) */}
       {floor.segments.map((segment, i) => {
         const depth = segment.zEnd - segment.zStart;
         const zCenter = (segment.zStart + segment.zEnd) / 2;
@@ -110,7 +143,7 @@ export default function FloorMesh({ floor, stage }: FloorMeshProps) {
           >
             <boxGeometry args={[floor.width, riserHeight, 0.02]} />
             <meshStandardMaterial
-              color="#080b11"
+              color="#05070a"
               roughness={0.9}
               metalness={0.1}
             />
@@ -118,67 +151,109 @@ export default function FloorMesh({ floor, stage }: FloorMeshProps) {
         );
       })}
 
-      {/* 5. Side Walls (Wood panel textured aesthetic with acoustic design) */}
+      {/* 5. Side Walls with Acoustic Slats and Speaker Boxes */}
       {[-1, 1].map((side) => (
         <group key={`side-wall-${side}`} position={[side * (floor.width / 2), 0, 0]}>
-          {/* Main Wall Mesh */}
+          {/* Main Wall Mesh (Dark grey acoustic fabric) */}
           <mesh position={[side * 0.05, roomHeight / 2, roomDepth / 2]} receiveShadow>
             <boxGeometry args={[0.1, roomHeight, roomDepth + 1.0]} />
             <meshStandardMaterial
-              color="#0b0e14"
-              roughness={0.85}
-              metalness={0.15}
+              color="#07090d"
+              roughness={0.9}
+              metalness={0.05}
             />
           </mesh>
 
-          {/* Accent vertical LED strips */}
+          {/* Premium Acoustic Slat Wood Panels */}
+          {acousticPanels.map((panel, idx) => (
+            <mesh
+              key={`ac-panel-${idx}`}
+              position={[side * 0.07, panel.y, panel.z]}
+              receiveShadow
+            >
+              <boxGeometry args={[0.04, panel.height, 1.6]} />
+              <meshStandardMaterial
+                color="#1c1917" // Cherry wood finish
+                roughness={0.65}
+                metalness={0.15}
+              />
+            </mesh>
+          ))}
+
+          {/* Surround Speakers (Dolby design) */}
+          {acousticPanels.map((panel, idx) => (
+            <group key={`wall-speaker-${idx}`} position={[side * 0.12, panel.y + 1.5, panel.z]}>
+              <mesh rotation={[0.15, side * -0.2, 0]} castShadow>
+                <boxGeometry args={[0.22, 0.38, 0.2]} />
+                <meshStandardMaterial color="#111827" roughness={0.8} />
+              </mesh>
+              {/* Speaker logo or grid face detail */}
+              <mesh position={[side * 0.111, 0, 0]} rotation={[0.15, side * -0.2, 0]}>
+                <planeGeometry args={[0.01, 0.3]} />
+                <meshBasicMaterial color="#3b82f6" opacity={isVideoPlaying ? 0.3 : 0.8} transparent />
+              </mesh>
+            </group>
+          ))}
+
+          {/* Accent vertical LED strips (dimmed during video playback) */}
           {wallLeds.map((led, idx) => (
             <group key={`led-${idx}`} position={[side * 0.06, led.y, led.z]}>
               {/* Glowing LED core */}
               <mesh>
-                <boxGeometry args={[0.02, led.height, 0.05]} />
+                <boxGeometry args={[0.02, led.height, 0.04]} />
                 <meshBasicMaterial
-                  color={idx % 2 === 0 ? '#fbbf24' : '#3b82f6'} // Alternating warm gold and deep blue
+                  color={idx % 2 === 0 ? '#d97706' : '#2563eb'} // Rich amber and cobalt blue
                   toneMapped={false}
+                  transparent
+                  opacity={isVideoPlaying ? 0.08 : 0.6}
                 />
               </mesh>
               {/* LED casing frame */}
-              <mesh position={[0, 0, -0.04]}>
-                <boxGeometry args={[0.04, led.height + 0.1, 0.01]} />
-                <meshStandardMaterial color="#030712" roughness={0.9} />
+              <mesh position={[0, 0, -0.02]}>
+                <boxGeometry args={[0.035, led.height + 0.08, 0.01]} />
+                <meshStandardMaterial color="#020617" roughness={0.9} />
               </mesh>
             </group>
           ))}
         </group>
       ))}
 
-      {/* 6. Back Wall */}
-      <mesh
-        position={[0, roomHeight / 2, roomDepth]}
-        receiveShadow
-      >
-        <boxGeometry args={[floor.width + 0.2, roomHeight, 0.1]} />
-        <meshStandardMaterial
-          color="#090c12"
-          roughness={0.9}
-          metalness={0.1}
-        />
-      </mesh>
+      {/* 6. Back Wall with Projector Window */}
+      <group>
+        <mesh position={[0, roomHeight / 2, roomDepth]} receiveShadow>
+          <boxGeometry args={[floor.width + 0.2, roomHeight, 0.1]} />
+          <meshStandardMaterial
+            color="#080a0f"
+            roughness={0.9}
+            metalness={0.05}
+          />
+        </mesh>
+        
+        {/* Projector Window Aperture */}
+        <mesh position={[0, roomHeight - 1.2, roomDepth - 0.04]}>
+          <boxGeometry args={[0.8, 0.5, 0.02]} />
+          <meshStandardMaterial color="#020617" roughness={0.8} />
+        </mesh>
+        <mesh position={[0, roomHeight - 1.2, roomDepth - 0.06]}>
+          <planeGeometry args={[0.7, 0.4]} />
+          <meshBasicMaterial color="#93c5fd" toneMapped={false} />
+        </mesh>
+      </group>
 
-      {/* 7. Front Wall (Proscenium wall behind/around screen) */}
+      {/* 7. Front Wall (Proscenium wall behind screen) */}
       <mesh
         position={[0, roomHeight / 2, -0.1]}
         receiveShadow
       >
         <boxGeometry args={[floor.width + 0.2, roomHeight, 0.1]} />
         <meshStandardMaterial
-          color="#05070a"
-          roughness={0.95}
-          metalness={0.05}
+          color="#030406" // pure matte black absorption wall
+          roughness={0.98}
+          metalness={0.01}
         />
       </mesh>
 
-      {/* 8. Ceiling (Dark textured acoustic material) */}
+      {/* 8. Ceiling with recessed lighting paths */}
       <mesh
         position={[0, roomHeight, roomDepth / 2]}
         rotation={[Math.PI / 2, 0, 0]}
@@ -186,11 +261,40 @@ export default function FloorMesh({ floor, stage }: FloorMeshProps) {
       >
         <planeGeometry args={[floor.width + 0.2, roomDepth + 1.0]} />
         <meshStandardMaterial
-          color="#070a0f"
+          color="#050608"
           roughness={0.95}
-          metalness={0.05}
+          metalness={0.02}
         />
       </mesh>
+
+      {/* 9. Glowing Green EXIT Sign */}
+      <group position={[-floor.width / 2 + 1.2, roomHeight - 1.0, 0.1]} rotation={[0, Math.PI / 2, 0]}>
+        <mesh>
+          <boxGeometry args={[0.5, 0.25, 0.02]} />
+          <meshStandardMaterial color="#0c0a09" roughness={0.8} />
+        </mesh>
+        {/* Green lettering surface */}
+        <mesh position={[0, 0, 0.012]}>
+          <planeGeometry args={[0.4, 0.18]} />
+          <meshBasicMaterial color="#15803d" toneMapped={false} />
+        </mesh>
+      </group>
+
+      {/* 10. Projector Beam Cone (Visible light beam from projector window to screen) */}
+      {isVideoPlaying && (
+        <mesh
+          position={[0, projectorBeamGeometry.yOffset, roomDepth / 2]}
+          geometry={projectorBeamGeometry.geo}
+        >
+          <meshBasicMaterial
+            color="#bae6fd"
+            transparent
+            opacity={0.065}
+            blending={THREE.AdditiveBlending}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      )}
     </group>
   );
 }
