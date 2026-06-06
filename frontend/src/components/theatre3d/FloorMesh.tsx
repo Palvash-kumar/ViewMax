@@ -17,7 +17,7 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false }: Floo
     return Math.max(...floor.segments.map((s) => s.y));
   }, [floor.segments]);
 
-  const roomHeight = maxElevation + 6.0;
+  const roomHeight = maxElevation + 10.0;
   const roomDepth = floor.depth + stage.depth;
 
   // Generate positions for vertical wall LEDs along both side walls
