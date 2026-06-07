@@ -8,12 +8,16 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  Body,
+  UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiExcludeEndpoint } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiExcludeEndpoint, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { PaymentsService } from './payments.service';
 import { BookingsService } from '../bookings/bookings.service';
 import { PaymentStatus } from '../common/constants/payment-status.enum';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Payments')
 @Controller('payments')
@@ -33,7 +37,7 @@ export class PaymentsController {
 
     try {
       const event = await this.paymentsService.handleWebhook(
-        req.body, // raw body
+        (req as any).rawBody, // raw body
         signature,
       );
 
@@ -73,5 +77,29 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Get payment status for a booking' })
   findByBooking(@Param('bookingId') bookingId: string) {
     return this.paymentsService.findByBookingId(bookingId);
+  }
+
+  @Post('verify-session')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify stripe session and confirm booking' })
+  async verifySession(@Body('sessionId') sessionId: string) {
+    if (!sessionId) {
+      throw new BadRequestException('Session ID is required');
+    }
+
+    const session = await this.paymentsService.retrieveCheckoutSession(sessionId);
+
+    if (session.payment_status === 'paid') {
+      await this.paymentsService.updatePaymentStatus(
+        sessionId,
+        PaymentStatus.COMPLETED,
+      );
+      await this.bookingsService.confirmBooking(sessionId);
+      return { success: true, status: 'paid' };
+    }
+
+    return { success: false, status: session.payment_status };
   }
 }

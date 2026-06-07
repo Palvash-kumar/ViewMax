@@ -67,6 +67,10 @@ export class PaymentsService {
     return session;
   }
 
+  async retrieveCheckoutSession(sessionId: string) {
+    return this.stripe.checkout.sessions.retrieve(sessionId);
+  }
+
   async handleWebhook(payload: Buffer, signature: string) {
     const webhookSecret = this.configService.get<string>(
       'stripe.webhookSecret',
