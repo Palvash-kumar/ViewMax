@@ -81,9 +81,17 @@ export default function Navbar() {
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/5 transition-all cursor-pointer">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--color-gold-400)] to-[var(--color-gold-600)] flex items-center justify-center text-sm font-bold text-[var(--color-bg-primary)]">
-                    {user.firstName[0]}{user.lastName[0]}
-                  </div>
+                  {user.avatar && (user.avatar.startsWith('http') || user.avatar.startsWith('/')) ? (
+                    <img
+                      src={user.avatar}
+                      alt="Avatar"
+                      className="w-8 h-8 rounded-full object-cover border border-[var(--color-gold-500)]/30"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--color-gold-400)] to-[var(--color-gold-600)] flex items-center justify-center text-sm font-bold text-[var(--color-bg-primary)]">
+                      {user.firstName[0]}{user.lastName[0]}
+                    </div>
+                  )}
                   <span className="text-sm text-[var(--color-text-primary)]">{user.firstName}</span>
                   <ChevronDown className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
                 </button>
@@ -180,6 +188,41 @@ export default function Navbar() {
                     className="flex-1 text-center px-4 py-2.5 rounded-lg text-sm font-medium bg-gradient-to-r from-[var(--color-gold-500)] to-[var(--color-gold-600)] text-[var(--color-bg-primary)]">
                     Sign Up
                   </Link>
+                </div>
+              )}
+              {isAuthenticated && user && (
+                <div className="pt-3 border-t border-white/5 mt-3 space-y-1">
+                  <div className="px-3 py-2 flex items-center gap-3">
+                    {user.avatar && (user.avatar.startsWith('http') || user.avatar.startsWith('/')) ? (
+                      <img src={user.avatar} alt="Profile" className="w-9 h-9 rounded-full object-cover border border-[var(--color-gold-500)]/30" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[var(--color-gold-400)] to-[var(--color-gold-600)] flex items-center justify-center text-sm font-bold text-[var(--color-bg-primary)]">
+                        {user.firstName[0]}{user.lastName[0]}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">{user.firstName} {user.lastName}</p>
+                      <p className="text-xs text-[var(--color-text-muted)] truncate">{user.email}</p>
+                    </div>
+                  </div>
+                  <Link href="/profile" onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-white/5 transition-all">
+                    <User className="w-4 h-4" /> Profile
+                  </Link>
+                  <Link href="/profile/security" onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-white/5 transition-all">
+                    <Shield className="w-4 h-4" /> Security
+                  </Link>
+                  {['ADMIN', 'THEATRE_OWNER', 'THEATRE_MODERATOR'].includes(user.role) && (
+                    <Link href="/scanner" onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-white/5 transition-all">
+                      <Scan className="w-4 h-4" /> Scanner
+                    </Link>
+                  )}
+                  <button onClick={() => { logout().then(() => router.push('/')); setMobileOpen(false); }}
+                    className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-[var(--color-crimson-400)] hover:bg-[var(--color-crimson-500)]/10 transition-all cursor-pointer">
+                    <LogOut className="w-4 h-4" /> Logout
+                  </button>
                 </div>
               )}
             </div>

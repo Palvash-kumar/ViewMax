@@ -15,6 +15,7 @@ import {
   TheatreLayoutDocument,
 } from '../theatre-design/schemas/theatre-layout.schema';
 import { LayoutStatus } from '../common/constants/layout-status.enum';
+import { ShowtimeStatus } from '../common/constants/showtime-status.enum';
 
 @Injectable()
 export class ShowtimesService {
@@ -27,34 +28,102 @@ export class ShowtimesService {
     private screensService: ScreensService,
   ) {}
 
-  async create(dto: CreateShowtimeDto): Promise<ShowtimeDocument> {
+  async create(dto: CreateShowtimeDto): Promise<ShowtimeDocument | ShowtimeDocument[]> {
     // Validate screen exists
     await this.screensService.findById(dto.screenId);
 
-    // Check for overlapping showtimes on the same screen
-    const overlap = await this.showtimeModel.findOne({
-      screenId: dto.screenId,
-      status: 'SCHEDULED',
-      $or: [
-        {
-          startTime: { $lt: new Date(dto.endTime) },
-          endTime: { $gt: new Date(dto.startTime) },
-        },
-      ],
-    } as any);
+    const showtimesToCreate: any[] = [];
+    const bufferMs = 10 * 60 * 1000;
 
-    if (overlap) {
-      throw new BadRequestException(
-        'This screen already has a show scheduled during this time',
-      );
+    if (dto.isRecurring && dto.recurringEndDate) {
+      const start = new Date(dto.startTime);
+      const end = new Date(dto.endTime);
+      const recurringEnd = new Date(dto.recurringEndDate);
+
+      const durationMs = end.getTime() - start.getTime();
+      let currentStart = new Date(start);
+
+      while (currentStart <= recurringEnd) {
+        const currentEnd = new Date(currentStart.getTime() + durationMs);
+
+        // Check overlap for this specific day (including 10-minute buffer)
+        const checkStart = new Date(currentStart.getTime() - bufferMs);
+        const checkEnd = new Date(currentEnd.getTime() + bufferMs);
+
+        const overlap = await this.showtimeModel.findOne({
+          screenId: dto.screenId,
+          status: ShowtimeStatus.SCHEDULED,
+          startTime: { $lt: checkEnd },
+          endTime: { $gt: checkStart },
+        } as any);
+
+        if (overlap) {
+          const dateStr = currentStart.toLocaleDateString('en-IN', {
+            dateStyle: 'medium',
+          });
+          throw new BadRequestException(
+            `Conflict detected on ${dateStr}: Screen is already scheduled/unavailable during this time (including 10-minute buffer).`,
+          );
+        }
+
+        showtimesToCreate.push({
+          movieId: new Types.ObjectId(dto.movieId),
+          theatreId: new Types.ObjectId(dto.theatreId),
+          screenId: new Types.ObjectId(dto.screenId),
+          startTime: new Date(currentStart),
+          endTime: new Date(currentEnd),
+          ticketPrice: dto.ticketPrice,
+          status: ShowtimeStatus.SCHEDULED,
+          bookedSeats: [],
+        });
+
+        // Advance to next day
+        currentStart.setDate(currentStart.getDate() + 1);
+      }
+    } else {
+      // Single showtime logic
+      const start = new Date(dto.startTime);
+      const end = new Date(dto.endTime);
+      const checkStart = new Date(start.getTime() - bufferMs);
+      const checkEnd = new Date(end.getTime() + bufferMs);
+
+      const overlap = await this.showtimeModel.findOne({
+        screenId: dto.screenId,
+        status: ShowtimeStatus.SCHEDULED,
+        startTime: { $lt: checkEnd },
+        endTime: { $gt: checkStart },
+      } as any);
+
+      if (overlap) {
+        throw new BadRequestException(
+          'This screen already has a show scheduled during this time (including 10-minute buffer)',
+        );
+      }
+
+      showtimesToCreate.push({
+        movieId: new Types.ObjectId(dto.movieId),
+        theatreId: new Types.ObjectId(dto.theatreId),
+        screenId: new Types.ObjectId(dto.screenId),
+        startTime: start,
+        endTime: end,
+        ticketPrice: dto.ticketPrice,
+        status: ShowtimeStatus.SCHEDULED,
+        bookedSeats: [],
+      });
     }
 
-    const showtime = new this.showtimeModel(dto);
-    return (await showtime.save()).populate([
+    if (showtimesToCreate.length === 0) {
+      throw new BadRequestException('No showtimes generated. Check your start date and recurring end date.');
+    }
+
+    const createdDocs = await this.showtimeModel.insertMany(showtimesToCreate);
+    const populated = await this.showtimeModel.populate(createdDocs, [
       { path: 'movieId', select: 'title poster duration' },
       { path: 'theatreId', select: 'name city' },
       { path: 'screenId', select: 'name screenType' },
     ]);
+
+    return dto.isRecurring ? populated : populated[0];
   }
 
   async findAll(
@@ -112,6 +181,34 @@ export class ShowtimesService {
   }
 
   async update(id: string, dto: UpdateShowtimeDto): Promise<ShowtimeDocument> {
+    // If updating startTime or endTime, validate the overlap
+    if (dto.startTime || dto.endTime) {
+      const showtime = await this.showtimeModel.findById(id);
+      if (!showtime) throw new NotFoundException('Showtime not found');
+
+      const startTime = dto.startTime ? new Date(dto.startTime) : showtime.startTime;
+      const endTime = dto.endTime ? new Date(dto.endTime) : showtime.endTime;
+      const screenId = showtime.screenId.toString();
+
+      const bufferMs = 10 * 60 * 1000;
+      const checkStart = new Date(startTime.getTime() - bufferMs);
+      const checkEnd = new Date(endTime.getTime() + bufferMs);
+
+      const overlap = await this.showtimeModel.findOne({
+        _id: { $ne: new Types.ObjectId(id) },
+        screenId: new Types.ObjectId(screenId),
+        status: ShowtimeStatus.SCHEDULED,
+        startTime: { $lt: checkEnd },
+        endTime: { $gt: checkStart },
+      } as any);
+
+      if (overlap) {
+        throw new BadRequestException(
+          'This screen already has a show scheduled during this time (including 10-minute buffer)',
+        );
+      }
+    }
+
     const showtime = await this.showtimeModel
       .findByIdAndUpdate(id, dto, { new: true })
       .exec();

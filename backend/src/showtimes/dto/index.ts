@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsEnum,
   Min,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ShowtimeStatus } from '../../common/constants/showtime-status.enum';
@@ -36,6 +37,16 @@ export class CreateShowtimeDto {
   @IsNumber()
   @Min(0)
   ticketPrice: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isRecurring?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  recurringEndDate?: string;
 }
 
 export class UpdateShowtimeDto {

@@ -57,6 +57,8 @@ export default function AdminDashboard() {
     startTime: '',
     endTime: '',
     ticketPrice: 250,
+    isRecurring: false,
+    recurringEndDate: '',
   });
   const [showtimeScreens, setShowtimeScreens] = useState<Screen[]>([]);
   const [loadingShowtimeScreens, setLoadingShowtimeScreens] = useState(false);
@@ -230,6 +232,8 @@ export default function AdminDashboard() {
       startTime: '',
       endTime: '',
       ticketPrice: 250,
+      isRecurring: false,
+      recurringEndDate: '',
     });
     setShowtimeScreens([]);
     setIsShowtimeModalOpen(true);
@@ -260,18 +264,39 @@ export default function AdminDashboard() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const payload = {
+      const parseLocalDatetime = (str: string) => {
+        if (!str) return new Date();
+        const [datePart, timePart] = str.split('T');
+        const [year, month, day] = datePart.split('-').map(Number);
+        const [hours, minutes] = timePart.split(':').map(Number);
+        return new Date(year, month - 1, day, hours, minutes, 0, 0);
+      };
+
+      const payload: any = {
         movieId: showtimeForm.movieId,
         theatreId: showtimeForm.theatreId,
         screenId: showtimeForm.screenId,
-        startTime: new Date(showtimeForm.startTime).toISOString(),
-        endTime: new Date(showtimeForm.endTime).toISOString(),
+        startTime: parseLocalDatetime(showtimeForm.startTime).toISOString(),
+        endTime: parseLocalDatetime(showtimeForm.endTime).toISOString(),
         ticketPrice: Number(showtimeForm.ticketPrice),
       };
+
+      if (showtimeForm.isRecurring && showtimeForm.recurringEndDate) {
+        payload.isRecurring = true;
+        const [year, month, day] = showtimeForm.recurringEndDate.split('-').map(Number);
+        const endDate = new Date(year, month - 1, day, 23, 59, 59, 999);
+        payload.recurringEndDate = endDate.toISOString();
+      }
+
       const res = await api.post('/showtimes', payload);
-      const newShowtime = res.data.data;
-      setShowtimes((prev) => [newShowtime, ...prev]);
-      setStats((prev) => ({ ...prev, showtimes: prev.showtimes + 1 }));
+      const created = res.data.data;
+      if (Array.isArray(created)) {
+        setShowtimes((prev) => [...created, ...prev]);
+        setStats((prev) => ({ ...prev, showtimes: prev.showtimes + created.length }));
+      } else {
+        setShowtimes((prev) => [created, ...prev]);
+        setStats((prev) => ({ ...prev, showtimes: prev.showtimes + 1 }));
+      }
       setIsShowtimeModalOpen(false);
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Failed to create showtime';
@@ -1055,6 +1080,37 @@ export default function AdminDashboard() {
                 />
               </div>
 
+              {/* Recurring Switch */}
+              <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-4">
+                <input
+                  type="checkbox"
+                  id="isRecurring"
+                  checked={showtimeForm.isRecurring}
+                  onChange={(e) => setShowtimeForm({ ...showtimeForm, isRecurring: e.target.checked })}
+                  className="w-4 h-4 rounded border-white/10 bg-white/5 text-[var(--color-gold-500)] focus:ring-[var(--color-gold-500)]/30 cursor-pointer"
+                />
+                <label htmlFor="isRecurring" className="text-sm font-medium text-white cursor-pointer select-none">
+                  Repeat Daily (Schedule for everyday)
+                </label>
+              </div>
+
+              {/* Recurring End Date */}
+              {showtimeForm.isRecurring && (
+                <div className="space-y-1">
+                  <label className={labelClass}>Repeat Until (End Date)</label>
+                  <input
+                    type="date"
+                    required={showtimeForm.isRecurring}
+                    value={showtimeForm.recurringEndDate}
+                    onChange={(e) => setShowtimeForm({ ...showtimeForm, recurringEndDate: e.target.value })}
+                    className={`${inputClass} text-white`}
+                  />
+                  <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+                    Showtimes will be scheduled daily at the specified time up to and including this date.
+                  </p>
+                </div>
+              )}
+
               <div className="flex gap-3 pt-4">
                 <Button variant="ghost" type="button" onClick={() => setIsShowtimeModalOpen(false)} className="flex-1">
                   Cancel
@@ -1063,7 +1119,6 @@ export default function AdminDashboard() {
                   variant="primary"
                   type="submit"
                   loading={submitting}
-                  disabled={!showtimeForm.movieId || !showtimeForm.theatreId || !showtimeForm.screenId}
                   className="flex-1"
                 >
                   Schedule Showtime
