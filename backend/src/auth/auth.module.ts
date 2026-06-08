@@ -5,13 +5,14 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UsersModule } from '../users/users.module';
+import { SecurityModule } from '../security/security.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 
 @Module({
-  imports: [UsersModule, PassportModule, ConfigModule, JwtModule.register({})],
+  imports: [UsersModule, PassportModule, ConfigModule, JwtModule.register({}), SecurityModule],
   controllers: [AuthController],
   providers: [
     AuthService,

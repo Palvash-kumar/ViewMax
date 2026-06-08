@@ -12,6 +12,8 @@ import { v4 as uuid } from 'uuid';
 import * as nodemailer from 'nodemailer';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto';
+import { SecurityService } from '../security/security.service';
+import { SecurityEventType } from '../security/schemas/security-event.schema';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +24,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private securityService: SecurityService,
   ) {
     this.transporter = nodemailer.createTransport({
       host: this.configService.get<string>('smtp.host'),
@@ -36,7 +39,7 @@ export class AuthService {
 
   // --- Registration ---
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto, sessionDetails?: { ipAddress?: string; userAgent?: string }) {
     const existing = await this.usersService.findByEmail(dto.email);
     if (existing) {
       throw new ConflictException('Email already registered');
@@ -59,7 +62,31 @@ export class AuthService {
     // Send verification email
     await this.sendVerificationEmail(dto.email, verificationToken);
 
-    const tokens = await this.generateTokens(user._id.toString(), user.role);
+    let sessionId: string | undefined;
+    if (sessionDetails) {
+      const userAgent = sessionDetails.userAgent || 'Unknown';
+      const device = userAgent.includes('Mobile') ? 'Mobile Device' : 'Desktop';
+      let browser = 'Unknown Browser';
+      if (userAgent.includes('Chrome')) browser = 'Chrome';
+      else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) browser = 'Safari';
+      else if (userAgent.includes('Firefox')) browser = 'Firefox';
+      else if (userAgent.includes('Edge')) browser = 'Edge';
+
+      sessionId = await this.securityService.createSession(user._id.toString(), {
+        device,
+        browser,
+        ipAddress: sessionDetails.ipAddress || '127.0.0.1',
+        createdAt: new Date(),
+        lastActive: new Date(),
+      });
+
+      await this.securityService.logSecurityEvent(user._id.toString(), SecurityEventType.LOGIN_SUCCESS, {
+        ipAddress: sessionDetails.ipAddress,
+        userAgent: sessionDetails.userAgent,
+      });
+    }
+
+    const tokens = await this.generateTokens(user._id.toString(), user.role, sessionId);
     await this.usersService.updateRefreshToken(
       user._id.toString(),
       tokens.refreshToken,
@@ -80,18 +107,51 @@ export class AuthService {
 
   // --- Login ---
 
-  async validateUser(email: string, password: string): Promise<any> {
+  async validateUser(email: string, password: string, sessionDetails?: { ipAddress?: string; userAgent?: string }): Promise<any> {
     const user = await this.usersService.findByEmailWithPassword(email);
-    if (!user || !user.passwordHash) return null;
+    if (!user) return null;
+    if (!user.passwordHash) return null;
 
     const isValid = await argon2.verify(user.passwordHash, password);
-    if (!isValid) return null;
+    if (!isValid) {
+      if (sessionDetails) {
+        await this.securityService.logSecurityEvent(user._id.toString(), SecurityEventType.LOGIN_FAILED, {
+          ipAddress: sessionDetails.ipAddress,
+          userAgent: sessionDetails.userAgent,
+        });
+      }
+      return null;
+    }
 
     return user;
   }
 
-  async login(user: any) {
-    const tokens = await this.generateTokens(user._id.toString(), user.role);
+  async login(user: any, sessionDetails?: { ipAddress?: string; userAgent?: string }) {
+    let sessionId: string | undefined;
+    if (sessionDetails) {
+      const userAgent = sessionDetails.userAgent || 'Unknown';
+      const device = userAgent.includes('Mobile') ? 'Mobile Device' : 'Desktop';
+      let browser = 'Unknown Browser';
+      if (userAgent.includes('Chrome')) browser = 'Chrome';
+      else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) browser = 'Safari';
+      else if (userAgent.includes('Firefox')) browser = 'Firefox';
+      else if (userAgent.includes('Edge')) browser = 'Edge';
+
+      sessionId = await this.securityService.createSession(user._id.toString(), {
+        device,
+        browser,
+        ipAddress: sessionDetails.ipAddress || '127.0.0.1',
+        createdAt: new Date(),
+        lastActive: new Date(),
+      });
+
+      await this.securityService.logSecurityEvent(user._id.toString(), SecurityEventType.LOGIN_SUCCESS, {
+        ipAddress: sessionDetails.ipAddress,
+        userAgent: sessionDetails.userAgent,
+      });
+    }
+
+    const tokens = await this.generateTokens(user._id.toString(), user.role, sessionId);
     await this.usersService.updateRefreshToken(
       user._id.toString(),
       tokens.refreshToken,
@@ -134,8 +194,12 @@ export class AuthService {
 
   // --- Logout ---
 
-  async logout(userId: string) {
+  async logout(userId: string, sessionId?: string) {
     await this.usersService.updateRefreshToken(userId, null);
+    if (sessionId) {
+      await this.securityService.terminateSession(userId, sessionId);
+    }
+    await this.securityService.logSecurityEvent(userId, SecurityEventType.LOGOUT, {});
   }
 
   // --- Google OAuth ---
@@ -155,8 +219,32 @@ export class AuthService {
     return user;
   }
 
-  async googleLogin(user: any) {
-    const tokens = await this.generateTokens(user._id.toString(), user.role);
+  async googleLogin(user: any, sessionDetails?: { ipAddress?: string; userAgent?: string }) {
+    let sessionId: string | undefined;
+    if (sessionDetails) {
+      const userAgent = sessionDetails.userAgent || 'Unknown';
+      const device = userAgent.includes('Mobile') ? 'Mobile Device' : 'Desktop';
+      let browser = 'Unknown Browser';
+      if (userAgent.includes('Chrome')) browser = 'Chrome';
+      else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) browser = 'Safari';
+      else if (userAgent.includes('Firefox')) browser = 'Firefox';
+      else if (userAgent.includes('Edge')) browser = 'Edge';
+
+      sessionId = await this.securityService.createSession(user._id.toString(), {
+        device,
+        browser,
+        ipAddress: sessionDetails.ipAddress || '127.0.0.1',
+        createdAt: new Date(),
+        lastActive: new Date(),
+      });
+
+      await this.securityService.logSecurityEvent(user._id.toString(), SecurityEventType.LOGIN_SUCCESS, {
+        ipAddress: sessionDetails.ipAddress,
+        userAgent: sessionDetails.userAgent,
+      });
+    }
+
+    const tokens = await this.generateTokens(user._id.toString(), user.role, sessionId);
     await this.usersService.updateRefreshToken(
       user._id.toString(),
       tokens.refreshToken,
@@ -262,8 +350,8 @@ export class AuthService {
 
   // --- Token Generation ---
 
-  private async generateTokens(userId: string, role: string) {
-    const payload = { sub: userId, role };
+  private async generateTokens(userId: string, role: string, sessionId?: string) {
+    const payload = { sub: userId, role, sid: sessionId };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {

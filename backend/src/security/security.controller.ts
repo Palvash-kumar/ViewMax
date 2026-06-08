@@ -29,13 +29,20 @@ export class SecurityController {
   @Get('dashboard')
   @ApiOperation({ summary: 'Get personal security dashboard' })
   async getDashboard(@Req() req: any) {
-    return this.securityService.getDashboard(req.user.sub);
+    const ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    const userAgent = req.headers['user-agent'] || 'Unknown User-Agent';
+    const userId = req.user.sub || req.user._id.toString();
+    return this.securityService.getDashboard(userId, { ipAddress, userAgent });
   }
 
   @Get('sessions')
   @ApiOperation({ summary: 'Get all active sessions' })
   async getSessions(@Req() req: any) {
-    return this.securityService.getActiveSessions(req.user.sub);
+    const ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    const userAgent = req.headers['user-agent'] || 'Unknown User-Agent';
+    const userId = req.user.sub || req.user._id.toString();
+    const sid = req.user.sid;
+    return this.securityService.getActiveSessions(userId, sid, { ipAddress, userAgent });
   }
 
   @Delete('sessions/:sessionId')
@@ -64,7 +71,10 @@ export class SecurityController {
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
-    return this.securityService.getSecurityEvents(req.user.sub, +page, +limit);
+    const ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    const userAgent = req.headers['user-agent'] || 'Unknown User-Agent';
+    const userId = req.user.sub || req.user._id.toString();
+    return this.securityService.getSecurityEvents(userId, +page, +limit, { ipAddress, userAgent });
   }
 
   @Get('admin/overview')

@@ -37,8 +37,10 @@ export class AuthController {
 
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
-  register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+  register(@Req() req: any, @Body() dto: RegisterDto) {
+    const ipAddress = req.ip || req.connection?.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    return this.authService.register(dto, { ipAddress, userAgent });
   }
 
   @Post('login')
@@ -46,7 +48,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
   login(@Req() req: any) {
-    return this.authService.login(req.user);
+    const ipAddress = req.ip || req.connection?.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    return this.authService.login(req.user, { ipAddress, userAgent });
   }
 
   @Post('refresh')
@@ -63,8 +67,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout' })
-  logout(@CurrentUser('_id') userId: string) {
-    return this.authService.logout(userId);
+  logout(@CurrentUser('_id') userId: string, @CurrentUser('sid') sessionId?: string) {
+    return this.authService.logout(userId, sessionId);
   }
 
   @Post('forgot-password')
@@ -103,7 +107,9 @@ export class AuthController {
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Google OAuth callback' })
   async googleCallback(@Req() req: any, @Res() res: any) {
-    const result = await this.authService.googleLogin(req.user);
+    const ipAddress = req.ip || req.connection?.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    const result = await this.authService.googleLogin(req.user, { ipAddress, userAgent });
     const frontendUrl = this.configService.get<string>('frontend.url');
 
     res.redirect(
