@@ -18,10 +18,12 @@ export default function SeatMap({ seatAvailability, screenName, screenType }: Se
     if (seat.isBooked) return 'bg-[var(--color-seat-booked)]/60 cursor-not-allowed';
     if (seat.isLocked) return 'bg-[var(--color-seat-locked)]/60 cursor-not-allowed';
     if (seat.type === 'BLOCKED') return 'invisible';
-    if (seat.type === 'VIP') return 'bg-[var(--color-seat-vip)]/20 border border-[var(--color-seat-vip)]/40 hover:bg-[var(--color-seat-vip)]/40';
-    if (seat.type === 'PREMIUM') return 'bg-[var(--color-seat-premium)]/20 border border-[var(--color-seat-premium)]/40 hover:bg-[var(--color-seat-premium)]/40';
-    if (seat.type === 'WHEELCHAIR') return 'bg-blue-500/20 border border-blue-500/40 hover:bg-blue-500/40';
-    return 'bg-[var(--color-seat-available)]/15 border border-[var(--color-seat-available)]/30 hover:bg-[var(--color-seat-available)]/30';
+    if (seat.type === 'VIP') return 'bg-[var(--color-seat-vip)]/20 border border-[var(--color-seat-vip)]/40 hover:bg-[var(--color-seat-vip)]/40 text-[var(--color-seat-vip)]';
+    if (seat.type === 'PREMIUM') return 'bg-[var(--color-seat-premium)]/20 border border-[var(--color-seat-premium)]/40 hover:bg-[var(--color-seat-premium)]/40 text-[var(--color-seat-premium)]';
+    if (seat.type === 'RECLINER') return 'bg-emerald-500/20 border border-emerald-500/40 hover:bg-emerald-500/40 text-emerald-400';
+    if (seat.type === 'WHEELCHAIR') return 'bg-blue-500/20 border border-blue-500/40 hover:bg-blue-500/40 text-blue-400';
+    if (seat.type === 'CUSTOM') return 'bg-pink-500/20 border border-pink-500/40 hover:bg-pink-500/40 text-pink-400';
+    return 'bg-[var(--color-seat-available)]/15 border border-[var(--color-seat-available)]/30 hover:bg-[var(--color-seat-available)]/30 text-[var(--color-seat-available)]';
   };
 
   return (
@@ -68,11 +70,14 @@ export default function SeatMap({ seatAvailability, screenName, screenType }: Se
       {/* Legend */}
       <div className="flex flex-wrap justify-center gap-4 pt-4 border-t border-white/5">
         {[
-          { color: 'bg-[var(--color-seat-available)]/30', label: 'Available' },
+          { color: 'bg-[var(--color-seat-available)]/30 border border-[var(--color-seat-available)]/50', label: 'Available' },
           { color: 'bg-[var(--color-seat-selected)]', label: 'Selected' },
           { color: 'bg-[var(--color-seat-booked)]/60', label: 'Booked' },
-          { color: 'bg-[var(--color-seat-premium)]/30', label: 'Premium' },
-          { color: 'bg-[var(--color-seat-vip)]/30', label: 'VIP' },
+          { color: 'bg-[var(--color-seat-premium)]/30 border border-[var(--color-seat-premium)]/50', label: 'Premium' },
+          { color: 'bg-[var(--color-seat-vip)]/30 border border-[var(--color-seat-vip)]/50', label: 'VIP' },
+          { color: 'bg-emerald-500/30 border border-emerald-500/50', label: 'Recliner' },
+          { color: 'bg-blue-500/30 border border-blue-500/50', label: 'Wheelchair' },
+          { color: 'bg-pink-500/30 border border-pink-500/50', label: 'Custom' },
           { color: 'bg-[var(--color-seat-locked)]/60', label: 'Locked' },
         ].map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1.5">

@@ -111,6 +111,31 @@ export class ScreensService {
     return screen;
   }
 
+  async updateScreenLayout(
+    screenId: string,
+    layoutId: string,
+    rowsCount: number,
+    columnsCount: number,
+    capacity: number,
+    seatMap: SeatInfo[][],
+  ): Promise<ScreenDocument> {
+    const screen = await this.screenModel
+      .findByIdAndUpdate(
+        screenId,
+        {
+          layoutId: new Types.ObjectId(layoutId),
+          rows: rowsCount,
+          columns: columnsCount,
+          capacity,
+          seatMap,
+        },
+        { new: true },
+      )
+      .exec();
+    if (!screen) throw new NotFoundException('Screen not found');
+    return screen;
+  }
+
   async delete(id: string): Promise<void> {
     const result = await this.screenModel.findByIdAndDelete(id).exec();
     if (!result) throw new NotFoundException('Screen not found');

@@ -26,6 +26,7 @@ import { LayoutStatus } from '../common/constants/layout-status.enum';
 import { SeatCategory } from '../common/constants/seat-category.enum';
 import { TheatresService } from '../theatres/theatres.service';
 import { ScreensService } from '../screens/screens.service';
+import { SeatInfo } from '../screens/schemas/screen.schema';
 import { Role } from '../common/constants/roles.enum';
 
 @Injectable()
@@ -392,6 +393,65 @@ export class TheatreDesignService {
 
     layout.status = LayoutStatus.PUBLISHED;
     layout.publishedAt = new Date();
+
+    // Convert layout's seatMap into a 2D SeatInfo[][] array
+    const layoutRows = layout.rows;
+    const layoutSeats = layout.seatMap;
+
+    // Group layoutSeats by row label
+    const seatsByRow = new Map<string, SeatMapItem[]>();
+    for (const seat of layoutSeats) {
+      let rowSeats = seatsByRow.get(seat.row);
+      if (!rowSeats) {
+        rowSeats = [];
+        seatsByRow.set(seat.row, rowSeats);
+      }
+      rowSeats.push(seat);
+    }
+
+    // Sort rows by their order
+    const sortedRows = [...layoutRows].sort((a, b) => a.order - b.order);
+
+    const seatMap2D: SeatInfo[][] = [];
+    for (const rowConfig of sortedRows) {
+      const rowLabel = rowConfig.label;
+      const seatsInRow = seatsByRow.get(rowLabel) || [];
+      // Sort seats in row by seatNumber
+      const sortedSeats = [...seatsInRow].sort((a, b) => a.seatNumber - b.seatNumber);
+
+      const rowSeats: SeatInfo[] = sortedSeats.map((seat) => {
+        let type: any = seat.category;
+        if (seat.status === 'BLOCKED' || seat.status === 'REMOVED') {
+          type = 'BLOCKED';
+        }
+        return {
+          seatNumber: seat.id,
+          row: seat.row,
+          column: seat.seatNumber,
+          type,
+        };
+      });
+
+      if (rowSeats.length > 0) {
+        seatMap2D.push(rowSeats);
+      }
+    }
+
+    // Determine dimensions and capacity
+    const rowsCount = sortedRows.length;
+    const columnsCount = Math.max(...layoutSeats.map((s) => s.seatNumber), 0);
+    const capacity = layout.totalCapacity;
+
+    // Update screen
+    await this.screensService.updateScreenLayout(
+      layout.screenId.toString(),
+      layout._id.toString(),
+      rowsCount,
+      columnsCount,
+      capacity,
+      seatMap2D,
+    );
+
     return layout.save();
   }
 

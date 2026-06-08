@@ -6,7 +6,7 @@ export interface SeatInfo {
   seatNumber: string; // e.g. "A1"
   row: string; // e.g. "A"
   column: number; // e.g. 1
-  type: 'STANDARD' | 'PREMIUM' | 'VIP' | 'WHEELCHAIR' | 'BLOCKED';
+  type: 'STANDARD' | 'PREMIUM' | 'VIP' | 'RECLINER' | 'WHEELCHAIR' | 'CUSTOM' | 'BLOCKED';
 }
 
 export type ScreenDocument = Screen & Document;

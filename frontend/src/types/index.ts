@@ -58,7 +58,7 @@ export interface SeatInfo {
   seatNumber: string;
   row: string;
   column: number;
-  type: 'STANDARD' | 'PREMIUM' | 'VIP' | 'WHEELCHAIR' | 'BLOCKED';
+  type: 'STANDARD' | 'PREMIUM' | 'VIP' | 'RECLINER' | 'WHEELCHAIR' | 'CUSTOM' | 'BLOCKED';
 }
 
 export interface SeatAvailability extends SeatInfo {

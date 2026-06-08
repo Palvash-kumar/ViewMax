@@ -4,18 +4,25 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Showtime, ShowtimeDocument } from './schemas/showtime.schema';
 import { CreateShowtimeDto, UpdateShowtimeDto, QueryShowtimeDto } from './dto';
 import { PaginatedResult } from '../common/dto/pagination.dto';
 import { RedisService } from '../redis/redis.service';
 import { ScreensService } from '../screens/screens.service';
+import {
+  TheatreLayout,
+  TheatreLayoutDocument,
+} from '../theatre-design/schemas/theatre-layout.schema';
+import { LayoutStatus } from '../common/constants/layout-status.enum';
 
 @Injectable()
 export class ShowtimesService {
   constructor(
     @InjectModel(Showtime.name)
     private showtimeModel: Model<ShowtimeDocument>,
+    @InjectModel(TheatreLayout.name)
+    private layoutModel: Model<TheatreLayoutDocument>,
     private redisService: RedisService,
     private screensService: ScreensService,
   ) {}
@@ -123,13 +130,65 @@ export class ShowtimesService {
    */
   async getSeatAvailability(showtimeId: string) {
     const showtime = await this.findById(showtimeId);
-    // screenId is populated by findById, so extract the _id from the populated object
     const screenIdRaw = showtime.screenId as any;
     const screenIdStr = screenIdRaw?._id?.toString() ?? screenIdRaw.toString();
     const screen = await this.screensService.findById(screenIdStr);
 
-    const seatMap = screen.seatMap;
     const bookedSeats = new Set(showtime.bookedSeats);
+
+    // Try to find the most recent published layout for this screen to build custom categories
+    let seatMap = screen.seatMap;
+    const layout = await this.layoutModel
+      .findOne({
+        screenId: new Types.ObjectId(screenIdStr),
+        status: LayoutStatus.PUBLISHED,
+      })
+      .sort({ publishedAt: -1 })
+      .exec();
+
+    if (layout && layout.seatMap && layout.seatMap.length > 0) {
+      // Group layout's flat seatMap by row label
+      const seatsByRow = new Map<string, any[]>();
+      for (const seat of layout.seatMap) {
+        let rowSeats = seatsByRow.get(seat.row);
+        if (!rowSeats) {
+          rowSeats = [];
+          seatsByRow.set(seat.row, rowSeats);
+        }
+        rowSeats.push(seat);
+      }
+
+      // Sort rows by order
+      const sortedRows = [...layout.rows].sort((a, b) => a.order - b.order);
+
+      const seatMap2D: any[][] = [];
+      for (const rowConfig of sortedRows) {
+        const rowLabel = rowConfig.label;
+        const seatsInRow = seatsByRow.get(rowLabel) || [];
+        const sortedSeats = [...seatsInRow].sort((a, b) => a.seatNumber - b.seatNumber);
+
+        const rowSeats = sortedSeats.map((seat) => {
+          let type = seat.category;
+          if (seat.status === 'BLOCKED' || seat.status === 'REMOVED') {
+            type = 'BLOCKED';
+          }
+          return {
+            seatNumber: seat.id,
+            row: seat.row,
+            column: seat.seatNumber,
+            type,
+          };
+        });
+
+        if (rowSeats.length > 0) {
+          seatMap2D.push(rowSeats);
+        }
+      }
+
+      if (seatMap2D.length > 0) {
+        seatMap = seatMap2D;
+      }
+    }
 
     // Build availability map
     const availability: any[][] = [];
@@ -161,8 +220,8 @@ export class ShowtimesService {
       showtimeId,
       screenName: screen.name,
       screenType: screen.screenType,
-      rows: screen.rows,
-      columns: screen.columns,
+      rows: seatMap.length,
+      columns: seatMap.length > 0 ? Math.max(...seatMap.flatMap(r => r).map(s => Number(s.column) || 0)) : screen.columns,
       ticketPrice: showtime.ticketPrice,
       seatAvailability: availability,
     };
