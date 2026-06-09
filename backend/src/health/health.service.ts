@@ -73,7 +73,7 @@ export class HealthService {
     };
   }
 
-  async getLiveness() {
+  getLiveness() {
     return { status: 'ok', timestamp: new Date().toISOString() };
   }
 

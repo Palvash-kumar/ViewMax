@@ -11,7 +11,6 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MovieStatus } from '../../common/constants/movie-status.enum';
 import { PaginationDto } from '../../common/dto/pagination.dto';
-import { Type } from 'class-transformer';
 
 export class CreateMovieDto {
   @ApiProperty()

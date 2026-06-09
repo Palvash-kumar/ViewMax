@@ -11,16 +11,19 @@ async function run() {
     process.exit(1);
   }
   await mongoose.connect(MONGO_URI);
-  
-  const LayoutSchema = new mongoose.Schema({}, { strict: false, collection: 'theatre_layouts' });
+
+  const LayoutSchema = new mongoose.Schema(
+    {},
+    { strict: false, collection: 'theatre_layouts' },
+  );
   const Layout = mongoose.model('Layout', LayoutSchema);
-  
+
   const layouts = await Layout.find({
-    screenId: new mongoose.Types.ObjectId('6a23bd586204e64ae235bef0')
+    screenId: new mongoose.Types.ObjectId('6a23bd586204e64ae235bef0'),
   }).exec();
-  
+
   console.log(JSON.stringify(layouts, null, 2));
-  
+
   await mongoose.disconnect();
 }
 

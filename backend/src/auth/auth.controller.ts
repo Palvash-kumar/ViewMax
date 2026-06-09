@@ -14,8 +14,6 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
-  LoginDto,
-  RefreshTokenDto,
   ForgotPasswordDto,
   ResetPasswordDto,
   VerifyEmailDto,
@@ -71,7 +69,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout' })
-  logout(@CurrentUser('_id') userId: string, @CurrentUser('sid') sessionId?: string) {
+  logout(
+    @CurrentUser('_id') userId: string,
+    @CurrentUser('sid') sessionId?: string,
+  ) {
     return this.authService.logout(userId, sessionId);
   }
 
@@ -115,7 +116,10 @@ export class AuthController {
     if (ipAddress === '::1') ipAddress = '127.0.0.1';
     if (ipAddress.startsWith('::ffff:')) ipAddress = ipAddress.substring(7);
     const userAgent = req.headers['user-agent'];
-    const result = await this.authService.googleLogin(req.user, { ipAddress, userAgent });
+    const result = await this.authService.googleLogin(req.user, {
+      ipAddress,
+      userAgent,
+    });
     const frontendUrl = this.configService.get<string>('frontend.url');
 
     res.redirect(

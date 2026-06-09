@@ -22,15 +22,17 @@ async function run() {
   }
   await mongoose.connect(MONGO_URI);
   const Layout = mongoose.model('Layout', LayoutSchema);
-  
-  const layouts = await Layout.find({ screenId: new mongoose.Types.ObjectId('6a23bd586204e64ae235bef0') });
+
+  const layouts = await Layout.find({
+    screenId: new mongoose.Types.ObjectId('6a23bd586204e64ae235bef0'),
+  });
   console.log('\n--- Layouts for Screen ---');
   layouts.forEach((l) => {
     console.log(
-      `- ID: ${l._id} | Name: ${l.layoutName} | Status: ${l.status} | ScreenId: ${l.screenId}`
+      `- ID: ${l._id} | Name: ${l.layoutName} | Status: ${l.status} | ScreenId: ${l.screenId}`,
     );
   });
-  
+
   await mongoose.disconnect();
 }
 

@@ -98,7 +98,8 @@ export class SecurityService {
       const device = userAgent.includes('Mobile') ? 'Mobile Device' : 'Desktop';
       let browser = 'Unknown Browser';
       if (userAgent.includes('Chrome')) browser = 'Chrome';
-      else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) browser = 'Safari';
+      else if (userAgent.includes('Safari') && !userAgent.includes('Chrome'))
+        browser = 'Safari';
       else if (userAgent.includes('Firefox')) browser = 'Firefox';
       else if (userAgent.includes('Edge')) browser = 'Edge';
 
@@ -106,14 +107,19 @@ export class SecurityService {
       if (ip === '::1') ip = '127.0.0.1';
       if (ip.startsWith('::ffff:')) ip = ip.substring(7);
 
-      const generatedSid = currentSessionId || crypto.randomBytes(32).toString('hex');
-      await this.createSession(userId, {
-        device,
-        browser,
-        ipAddress: ip,
-        createdAt: new Date(),
-        lastActive: new Date(),
-      }, generatedSid);
+      const generatedSid =
+        currentSessionId || crypto.randomBytes(32).toString('hex');
+      await this.createSession(
+        userId,
+        {
+          device,
+          browser,
+          ipAddress: ip,
+          createdAt: new Date(),
+          lastActive: new Date(),
+        },
+        generatedSid,
+      );
 
       // Re-fetch keys
       keys = await client.keys(pattern);
@@ -154,7 +160,12 @@ export class SecurityService {
     }
   }
 
-  async getSecurityEvents(userId: string, page = 1, limit = 20, fallbackDetails?: { ipAddress?: string; userAgent?: string }) {
+  async getSecurityEvents(
+    userId: string,
+    page = 1,
+    limit = 20,
+    fallbackDetails?: { ipAddress?: string; userAgent?: string },
+  ) {
     const skip = (page - 1) * limit;
     let [data, total] = await Promise.all([
       this.securityEventModel
@@ -194,8 +205,11 @@ export class SecurityService {
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async getDashboard(userId: string, fallbackDetails?: { ipAddress?: string; userAgent?: string }) {
-    let [events, failedLogins] = await Promise.all([
+  async getDashboard(
+    userId: string,
+    fallbackDetails?: { ipAddress?: string; userAgent?: string },
+  ) {
+    const [initialEvents, failedLogins] = await Promise.all([
       this.securityEventModel
         .find({ userId: new Types.ObjectId(userId) })
         .sort({ createdAt: -1 })
@@ -209,6 +223,7 @@ export class SecurityService {
         })
         .exec(),
     ]);
+    let events = initialEvents;
 
     // Seed a login event if no events exist
     if (events.length === 0 && fallbackDetails) {

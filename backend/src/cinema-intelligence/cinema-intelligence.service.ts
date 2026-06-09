@@ -34,7 +34,6 @@ import {
   ExplanationEngine,
   ExplanationInput,
 } from './engines/explanation-engine';
-import { getScreenFormatProfile } from './engines/screen-format-profiles';
 import {
   CompareSeatsDto,
   SavePreferencesDto,

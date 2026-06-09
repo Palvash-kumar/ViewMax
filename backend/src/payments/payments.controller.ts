@@ -12,7 +12,12 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiExcludeEndpoint, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiExcludeEndpoint,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { PaymentsService } from './payments.service';
 import { BookingsService } from '../bookings/bookings.service';
@@ -89,7 +94,8 @@ export class PaymentsController {
       throw new BadRequestException('Session ID is required');
     }
 
-    const session = await this.paymentsService.retrieveCheckoutSession(sessionId);
+    const session =
+      await this.paymentsService.retrieveCheckoutSession(sessionId);
 
     if (session.payment_status === 'paid') {
       await this.paymentsService.updatePaymentStatus(

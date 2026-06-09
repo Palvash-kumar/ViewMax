@@ -4,7 +4,6 @@ import {
   LayoutAisle,
   ScreenConfig,
 } from '../schemas/theatre-layout.schema';
-import { SeatCategory } from '../../common/constants/seat-category.enum';
 
 export interface CoordinateResult {
   seatId: string;
@@ -116,7 +115,6 @@ export class CoordinateEngine {
         const x = startX + si * seatSpacing + aisleOffset + (row.offset || 0);
 
         // Seat rotation: face toward screen center (0, screenElevation, 0)
-        const screenCenterY = screenConfig.elevation + screenConfig.height / 2;
         const dx = -x; // horizontal angle toward center
         const rotation = Math.atan2(dx, z) * (180 / Math.PI);
 

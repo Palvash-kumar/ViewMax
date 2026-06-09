@@ -113,7 +113,6 @@ export class ExplanationEngine {
    * Generate a short one-line summary for heatmap tooltips.
    */
   generateShort(input: ExplanationInput): string {
-    const profile = getScreenFormatProfile(input.screenType);
     return `${input.seatId}: ${input.category} (${input.premiumExperienceScore}/100) — ${input.distanceMeters.toFixed(1)}m from screen`;
   }
 

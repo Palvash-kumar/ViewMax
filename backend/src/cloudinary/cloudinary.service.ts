@@ -23,7 +23,7 @@ export class CloudinaryService {
           ],
         },
         (error, result) => {
-          if (error) return reject(error);
+          if (error) return reject(new Error(error.message || 'Upload failed'));
           if (!result) return reject(new Error('Upload failed'));
           resolve(result);
         },
@@ -52,7 +52,7 @@ export class CloudinaryService {
           transformation: [{ quality: 'auto' }],
         },
         (error, result) => {
-          if (error) return reject(error);
+          if (error) return reject(new Error(error.message || 'Upload failed'));
           if (!result) return reject(new Error('Upload failed'));
           resolve(result);
         },

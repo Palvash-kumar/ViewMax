@@ -16,7 +16,7 @@ export class HealthController {
   @Get('live')
   @HttpCode(200)
   @ApiOperation({ summary: 'Liveness probe (Kubernetes)' })
-  async liveness() {
+  liveness() {
     return this.healthService.getLiveness();
   }
 

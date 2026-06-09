@@ -12,7 +12,13 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 
 @Module({
-  imports: [UsersModule, PassportModule, ConfigModule, JwtModule.register({}), SecurityModule],
+  imports: [
+    UsersModule,
+    PassportModule,
+    ConfigModule,
+    JwtModule.register({}),
+    SecurityModule,
+  ],
   controllers: [AuthController],
   providers: [
     AuthService,

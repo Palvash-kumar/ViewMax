@@ -1,5 +1,4 @@
 import {
-  IsString,
   IsNumber,
   IsDateString,
   IsMongoId,

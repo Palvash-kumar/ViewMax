@@ -11,11 +11,16 @@ async function run() {
     process.exit(1);
   }
   await mongoose.connect(MONGO_URI);
-  
-  const DemoVideoSchema = new mongoose.Schema({}, { strict: false, collection: 'demo_videos' });
+
+  const DemoVideoSchema = new mongoose.Schema(
+    {},
+    { strict: false, collection: 'demo_videos' },
+  );
   const DemoVideo = mongoose.model('DemoVideo', DemoVideoSchema);
-  
-  const videos = await DemoVideo.find({ screenId: new mongoose.Types.ObjectId('6a1f8faed1af0b4b795d52d0') }).exec();
+
+  const videos = await DemoVideo.find({
+    screenId: new mongoose.Types.ObjectId('6a1f8faed1af0b4b795d52d0'),
+  }).exec();
   console.log('--- Demo Videos ---');
   console.log(JSON.stringify(videos, null, 2));
 

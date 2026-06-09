@@ -25,7 +25,7 @@ export class AuditInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(() => {
         if (user) {
-          this.auditService.log(
+          void this.auditService.log(
             user._id?.toString() || 'unknown',
             `${method} ${url}`,
             this.extractResource(url),

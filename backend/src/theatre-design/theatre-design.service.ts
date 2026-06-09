@@ -417,7 +417,9 @@ export class TheatreDesignService {
       const rowLabel = rowConfig.label;
       const seatsInRow = seatsByRow.get(rowLabel) || [];
       // Sort seats in row by seatNumber
-      const sortedSeats = [...seatsInRow].sort((a, b) => a.seatNumber - b.seatNumber);
+      const sortedSeats = [...seatsInRow].sort(
+        (a, b) => a.seatNumber - b.seatNumber,
+      );
 
       const rowSeats: SeatInfo[] = sortedSeats.map((seat) => {
         let type: any = seat.category;

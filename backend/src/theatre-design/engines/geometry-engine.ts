@@ -25,7 +25,7 @@ export interface GeometryEngineInput {
  */
 export class GeometryEngine {
   generateGeometry(input: GeometryEngineInput): GeometryData {
-    const { coordinates, screenConfig, rowSpacing, rakeAngle } = input;
+    const { coordinates, screenConfig, rowSpacing } = input;
 
     if (coordinates.length === 0) {
       return {
@@ -67,7 +67,7 @@ export class GeometryEngine {
 
   generate3DData(input: GeometryEngineInput): Generated3DData {
     const geometry = this.generateGeometry(input);
-    const { screenConfig, coordinates, rows, rakeAngle, rowSpacing } = input;
+    const { screenConfig, rows, rakeAngle, rowSpacing } = input;
 
     // Screen
     const screenCurvature =

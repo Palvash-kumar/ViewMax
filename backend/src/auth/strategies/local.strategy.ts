@@ -12,7 +12,10 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
   async validate(req: any, email: string, password: string): Promise<any> {
     const ipAddress = req.ip || req.connection?.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    const user = await this.authService.validateUser(email, password, { ipAddress, userAgent });
+    const user = await this.authService.validateUser(email, password, {
+      ipAddress,
+      userAgent,
+    });
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
     }

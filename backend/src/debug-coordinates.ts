@@ -11,14 +11,21 @@ async function run() {
     process.exit(1);
   }
   await mongoose.connect(MONGO_URI);
-  
-  const CoordinateSchema = new mongoose.Schema({}, { strict: false, collection: 'theatre_coordinates' });
+
+  const CoordinateSchema = new mongoose.Schema(
+    {},
+    { strict: false, collection: 'theatre_coordinates' },
+  );
   const Coordinate = mongoose.model('Coordinate', CoordinateSchema);
-  
-  const coords = await Coordinate.find({ layoutId: new mongoose.Types.ObjectId('6a1f8fb9d1af0b4b795d52d4') }).exec();
+
+  const coords = await Coordinate.find({
+    layoutId: new mongoose.Types.ObjectId('6a1f8fb9d1af0b4b795d52d4'),
+  }).exec();
   console.log('--- Seat Coordinates ---');
   coords.slice(0, 10).forEach((c) => {
-    console.log(`Seat: ${c.get('seatId')} | x: ${c.get('x')} | y: ${c.get('y')} | z: ${c.get('z')}`);
+    console.log(
+      `Seat: ${c.get('seatId')} | x: ${c.get('x')} | y: ${c.get('y')} | z: ${c.get('z')}`,
+    );
   });
 
   await mongoose.disconnect();

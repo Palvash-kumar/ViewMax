@@ -46,7 +46,10 @@ export class SecurityController {
     const userAgent = req.headers['user-agent'] || 'Unknown User-Agent';
     const userId = req.user.sub || req.user._id.toString();
     const sid = req.user.sid;
-    return this.securityService.getActiveSessions(userId, sid, { ipAddress, userAgent });
+    return this.securityService.getActiveSessions(userId, sid, {
+      ipAddress,
+      userAgent,
+    });
   }
 
   @Delete('sessions/:sessionId')
@@ -80,7 +83,10 @@ export class SecurityController {
     if (ipAddress.startsWith('::ffff:')) ipAddress = ipAddress.substring(7);
     const userAgent = req.headers['user-agent'] || 'Unknown User-Agent';
     const userId = req.user.sub || req.user._id.toString();
-    return this.securityService.getSecurityEvents(userId, +page, +limit, { ipAddress, userAgent });
+    return this.securityService.getSecurityEvents(userId, +page, +limit, {
+      ipAddress,
+      userAgent,
+    });
   }
 
   @Get('admin/overview')

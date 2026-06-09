@@ -28,7 +28,9 @@ export class ShowtimesService {
     private screensService: ScreensService,
   ) {}
 
-  async create(dto: CreateShowtimeDto): Promise<ShowtimeDocument | ShowtimeDocument[]> {
+  async create(
+    dto: CreateShowtimeDto,
+  ): Promise<ShowtimeDocument | ShowtimeDocument[]> {
     // Validate screen exists
     await this.screensService.findById(dto.screenId);
 
@@ -41,7 +43,7 @@ export class ShowtimesService {
       const recurringEnd = new Date(dto.recurringEndDate);
 
       const durationMs = end.getTime() - start.getTime();
-      let currentStart = new Date(start);
+      const currentStart = new Date(start);
 
       while (currentStart <= recurringEnd) {
         const currentEnd = new Date(currentStart.getTime() + durationMs);
@@ -55,7 +57,7 @@ export class ShowtimesService {
           status: ShowtimeStatus.SCHEDULED,
           startTime: { $lt: checkEnd },
           endTime: { $gt: checkStart },
-        } as any);
+        });
 
         if (overlap) {
           const dateStr = currentStart.toLocaleDateString('en-IN', {
@@ -92,7 +94,7 @@ export class ShowtimesService {
         status: ShowtimeStatus.SCHEDULED,
         startTime: { $lt: checkEnd },
         endTime: { $gt: checkStart },
-      } as any);
+      });
 
       if (overlap) {
         throw new BadRequestException(
@@ -113,7 +115,9 @@ export class ShowtimesService {
     }
 
     if (showtimesToCreate.length === 0) {
-      throw new BadRequestException('No showtimes generated. Check your start date and recurring end date.');
+      throw new BadRequestException(
+        'No showtimes generated. Check your start date and recurring end date.',
+      );
     }
 
     const createdDocs = await this.showtimeModel.insertMany(showtimesToCreate);
@@ -186,7 +190,9 @@ export class ShowtimesService {
       const showtime = await this.showtimeModel.findById(id);
       if (!showtime) throw new NotFoundException('Showtime not found');
 
-      const startTime = dto.startTime ? new Date(dto.startTime) : showtime.startTime;
+      const startTime = dto.startTime
+        ? new Date(dto.startTime)
+        : showtime.startTime;
       const endTime = dto.endTime ? new Date(dto.endTime) : showtime.endTime;
       const screenId = showtime.screenId.toString();
 
@@ -200,7 +206,7 @@ export class ShowtimesService {
         status: ShowtimeStatus.SCHEDULED,
         startTime: { $lt: checkEnd },
         endTime: { $gt: checkStart },
-      } as any);
+      });
 
       if (overlap) {
         throw new BadRequestException(
@@ -262,7 +268,9 @@ export class ShowtimesService {
       for (const rowConfig of sortedRows) {
         const rowLabel = rowConfig.label;
         const seatsInRow = seatsByRow.get(rowLabel) || [];
-        const sortedSeats = [...seatsInRow].sort((a, b) => a.seatNumber - b.seatNumber);
+        const sortedSeats = [...seatsInRow].sort(
+          (a, b) => a.seatNumber - b.seatNumber,
+        );
 
         const rowSeats = sortedSeats.map((seat) => {
           let type = seat.category;
@@ -318,7 +326,12 @@ export class ShowtimesService {
       screenName: screen.name,
       screenType: screen.screenType,
       rows: seatMap.length,
-      columns: seatMap.length > 0 ? Math.max(...seatMap.flatMap(r => r).map(s => Number(s.column) || 0)) : screen.columns,
+      columns:
+        seatMap.length > 0
+          ? Math.max(
+              ...seatMap.flatMap((r) => r).map((s) => Number(s.column) || 0),
+            )
+          : screen.columns,
       ticketPrice: showtime.ticketPrice,
       seatAvailability: availability,
     };
