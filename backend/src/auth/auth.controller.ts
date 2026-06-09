@@ -38,7 +38,9 @@ export class AuthController {
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
   register(@Req() req: any, @Body() dto: RegisterDto) {
-    const ipAddress = req.ip || req.connection?.remoteAddress;
+    let ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    if (ipAddress === '::1') ipAddress = '127.0.0.1';
+    if (ipAddress.startsWith('::ffff:')) ipAddress = ipAddress.substring(7);
     const userAgent = req.headers['user-agent'];
     return this.authService.register(dto, { ipAddress, userAgent });
   }
@@ -48,7 +50,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
   login(@Req() req: any) {
-    const ipAddress = req.ip || req.connection?.remoteAddress;
+    let ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    if (ipAddress === '::1') ipAddress = '127.0.0.1';
+    if (ipAddress.startsWith('::ffff:')) ipAddress = ipAddress.substring(7);
     const userAgent = req.headers['user-agent'];
     return this.authService.login(req.user, { ipAddress, userAgent });
   }
@@ -107,7 +111,9 @@ export class AuthController {
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Google OAuth callback' })
   async googleCallback(@Req() req: any, @Res() res: any) {
-    const ipAddress = req.ip || req.connection?.remoteAddress;
+    let ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    if (ipAddress === '::1') ipAddress = '127.0.0.1';
+    if (ipAddress.startsWith('::ffff:')) ipAddress = ipAddress.substring(7);
     const userAgent = req.headers['user-agent'];
     const result = await this.authService.googleLogin(req.user, { ipAddress, userAgent });
     const frontendUrl = this.configService.get<string>('frontend.url');

@@ -102,11 +102,15 @@ export class SecurityService {
       else if (userAgent.includes('Firefox')) browser = 'Firefox';
       else if (userAgent.includes('Edge')) browser = 'Edge';
 
+      let ip = fallbackDetails.ipAddress || '127.0.0.1';
+      if (ip === '::1') ip = '127.0.0.1';
+      if (ip.startsWith('::ffff:')) ip = ip.substring(7);
+
       const generatedSid = currentSessionId || crypto.randomBytes(32).toString('hex');
       await this.createSession(userId, {
         device,
         browser,
-        ipAddress: fallbackDetails.ipAddress || '127.0.0.1',
+        ipAddress: ip,
         createdAt: new Date(),
         lastActive: new Date(),
       }, generatedSid);
@@ -166,8 +170,12 @@ export class SecurityService {
 
     // If no security events exist, seed a LOGIN_SUCCESS event
     if (total === 0 && fallbackDetails) {
+      let ip = fallbackDetails.ipAddress || '127.0.0.1';
+      if (ip === '::1') ip = '127.0.0.1';
+      if (ip.startsWith('::ffff:')) ip = ip.substring(7);
+
       await this.logSecurityEvent(userId, SecurityEventType.LOGIN_SUCCESS, {
-        ipAddress: fallbackDetails.ipAddress || '127.0.0.1',
+        ipAddress: ip,
         userAgent: fallbackDetails.userAgent || 'Legacy Login Session',
       });
       [data, total] = await Promise.all([
@@ -204,8 +212,12 @@ export class SecurityService {
 
     // Seed a login event if no events exist
     if (events.length === 0 && fallbackDetails) {
+      let ip = fallbackDetails.ipAddress || '127.0.0.1';
+      if (ip === '::1') ip = '127.0.0.1';
+      if (ip.startsWith('::ffff:')) ip = ip.substring(7);
+
       await this.logSecurityEvent(userId, SecurityEventType.LOGIN_SUCCESS, {
-        ipAddress: fallbackDetails.ipAddress || '127.0.0.1',
+        ipAddress: ip,
         userAgent: fallbackDetails.userAgent || 'Legacy Login Session',
       });
       events = await this.securityEventModel

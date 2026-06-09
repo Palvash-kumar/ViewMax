@@ -29,7 +29,9 @@ export class SecurityController {
   @Get('dashboard')
   @ApiOperation({ summary: 'Get personal security dashboard' })
   async getDashboard(@Req() req: any) {
-    const ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    let ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    if (ipAddress === '::1') ipAddress = '127.0.0.1';
+    if (ipAddress.startsWith('::ffff:')) ipAddress = ipAddress.substring(7);
     const userAgent = req.headers['user-agent'] || 'Unknown User-Agent';
     const userId = req.user.sub || req.user._id.toString();
     return this.securityService.getDashboard(userId, { ipAddress, userAgent });
@@ -38,7 +40,9 @@ export class SecurityController {
   @Get('sessions')
   @ApiOperation({ summary: 'Get all active sessions' })
   async getSessions(@Req() req: any) {
-    const ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    let ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    if (ipAddress === '::1') ipAddress = '127.0.0.1';
+    if (ipAddress.startsWith('::ffff:')) ipAddress = ipAddress.substring(7);
     const userAgent = req.headers['user-agent'] || 'Unknown User-Agent';
     const userId = req.user.sub || req.user._id.toString();
     const sid = req.user.sid;
@@ -71,7 +75,9 @@ export class SecurityController {
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
-    const ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    let ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    if (ipAddress === '::1') ipAddress = '127.0.0.1';
+    if (ipAddress.startsWith('::ffff:')) ipAddress = ipAddress.substring(7);
     const userAgent = req.headers['user-agent'] || 'Unknown User-Agent';
     const userId = req.user.sub || req.user._id.toString();
     return this.securityService.getSecurityEvents(userId, +page, +limit, { ipAddress, userAgent });
