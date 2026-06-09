@@ -7,6 +7,7 @@ import {
   Query,
   UseGuards,
   Req,
+  Res,
   HttpCode,
   HttpStatus,
   ParseIntPipe,
@@ -26,22 +27,36 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 /**
  * REST controller for the ViewMax Notification Center.
- *
- * All endpoints are protected by JWT and operate in the context of
- * the currently authenticated user (req.user.sub).
  */
 @ApiTags('Notifications')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
+
+  /**
+   * GET /notifications/track-email/:logId/open
+   * Tracks email open events anonymously using a transparent 1x1 tracking pixel.
+   * Placed before generic routes to avoid shadow-matching issues.
+   */
+  @Get('track-email/:logId/open')
+  @ApiOperation({ summary: 'Track email open event (anonymous)' })
+  async trackEmailOpen(@Param('logId') logId: string, @Res() res: any) {
+    const pixel = await this.notificationsService.trackEmailOpen(logId);
+    res.setHeader('Content-Type', 'image/gif');
+    res.setHeader(
+      'Cache-Control',
+      'no-store, no-cache, must-revalidate, max-age=0',
+    );
+    return res.send(pixel);
+  }
 
   /**
    * GET /notifications
    * Returns a paginated list of notifications for the current user.
    */
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get paginated notifications for the current user' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
@@ -73,6 +88,8 @@ export class NotificationsController {
    * Returns the badge count of unread notifications.
    */
   @Get('unread-count')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get unread notification count (for badge)' })
   @ApiOkResponse({
     description: 'Unread notification count',
@@ -89,6 +106,8 @@ export class NotificationsController {
    * Must be placed BEFORE the :id route to avoid route shadowing.
    */
   @Patch('read-all')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark all notifications as read' })
   @ApiOkResponse({ description: 'Number of documents updated' })
@@ -102,6 +121,8 @@ export class NotificationsController {
    * Mark a single notification as read.
    */
   @Patch(':id/read')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark a specific notification as read' })
   @ApiParam({ name: 'id', description: 'Notification ObjectId' })
@@ -116,6 +137,8 @@ export class NotificationsController {
    * Remove a specific notification for the current user.
    */
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a notification' })
   @ApiParam({ name: 'id', description: 'Notification ObjectId' })

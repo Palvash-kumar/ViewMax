@@ -16,16 +16,26 @@ import {
 } from '../theatre-design/schemas/theatre-layout.schema';
 import { LayoutStatus } from '../common/constants/layout-status.enum';
 import { ShowtimeStatus } from '../common/constants/showtime-status.enum';
+import { Booking, BookingDocument } from '../bookings/schemas/booking.schema';
+import { BookingStatus } from '../common/constants/booking-status.enum';
+import { QueueService } from '../queue/queue.service';
+import { NotificationType } from '../notifications/schemas/notification.schema';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class ShowtimesService {
+  private readonly logger = new Logger(ShowtimesService.name);
+
   constructor(
     @InjectModel(Showtime.name)
     private showtimeModel: Model<ShowtimeDocument>,
     @InjectModel(TheatreLayout.name)
     private layoutModel: Model<TheatreLayoutDocument>,
+    @InjectModel(Booking.name)
+    private bookingModel: Model<BookingDocument>,
     private redisService: RedisService,
     private screensService: ScreensService,
+    private queueService: QueueService,
   ) {}
 
   async create(
@@ -185,16 +195,19 @@ export class ShowtimesService {
   }
 
   async update(id: string, dto: UpdateShowtimeDto): Promise<ShowtimeDocument> {
+    const originalShowtime = await this.showtimeModel.findById(id);
+    if (!originalShowtime) throw new NotFoundException('Showtime not found');
+    const oldStartTime = originalShowtime.startTime;
+
     // If updating startTime or endTime, validate the overlap
     if (dto.startTime || dto.endTime) {
-      const showtime = await this.showtimeModel.findById(id);
-      if (!showtime) throw new NotFoundException('Showtime not found');
-
       const startTime = dto.startTime
         ? new Date(dto.startTime)
-        : showtime.startTime;
-      const endTime = dto.endTime ? new Date(dto.endTime) : showtime.endTime;
-      const screenId = showtime.screenId.toString();
+        : originalShowtime.startTime;
+      const endTime = dto.endTime
+        ? new Date(dto.endTime)
+        : originalShowtime.endTime;
+      const screenId = originalShowtime.screenId.toString();
 
       const bufferMs = 10 * 60 * 1000;
       const checkStart = new Date(startTime.getTime() - bufferMs);
@@ -217,8 +230,75 @@ export class ShowtimesService {
 
     const showtime = await this.showtimeModel
       .findByIdAndUpdate(id, dto, { new: true })
+      .populate('movieId', 'title')
+      .populate('theatreId', 'name')
       .exec();
+
     if (!showtime) throw new NotFoundException('Showtime not found');
+
+    // If startTime has changed, notify all users with confirmed bookings
+    if (
+      dto.startTime &&
+      new Date(dto.startTime).getTime() !== new Date(oldStartTime).getTime()
+    ) {
+      try {
+        const bookings = await this.bookingModel
+          .find({
+            showtimeId: id,
+            bookingStatus: BookingStatus.CONFIRMED,
+          })
+          .populate('userId')
+          .exec();
+
+        const movie = showtime.movieId as any;
+        const theatre = showtime.theatreId as any;
+
+        for (const booking of bookings) {
+          const user = booking.userId as any;
+          if (!user) continue;
+
+          // Clear sentReminders and update expiresAt so they will receive reminders based on the new time
+          booking.sentReminders = [];
+          booking.expiresAt = showtime.startTime;
+          await booking.save();
+
+          // Enqueue Showtime Changed Email
+          await this.queueService.enqueueEmail(
+            'showtime-changed',
+            user.email,
+            {
+              bookingId: booking._id.toString(),
+              movieTitle: movie.title,
+              oldStartTime,
+              newStartTime: showtime.startTime,
+              theatreName: theatre.name,
+              seatNumbers: booking.seatNumbers,
+              recipientName: `${user.firstName} ${user.lastName}`,
+            },
+            booking._id.toString(),
+          );
+
+          // Enqueue In-App Notification
+          await this.queueService.enqueueNotification(
+            NotificationType.SYSTEM_ALERT,
+            user._id.toString(),
+            {
+              title: 'Showtime Rescheduled ⏰',
+              message: `Your show for "${movie.title}" has been rescheduled to ${showtime.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} on ${showtime.startTime.toLocaleDateString()}.`,
+            },
+          );
+        }
+        this.logger.log(
+          `Notified ${bookings.length} confirmed users about showtime rescheduled for showtime ${id}`,
+        );
+      } catch (err) {
+        this.logger.error(
+          `Error notifying users of showtime change: ${err.message}`,
+          err.stack,
+        );
+      }
+    }
+
     return showtime;
   }
 

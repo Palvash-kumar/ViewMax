@@ -65,6 +65,22 @@ export class CloudinaryService {
     });
   }
 
+  async uploadBase64(
+    base64Data: string,
+    folder: string = 'viewmax/qrcodes',
+  ): Promise<UploadApiResponse> {
+    try {
+      return await cloudinary.uploader.upload(base64Data, {
+        folder,
+        resource_type: 'image',
+      });
+    } catch (error) {
+      throw new BadRequestException(
+        `Cloudinary upload failed: ${error.message}`,
+      );
+    }
+  }
+
   async deleteImage(publicId: string): Promise<void> {
     await cloudinary.uploader.destroy(publicId);
   }

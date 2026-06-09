@@ -2,10 +2,12 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Param,
   Body,
   Query,
   UseGuards,
+  Res,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { BookingsService } from './bookings.service';
@@ -50,5 +52,31 @@ export class BookingsController {
   @ApiOperation({ summary: 'Cancel booking' })
   cancel(@Param('id') id: string, @CurrentUser('_id') userId: string) {
     return this.bookingsService.cancelBooking(id, userId);
+  }
+
+  @Patch(':id/reminders')
+  @ApiOperation({ summary: 'Update reminder preferences' })
+  updateReminders(
+    @Param('id') id: string,
+    @CurrentUser('_id') userId: string,
+    @Body()
+    dto: {
+      remindersEnabled: boolean;
+      reminderTiming?: '24h' | '6h' | '2h' | '30m';
+    },
+  ) {
+    return this.bookingsService.updateReminderSettings(id, userId, dto);
+  }
+
+  @Get(':id/calendar/ics')
+  @ApiOperation({ summary: 'Download ICS calendar file for the show' })
+  async downloadIcs(@Param('id') id: string, @Res() res: any) {
+    const icsContent = await this.bookingsService.generateBookingIcs(id);
+    res.setHeader('Content-Type', 'text/calendar');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=viewmax-booking-${id}.ics`,
+    );
+    return res.send(icsContent);
   }
 }

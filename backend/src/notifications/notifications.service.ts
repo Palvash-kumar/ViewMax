@@ -7,6 +7,7 @@ import {
   NotificationType,
   NotificationChannel,
 } from './schemas/notification.schema';
+import { EmailLog, EmailLogDocument } from './schemas/email-log.schema';
 
 /** DTO for creating a single notification record */
 export interface CreateNotificationDto {
@@ -46,6 +47,8 @@ export class NotificationsService {
   constructor(
     @InjectModel(Notification.name)
     private readonly notificationModel: Model<NotificationDocument>,
+    @InjectModel(EmailLog.name)
+    private readonly emailLogModel: Model<EmailLogDocument>,
   ) {}
 
   // ─── Core CRUD ───────────────────────────────────────────────────────────────
@@ -342,5 +345,33 @@ export class NotificationsService {
       icon: 'clock',
       metadata: { bookingId, movieTitle, showtime, theatreName },
     });
+  }
+
+  /**
+   * Track email open events by logging the timestamp and returning a transparent 1x1 pixel.
+   */
+  async trackEmailOpen(logId: string): Promise<Buffer> {
+    try {
+      const log = await this.emailLogModel.findById(logId).exec();
+      if (log) {
+        if (!log.openedAt) {
+          log.openedAt = new Date();
+          await log.save();
+          this.logger.log(`Email log ${logId} marked as opened`);
+        }
+      } else {
+        this.logger.warn(`Email log ${logId} not found during open tracking`);
+      }
+    } catch (err) {
+      this.logger.error(
+        `Error tracking email open for log ${logId}: ${err.message}`,
+        err.stack,
+      );
+    }
+    // Return 1x1 transparent GIF buffer
+    return Buffer.from(
+      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+      'base64',
+    );
   }
 }

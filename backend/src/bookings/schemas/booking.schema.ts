@@ -78,6 +78,26 @@ export class Booking {
   /** Number of verification attempts */
   @Prop({ default: 0 })
   verificationAttempts: number;
+
+  /** Whether show reminders are enabled for this booking */
+  @Prop({ default: true })
+  remindersEnabled: boolean;
+
+  /** Custom reminder timing relative to show start time */
+  @Prop({
+    type: String,
+    enum: ['24h', '6h', '2h', '30m'],
+    default: '2h',
+  })
+  reminderTiming: '24h' | '6h' | '2h' | '30m';
+
+  /** Delivery channels for reminders (EMAIL, IN_APP, etc.) */
+  @Prop({ type: [String], default: ['EMAIL', 'IN_APP'] })
+  reminderChannels: string[];
+
+  /** Keep track of sent reminder timings to avoid duplicates */
+  @Prop({ type: [String], default: [] })
+  sentReminders: string[];
 }
 
 export const BookingSchema = SchemaFactory.createForClass(Booking);
