@@ -21,6 +21,7 @@
     "seed:templates": "ts-node src/theatre-design/seed/seed-templates.ts"
   },
   "dependencies": {
+    "@nestjs-modules/mailer": "^2.3.6",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",

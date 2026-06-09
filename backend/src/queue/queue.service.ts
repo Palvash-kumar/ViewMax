@@ -154,21 +154,22 @@ export class QueueService {
 
   /**
    * Enqueue a transactional email job.
-   * Actual email sending will be implemented in a future EmailProcessor.
    *
    * @param template  Email template identifier
    * @param to        Recipient email address
    * @param context   Template variable context
+   * @param bookingId Optional associated booking ID
    */
   async enqueueEmail(
     template: string,
     to: string,
     context: Record<string, any>,
+    bookingId?: string,
   ): Promise<void> {
     try {
       await this.emailQueue.add(
         'send-email',
-        { template, to, context },
+        { template, to, context, bookingId },
         { attempts: 5, removeOnComplete: 100, removeOnFail: 100 },
       );
       this.logger.debug(`Enqueued email template=${template} to=${to}`);

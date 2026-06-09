@@ -1,12 +1,18 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TicketExpirationProcessor } from './processors/ticket-expiration.processor';
 import { NotificationProcessor } from './processors/notification.processor';
+import { EmailProcessor } from './processors/email.processor';
 import { QueueService } from './queue.service';
 import { Booking, BookingSchema } from '../bookings/schemas/booking.schema';
+import {
+  EmailLog,
+  EmailLogSchema,
+} from '../notifications/schemas/email-log.schema';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { MailModule } from '../mail/mail.module';
 import { QUEUE_NAMES } from './queue.constants';
 
 /**
@@ -14,7 +20,7 @@ import { QUEUE_NAMES } from './queue.constants';
  *
  * Configures BullMQ with the application's Redis instance and registers:
  *  - Four named queues (ticket-expiration, email, notification, analytics)
- *  - Two WorkerHost processors (TicketExpirationProcessor, NotificationProcessor)
+ *  - Three WorkerHost processors (TicketExpirationProcessor, NotificationProcessor, EmailProcessor)
  *  - QueueService façade (exported for use by other modules)
  *
  * The Booking model is registered here (in addition to BookingsModule) so
@@ -56,13 +62,22 @@ import { QUEUE_NAMES } from './queue.constants';
       { name: QUEUE_NAMES.ANALYTICS },
     ),
 
-    // Booking schema registered directly to avoid circular dependency
-    MongooseModule.forFeature([{ name: Booking.name, schema: BookingSchema }]),
+    // Booking and EmailLog schemas registered directly to avoid circular dependency
+    MongooseModule.forFeature([
+      { name: Booking.name, schema: BookingSchema },
+      { name: EmailLog.name, schema: EmailLogSchema },
+    ]),
 
     // NotificationsModule provides NotificationsService to NotificationProcessor
-    NotificationsModule,
+    forwardRef(() => NotificationsModule),
+    MailModule,
   ],
-  providers: [TicketExpirationProcessor, NotificationProcessor, QueueService],
+  providers: [
+    TicketExpirationProcessor,
+    NotificationProcessor,
+    EmailProcessor,
+    QueueService,
+  ],
   exports: [
     QueueService,
     // Export BullModule so modules that inject specific queues via @InjectQueue

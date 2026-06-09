@@ -23,6 +23,7 @@ export const validationSchema = Joi.object({
   SMTP_PORT: Joi.number().default(587),
   SMTP_USER: Joi.string().required(),
   SMTP_PASS: Joi.string().required(),
+  MAIL_FROM: Joi.string().allow('').default('ViewMax <noreply@viewmax.app>'),
   CLOUDINARY_CLOUD_NAME: Joi.string().required(),
   CLOUDINARY_API_KEY: Joi.string().required(),
   CLOUDINARY_API_SECRET: Joi.string().required(),

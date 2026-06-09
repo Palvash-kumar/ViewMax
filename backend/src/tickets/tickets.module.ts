@@ -4,6 +4,7 @@ import { TicketsController } from './tickets.controller';
 import { TicketsService } from './tickets.service';
 import { QrEngineService } from './qr-engine.service';
 import { AntiFraudService } from './anti-fraud.service';
+import { WalletPassService } from './wallet-pass.service';
 import { Booking, BookingSchema } from '../bookings/schemas/booking.schema';
 import { AuditModule } from '../audit/audit.module';
 import { UsersModule } from '../users/users.module';
@@ -15,6 +16,7 @@ import { RedisModule } from '../redis/redis.module';
  *  Services exported for cross-module use:
  *   - TicketsService   — verify / check-in / transfer operations
  *   - QrEngineService  — QR generation and cryptographic verification
+ *   - WalletPassService — future wallet integration stub
  *
  *  Dependencies:
  *   - Booking model  (from BookingsModule schema, registered locally)
@@ -30,7 +32,12 @@ import { RedisModule } from '../redis/redis.module';
     RedisModule,
   ],
   controllers: [TicketsController],
-  providers: [TicketsService, QrEngineService, AntiFraudService],
-  exports: [TicketsService, QrEngineService],
+  providers: [
+    TicketsService,
+    QrEngineService,
+    AntiFraudService,
+    WalletPassService,
+  ],
+  exports: [TicketsService, QrEngineService, WalletPassService],
 })
 export class TicketsModule {}

@@ -12,6 +12,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { AuditModule } from './audit/audit.module';
 import { QueueModule } from './queue/queue.module';
 import { HealthModule } from './health/health.module';
+import { MailModule } from './mail/mail.module';
 
 // Feature modules (Phase 1-3)
 import { AuthModule } from './auth/auth.module';
@@ -81,6 +82,7 @@ import { ExportModule } from './export/export.module';
     AuditModule,
     QueueModule,
     HealthModule,
+    MailModule,
 
     // Feature modules (Phase 1-3)
     AuthModule,
