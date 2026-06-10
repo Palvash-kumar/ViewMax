@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  OnModuleInit,
+  OnModuleDestroy,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -23,8 +25,10 @@ import { NotificationType } from '../notifications/schemas/notification.schema';
 import { Logger } from '@nestjs/common';
 
 @Injectable()
-export class ShowtimesService {
+export class ShowtimesService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ShowtimesService.name);
+  private cleanupIntervalId: NodeJS.Timeout | null = null;
+  private cleanupTimeoutId: NodeJS.Timeout | null = null;
 
   constructor(
     @InjectModel(Showtime.name)
@@ -37,6 +41,49 @@ export class ShowtimesService {
     private screensService: ScreensService,
     private queueService: QueueService,
   ) {}
+
+  onModuleInit() {
+    this.logger.log('Initializing ViewMax Showtime Completed CleanUp Scheduler...');
+    // Run cleanup every 60 seconds (1 minute) in background
+    this.cleanupIntervalId = setInterval(
+      () => {
+        void this.deleteCompletedShowtimes();
+      },
+      60 * 1000,
+    );
+    // Run first check after 5 seconds of server startup
+    this.cleanupTimeoutId = setTimeout(() => {
+      void this.deleteCompletedShowtimes();
+    }, 5000);
+  }
+
+  onModuleDestroy() {
+    if (this.cleanupIntervalId) {
+      clearInterval(this.cleanupIntervalId);
+    }
+    if (this.cleanupTimeoutId) {
+      clearTimeout(this.cleanupTimeoutId);
+    }
+  }
+
+  async deleteCompletedShowtimes(): Promise<void> {
+    try {
+      const now = new Date();
+      // Find showtimes whose endTime is in the past
+      const completedShowtimes = await this.showtimeModel
+        .find({ endTime: { $lte: now } })
+        .exec();
+
+      if (completedShowtimes.length > 0) {
+        this.logger.log(`Found ${completedShowtimes.length} completed showtimes to delete`);
+        const ids = completedShowtimes.map((s) => s._id);
+        const result = await this.showtimeModel.deleteMany({ _id: { $in: ids } }).exec();
+        this.logger.log(`Successfully deleted ${result.deletedCount} completed showtimes`);
+      }
+    } catch (error) {
+      this.logger.error(`Error deleting completed showtimes: ${error.message}`, error.stack);
+    }
+  }
 
   async create(
     dto: CreateShowtimeDto,

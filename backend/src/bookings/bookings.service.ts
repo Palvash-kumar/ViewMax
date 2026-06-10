@@ -298,6 +298,12 @@ export class BookingsService {
 
     if (!booking) throw new NotFoundException('Booking not found');
 
+    if (!booking.showtimeId) {
+      throw new BadRequestException(
+        'Cannot cancel booking for a completed showtime that has been deleted.',
+      );
+    }
+
     const showtimeIdStr =
       (booking.showtimeId as any)._id?.toString() ||
       booking.showtimeId.toString();
@@ -465,6 +471,11 @@ export class BookingsService {
   async generateBookingIcs(bookingId: string): Promise<string> {
     const booking = await this.findById(bookingId);
     const showtime = booking.showtimeId as any;
+    if (!showtime) {
+      throw new BadRequestException(
+        'Cannot generate calendar invite for a completed showtime that has been deleted.',
+      );
+    }
     const movie = showtime.movieId;
     const theatre = showtime.theatreId;
     const screen = showtime.screenId;
