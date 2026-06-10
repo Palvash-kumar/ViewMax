@@ -17,12 +17,12 @@ import { CurrentUser } from '../decorators/current-user.decorator';
 
 @ApiTags('Bookings')
 @Controller('bookings')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Create booking (lock seats + create checkout)' })
   create(@CurrentUser() user: any, @Body() dto: CreateBookingDto) {
     return this.bookingsService.createBooking(
@@ -33,6 +33,8 @@ export class BookingsController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get own booking history' })
   findAll(
     @CurrentUser('_id') userId: string,
@@ -43,18 +45,24 @@ export class BookingsController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get booking details' })
   findOne(@Param('id') id: string) {
     return this.bookingsService.findById(id);
   }
 
   @Post(':id/cancel')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Cancel booking' })
   cancel(@Param('id') id: string, @CurrentUser('_id') userId: string) {
     return this.bookingsService.cancelBooking(id, userId);
   }
 
   @Patch(':id/reminders')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update reminder preferences' })
   updateReminders(
     @Param('id') id: string,

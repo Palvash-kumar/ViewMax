@@ -7,6 +7,7 @@ import { Movie, MovieSchema } from '../movies/schemas/movie.schema';
 import { ShowtimesModule } from '../showtimes/showtimes.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { QueueModule } from '../queue/queue.module';
+import { TicketsModule } from '../tickets/tickets.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { QueueModule } from '../queue/queue.module';
     ShowtimesModule,
     forwardRef(() => PaymentsModule),
     QueueModule,
+    TicketsModule,
   ],
   controllers: [BookingsController],
   providers: [BookingsService],

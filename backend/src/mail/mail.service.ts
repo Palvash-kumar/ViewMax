@@ -39,7 +39,12 @@ export class MailService {
    * @param subject   Email subject line
    * @param html      Pre-compiled HTML body content
    */
-  async sendMail(to: string, subject: string, html: string): Promise<void> {
+  async sendMail(
+    to: string,
+    subject: string,
+    html: string,
+    attachments?: any[],
+  ): Promise<void> {
     const from =
       this.configService.get<string>('smtp.from') ||
       'ViewMax <noreply@viewmax.app>';
@@ -51,6 +56,7 @@ export class MailService {
         to,
         subject,
         html,
+        attachments,
       });
       this.logger.debug(`Email sent successfully to ${to}`);
     } catch (error) {

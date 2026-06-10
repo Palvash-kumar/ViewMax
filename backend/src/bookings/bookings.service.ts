@@ -19,6 +19,7 @@ import { QueueService } from '../queue/queue.service';
 import { NotificationType } from '../notifications/schemas/notification.schema';
 import { generateIcsString } from '../common/utils/calendar.utils';
 import * as QRCode from 'qrcode';
+import { QrEngineService } from '../tickets/qr-engine.service';
 
 @Injectable()
 export class BookingsService {
@@ -32,6 +33,7 @@ export class BookingsService {
     private paymentsService: PaymentsService,
     private queueService: QueueService,
     private cloudinaryService: CloudinaryService,
+    private qrEngineService: QrEngineService,
   ) {}
 
   async createBooking(
@@ -127,17 +129,20 @@ export class BookingsService {
     const userIdStr =
       (booking.userId as any)._id?.toString() || booking.userId.toString();
 
-    // 1. Generate QR code & upload to Cloudinary
-    const qrData = JSON.stringify({
-      bookingId: booking._id,
-      seats: booking.seatNumbers,
-      showtimeId: showtimeIdStr,
-    });
-    const base64Qr = await QRCode.toDataURL(qrData);
-    let qrCodeUrl = base64Qr;
+    // 1. Generate QR code using QrEngineService
+    const showtime = booking.showtimeId as any;
+    const qrResult = await this.qrEngineService.generateTicketQR(
+      booking._id.toString(),
+      userIdStr,
+      showtimeIdStr,
+      booking.seatNumbers,
+      new Date(booking.expiresAt || showtime.startTime),
+    );
+
+    let qrCodeUrl = qrResult.qrCodeDataUrl;
     try {
       const uploadRes = await this.cloudinaryService.uploadBase64(
-        base64Qr,
+        qrResult.qrCodeDataUrl,
         `viewmax/qrcodes/${booking._id}`,
       );
       qrCodeUrl = uploadRes.secure_url;
@@ -152,6 +157,25 @@ export class BookingsService {
     booking.bookingStatus = BookingStatus.CONFIRMED;
     booking.paymentStatus = PaymentStatus.COMPLETED;
     booking.qrCode = qrCodeUrl;
+    booking.ticketSignature = qrResult.ticketSignature;
+    booking.verificationToken = qrResult.verificationToken;
+
+    const showtimeObj = booking.showtimeId as any;
+    if (showtimeObj) {
+      booking.completedShowtimeDetails = {
+        movieTitle: showtimeObj.movieId?.title || '',
+        moviePoster: showtimeObj.movieId?.poster || '',
+        movieDuration: showtimeObj.movieId?.duration || 0,
+        theatreName: showtimeObj.theatreId?.name || '',
+        theatreCity: showtimeObj.theatreId?.city || '',
+        theatreAddress: showtimeObj.theatreId?.address || '',
+        screenName: showtimeObj.screenId?.name || '',
+        screenType: showtimeObj.screenId?.screenType || '',
+        startTime: showtimeObj.startTime,
+        endTime: showtimeObj.endTime,
+        ticketPrice: showtimeObj.ticketPrice,
+      };
+    }
     await booking.save();
 
     // 3. Add seats to showtime's booked list
@@ -300,7 +324,14 @@ export class BookingsService {
 
     if (!booking.showtimeId) {
       throw new BadRequestException(
-        'Cannot cancel booking for a completed showtime that has been deleted.',
+        'Cannot cancel booking for a completed showtime.',
+      );
+    }
+
+    const showtime = booking.showtimeId as any;
+    if (showtime.endTime && new Date(showtime.endTime) < new Date()) {
+      throw new BadRequestException(
+        'Cannot cancel booking for a completed showtime.',
       );
     }
 
@@ -422,7 +453,34 @@ export class BookingsService {
       this.bookingModel.countDocuments({ userId }).exec(),
     ]);
 
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+    const mappedData = data.map((b) => {
+      const bookingObj = b.toObject ? b.toObject() : b;
+      if (!bookingObj.showtimeId && bookingObj.completedShowtimeDetails) {
+        bookingObj.showtimeId = {
+          _id: null as any,
+          startTime: bookingObj.completedShowtimeDetails.startTime,
+          endTime: bookingObj.completedShowtimeDetails.endTime,
+          ticketPrice: bookingObj.completedShowtimeDetails.ticketPrice,
+          movieId: {
+            title: bookingObj.completedShowtimeDetails.movieTitle,
+            poster: bookingObj.completedShowtimeDetails.moviePoster,
+            duration: bookingObj.completedShowtimeDetails.movieDuration,
+          },
+          theatreId: {
+            name: bookingObj.completedShowtimeDetails.theatreName,
+            city: bookingObj.completedShowtimeDetails.theatreCity,
+            address: bookingObj.completedShowtimeDetails.theatreAddress,
+          },
+          screenId: {
+            name: bookingObj.completedShowtimeDetails.screenName,
+            screenType: bookingObj.completedShowtimeDetails.screenType,
+          },
+        } as any;
+      }
+      return bookingObj;
+    });
+
+    return { data: mappedData as any, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async findById(id: string): Promise<BookingDocument> {
@@ -438,7 +496,31 @@ export class BookingsService {
       })
       .exec();
     if (!booking) throw new NotFoundException('Booking not found');
-    return booking;
+
+    const bookingObj = booking.toObject ? booking.toObject() : booking;
+    if (!bookingObj.showtimeId && bookingObj.completedShowtimeDetails) {
+      bookingObj.showtimeId = {
+        _id: null as any,
+        startTime: bookingObj.completedShowtimeDetails.startTime,
+        endTime: bookingObj.completedShowtimeDetails.endTime,
+        ticketPrice: bookingObj.completedShowtimeDetails.ticketPrice,
+        movieId: {
+          title: bookingObj.completedShowtimeDetails.movieTitle,
+          poster: bookingObj.completedShowtimeDetails.moviePoster,
+          duration: bookingObj.completedShowtimeDetails.movieDuration,
+        },
+        theatreId: {
+          name: bookingObj.completedShowtimeDetails.theatreName,
+          city: bookingObj.completedShowtimeDetails.theatreCity,
+          address: bookingObj.completedShowtimeDetails.theatreAddress,
+        },
+        screenId: {
+          name: bookingObj.completedShowtimeDetails.screenName,
+          screenType: bookingObj.completedShowtimeDetails.screenType,
+        },
+      } as any;
+    }
+    return bookingObj as any;
   }
 
   async updateReminderSettings(

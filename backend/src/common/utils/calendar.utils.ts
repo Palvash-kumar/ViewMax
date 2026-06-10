@@ -12,7 +12,12 @@ export interface CalendarEventOptions {
  * Example: 2026-06-09T14:41:42.000Z -> 20260609T144142Z
  */
 export function formatToCalendarDate(date: Date): string {
-  const iso = new Date(date).toISOString();
+  const d = new Date(date);
+  if (isNaN(d.getTime())) {
+    const iso = new Date().toISOString();
+    return iso.replace(/[-:]/g, '').split('.')[0] + 'Z';
+  }
+  const iso = d.toISOString();
   return iso.replace(/[-:]/g, '').split('.')[0] + 'Z';
 }
 

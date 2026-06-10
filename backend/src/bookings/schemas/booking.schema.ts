@@ -98,6 +98,22 @@ export class Booking {
   /** Keep track of sent reminder timings to avoid duplicates */
   @Prop({ type: [String], default: [] })
   sentReminders: string[];
+
+  /** Keep track of completed showtime details snapshot for fallbacks */
+  @Prop({ type: Object })
+  completedShowtimeDetails: {
+    movieTitle: string;
+    moviePoster: string;
+    movieDuration: number;
+    theatreName: string;
+    theatreCity: string;
+    theatreAddress: string;
+    screenName: string;
+    screenType: string;
+    startTime: Date;
+    endTime: Date;
+    ticketPrice: number;
+  };
 }
 
 export const BookingSchema = SchemaFactory.createForClass(Booking);

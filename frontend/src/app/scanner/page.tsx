@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Scan, CheckCircle, XCircle, Upload, QrCode,
@@ -34,6 +34,12 @@ export default function ScannerPage() {
   const [manualInput, setManualInput] = useState('');
   const [mode, setMode] = useState<'check' | 'checkin'>('checkin');
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scanFrameIdRef = useRef<number | null>(null);
 
   const checkInMutation = useMutation({
     mutationFn: (data: { bookingId: string; token: string }) =>
@@ -81,6 +87,87 @@ export default function ScannerPage() {
     }
   }, [mode, checkInMutation]);
 
+  const stopCamera = useCallback(() => {
+    setIsCameraActive(false);
+  }, []);
+
+  const scanFrame = useCallback(async () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const jsQR = (await import('jsqr')).default;
+        const qrResult = jsQR(imageData.data, imageData.width, imageData.height);
+
+        if (qrResult) {
+          stopCamera();
+          processQrData(qrResult.data);
+          return;
+        }
+      }
+    }
+    scanFrameIdRef.current = requestAnimationFrame(scanFrame);
+  }, [processQrData, stopCamera]);
+
+  const startCamera = () => {
+    setScanState('idle');
+    setResult(undefined);
+    setErrorMsg('');
+    setIsCameraActive(true);
+  };
+
+  useEffect(() => {
+    let active = true;
+
+    async function setupCamera() {
+      if (!isCameraActive) return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
+        });
+        if (!active) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.setAttribute('playsinline', 'true');
+          await videoRef.current.play();
+        }
+        scanFrameIdRef.current = requestAnimationFrame(scanFrame);
+      } catch (err: any) {
+        console.error('Camera access failed:', err);
+        setErrorMsg('Failed to access camera: ' + err.message);
+        setScanState('error');
+        setIsCameraActive(false);
+      }
+    }
+
+    if (isCameraActive) {
+      void setupCamera();
+    }
+
+    return () => {
+      active = false;
+      if (scanFrameIdRef.current) {
+        cancelAnimationFrame(scanFrameIdRef.current);
+        scanFrameIdRef.current = null;
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+    };
+  }, [isCameraActive, scanFrame]);
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -110,6 +197,7 @@ export default function ScannerPage() {
   };
 
   const reset = () => {
+    stopCamera();
     setScanState('idle');
     setResult(undefined);
     setErrorMsg('');
@@ -163,35 +251,75 @@ export default function ScannerPage() {
             <Scan size={16} className="text-[var(--color-gold-400)]" /> Scan QR Code
           </h2>
 
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="w-full border-2 border-dashed border-white/20 hover:border-[var(--color-gold-500)]/50 rounded-xl p-8 text-center transition-all group mb-4"
-          >
-            <Upload size={28} className="mx-auto text-[var(--color-text-muted)] group-hover:text-[var(--color-gold-400)] mb-2 transition-colors" />
-            <p className="text-sm text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)] transition-colors">
-              Upload QR code image
-            </p>
-          </button>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+          <canvas ref={canvasRef} className="hidden" />
 
-          <div className="space-y-2">
-            <p className="text-xs text-[var(--color-text-muted)] font-medium uppercase tracking-wider">Or paste token manually</p>
-            <div className="flex gap-2">
-              <input
-                value={manualInput}
-                onChange={e => setManualInput(e.target.value)}
-                placeholder='{"v":"...","b":"..."}'
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] outline-none focus:border-[var(--color-gold-500)]/50 font-mono"
+          {isCameraActive ? (
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden mb-4 bg-black border border-white/10">
+              <video
+                ref={videoRef}
+                className="w-full h-full object-cover"
+                playsInline
+                muted
               />
+              {/* Scan box/overlay */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-48 h-48 border-2 border-[var(--color-gold-500)] rounded-2xl relative">
+                  <div className="absolute -inset-1 border border-white/25 rounded-2xl animate-pulse" />
+                </div>
+              </div>
+              {/* Close button */}
               <button
-                onClick={() => processQrData(manualInput.trim())}
-                disabled={!manualInput.trim()}
-                className="px-4 py-3 rounded-xl bg-[var(--color-gold-500)] text-black font-semibold text-sm hover:bg-[var(--color-gold-400)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                onClick={stopCamera}
+                className="absolute top-3 right-3 bg-black/60 text-white hover:bg-black/80 px-3 py-1.5 rounded-lg text-xs font-semibold backdrop-blur"
               >
-                Verify
+                Close Camera
               </button>
             </div>
-          </div>
+          ) : (
+            <>
+              <button
+                onClick={startCamera}
+                className="w-full border-2 border-dashed border-[var(--color-gold-500)]/30 hover:border-[var(--color-gold-500)]/60 bg-[var(--color-gold-500)]/5 rounded-xl p-8 text-center transition-all group mb-4 flex flex-col items-center justify-center"
+              >
+                <Scan size={32} className="text-[var(--color-gold-400)] group-hover:scale-110 transition-transform mb-2" />
+                <span className="font-semibold text-sm text-[var(--color-gold-400)]">
+                  Use Camera QR Scanner
+                </span>
+                <span className="text-xs text-[var(--color-text-muted)] mt-1">
+                  Scan in real-time using device camera
+                </span>
+              </button>
+
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="w-full border border-white/10 bg-white/5 hover:bg-white/10 rounded-xl py-3 text-center transition-all text-sm font-semibold mb-4"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <Upload size={16} className="text-[var(--color-text-secondary)]" /> Upload QR code image
+                </span>
+              </button>
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+
+              <div className="space-y-2">
+                <p className="text-xs text-[var(--color-text-muted)] font-medium uppercase tracking-wider">Or paste token manually</p>
+                <div className="flex gap-2">
+                  <input
+                    value={manualInput}
+                    onChange={e => setManualInput(e.target.value)}
+                    placeholder='{"v":"...","b":"..."}'
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] outline-none focus:border-[var(--color-gold-500)]/50 font-mono"
+                  />
+                  <button
+                    onClick={() => processQrData(manualInput.trim())}
+                    disabled={!manualInput.trim()}
+                    className="px-4 py-3 rounded-xl bg-[var(--color-gold-500)] text-black font-semibold text-sm hover:bg-[var(--color-gold-400)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    Verify
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {scanState === 'scanning' && (
