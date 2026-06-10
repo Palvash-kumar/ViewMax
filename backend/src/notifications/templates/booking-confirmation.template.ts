@@ -26,28 +26,31 @@ export function compileBookingConfirmationEmail(
   data: BookingConfirmationTemplateData,
   trackingPixelUrl?: string,
 ): string {
-  const showDate = new Date(data.startTime).toLocaleDateString('en-US', {
+  const validStartTime = data.startTime instanceof Date && !isNaN(data.startTime.getTime())
+    ? data.startTime
+    : new Date();
+
+  const showDate = validStartTime.toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
-  const showTime = new Date(data.startTime).toLocaleTimeString('en-US', {
+  const showTime = validStartTime.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
   });
 
-  const endTime = new Date(
-    data.startTime.getTime() + data.duration * 60 * 1000,
-  );
+  const duration = Number(data.duration) || 120;
+  const endTime = new Date(validStartTime.getTime() + duration * 60 * 1000);
 
-  const calDescription = `Your premium movie ticket for ${data.movieTitle} is confirmed!\n\nBooking ID: ${data.bookingId}\nSeats: ${data.seatNumbers.join(', ')}\nScreen: ${data.screenName} (${data.screenType})\n\nBooked via ViewMax`;
+  const calDescription = `Your premium movie ticket for ${data.movieTitle} is confirmed!\n\nBooking ID: ${data.bookingId}\nSeats: ${(data.seatNumbers || []).join(', ')}\nScreen: ${data.screenName} (${data.screenType})\n\nBooked via ViewMax`;
 
   const calendarOptions = {
     title: `${data.movieTitle} - ViewMax Cinema`,
     description: calDescription,
     location: `${data.theatreName}, ${data.theatreAddress}`,
-    startTime: data.startTime,
+    startTime: validStartTime,
     endTime,
     uid: data.bookingId,
   };

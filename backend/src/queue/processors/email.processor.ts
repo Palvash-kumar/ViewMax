@@ -67,9 +67,60 @@ export class EmailProcessor extends WorkerHost {
       // 2. Render HTML template using context and track pixel URL
       let html = '';
       let subject = '';
+      let attachments: any[] | undefined = undefined;
 
       switch (template) {
-        case 'booking-confirmation':
+        case 'booking-confirmation': {
+          let qrCodeUrl = context.qrCode;
+          const currentAttachments: any[] = [];
+
+          if (context.qrCode && context.qrCode.startsWith('data:image/')) {
+            const parts = context.qrCode.split(',');
+            if (parts.length > 1) {
+              const base64Data = parts[1];
+              const contentType = parts[0].split(';')[0].split(':')[1] || 'image/png';
+              const ext = contentType.split('/')[1] || 'png';
+              currentAttachments.push({
+                filename: `ticket-qr.${ext}`,
+                content: Buffer.from(base64Data, 'base64'),
+                contentType,
+                cid: 'ticket-qrcode',
+              });
+              qrCodeUrl = 'cid:ticket-qrcode';
+            }
+          }
+
+          // Dynamic invite.ics calendar attachment
+          try {
+            const { generateIcsString } = require('../../common/utils/calendar.utils');
+            const startTime = new Date(context.startTime);
+            const duration = Number(context.duration) || 120;
+            const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
+            const calDescription = `Your premium movie ticket for ${context.movieTitle} is confirmed!\n\nBooking ID: ${context.bookingId}\nSeats: ${context.seatNumbers?.join(', ') || ''}\nScreen: ${context.screenName || ''} (${context.screenType || ''})\n\nBooked via ViewMax`;
+            
+            const calendarOptions = {
+              title: `${context.movieTitle} - ViewMax Cinema`,
+              description: calDescription,
+              location: `${context.theatreName || ''}, ${context.theatreAddress || ''}`,
+              startTime,
+              endTime,
+              uid: context.bookingId,
+            };
+
+            const icsString = generateIcsString(calendarOptions);
+            currentAttachments.push({
+              filename: 'invite.ics',
+              content: icsString,
+              contentType: 'text/calendar; charset=utf-8; method=REQUEST',
+            });
+          } catch (calErr) {
+            this.logger.error(`Failed to generate calendar invite attachment: ${calErr.message}`);
+          }
+
+          if (currentAttachments.length > 0) {
+            attachments = currentAttachments;
+          }
+
           html = compileBookingConfirmationEmail(
             {
               bookingId: context.bookingId,
@@ -84,7 +135,7 @@ export class EmailProcessor extends WorkerHost {
               seatNumbers: context.seatNumbers,
               totalPrice: context.totalPrice,
               paymentStatus: context.paymentStatus,
-              qrCodeUrl: context.qrCode, // base64 QR code image
+              qrCodeUrl,
               backendUrl,
               recipientName: context.recipientName,
             },
@@ -92,6 +143,7 @@ export class EmailProcessor extends WorkerHost {
           );
           subject = `Your ViewMax Booking Confirmation: ${context.movieTitle}`;
           break;
+        }
 
         case 'payment-successful':
           html = compilePaymentSuccessfulEmail(
@@ -109,7 +161,30 @@ export class EmailProcessor extends WorkerHost {
           subject = `Receipt from ViewMax - Booking #${context.bookingId}`;
           break;
 
-        case 'reminder-notification':
+        case 'reminder-notification': {
+          let qrCodeUrl = context.qrCode;
+          const currentAttachments: any[] = [];
+
+          if (context.qrCode && context.qrCode.startsWith('data:image/')) {
+            const parts = context.qrCode.split(',');
+            if (parts.length > 1) {
+              const base64Data = parts[1];
+              const contentType = parts[0].split(';')[0].split(':')[1] || 'image/png';
+              const ext = contentType.split('/')[1] || 'png';
+              currentAttachments.push({
+                filename: `ticket-qr.${ext}`,
+                content: Buffer.from(base64Data, 'base64'),
+                contentType,
+                cid: 'ticket-qrcode',
+              });
+              qrCodeUrl = 'cid:ticket-qrcode';
+            }
+          }
+
+          if (currentAttachments.length > 0) {
+            attachments = currentAttachments;
+          }
+
           html = compileReminderNotificationEmail(
             {
               bookingId: context.bookingId,
@@ -120,7 +195,7 @@ export class EmailProcessor extends WorkerHost {
               screenType: context.screenType,
               startTime: new Date(context.startTime),
               seatNumbers: context.seatNumbers,
-              qrCodeUrl: context.qrCode,
+              qrCodeUrl,
               countdownText: context.countdownText || 'in 2 hours',
               recipientName: context.recipientName,
               backendUrl,
@@ -129,6 +204,7 @@ export class EmailProcessor extends WorkerHost {
           );
           subject = `Reminder: ${context.movieTitle} starts ${context.countdownText}!`;
           break;
+        }
 
         case 'ticket-cancelled':
           html = compileTicketCancelledEmail(
@@ -183,7 +259,7 @@ export class EmailProcessor extends WorkerHost {
       }
 
       // 3. Dispatch email using the MailService
-      await this.mailService.sendMail(to, subject, html);
+      await this.mailService.sendMail(to, subject, html, attachments);
 
       // 4. Update log to sent
       emailLog.status = 'sent';

@@ -72,10 +72,37 @@ export class ShowtimesService implements OnModuleInit, OnModuleDestroy {
       // Find showtimes whose endTime is in the past
       const completedShowtimes = await this.showtimeModel
         .find({ endTime: { $lte: now } })
+        .populate('movieId')
+        .populate('theatreId')
+        .populate('screenId')
         .exec();
 
       if (completedShowtimes.length > 0) {
-        this.logger.log(`Found ${completedShowtimes.length} completed showtimes to delete`);
+        this.logger.log(`Found ${completedShowtimes.length} completed showtimes to archive details and delete`);
+
+        // Backup details in bookings associated with these showtimes
+        for (const showtime of completedShowtimes) {
+          const bookings = await this.bookingModel.find({ showtimeId: showtime._id }).exec();
+          for (const booking of bookings) {
+            if (!booking.completedShowtimeDetails) {
+              booking.completedShowtimeDetails = {
+                movieTitle: (showtime.movieId as any)?.title || '',
+                moviePoster: (showtime.movieId as any)?.poster || '',
+                movieDuration: (showtime.movieId as any)?.duration || 0,
+                theatreName: (showtime.theatreId as any)?.name || '',
+                theatreCity: (showtime.theatreId as any)?.city || '',
+                theatreAddress: (showtime.theatreId as any)?.address || '',
+                screenName: (showtime.screenId as any)?.name || '',
+                screenType: (showtime.screenId as any)?.screenType || '',
+                startTime: showtime.startTime,
+                endTime: showtime.endTime,
+                ticketPrice: showtime.ticketPrice,
+              };
+              await booking.save();
+            }
+          }
+        }
+
         const ids = completedShowtimes.map((s) => s._id);
         const result = await this.showtimeModel.deleteMany({ _id: { $in: ids } }).exec();
         this.logger.log(`Successfully deleted ${result.deletedCount} completed showtimes`);

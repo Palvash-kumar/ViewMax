@@ -37,6 +37,7 @@ export default function BookingDetailPage() {
   const movie = st?.movieId;
   const theatre = st?.theatreId;
   const screen = st?.screenId;
+  const isCompleted = st?.endTime && new Date(st.endTime) < new Date();
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
@@ -53,8 +54,16 @@ export default function BookingDetailPage() {
               <p className="text-sm text-[var(--color-text-muted)] mt-1">{theatre?.name} · {screen?.name}</p>
             </div>
             <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase
-              ${booking.bookingStatus === 'CONFIRMED' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-[var(--color-text-muted)]'}`}>
-              {booking.bookingStatus}
+              ${isCompleted
+                ? 'bg-blue-500/20 text-blue-400'
+                : booking.bookingStatus === 'CHECKED_IN'
+                  ? 'bg-purple-500/20 text-purple-400'
+                  : booking.bookingStatus === 'CONFIRMED' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-[var(--color-text-muted)]'}`}>
+              {isCompleted 
+                ? 'SHOW COMPLETED' 
+                : booking.bookingStatus === 'CHECKED_IN' 
+                  ? 'IN THEATER' 
+                  : booking.bookingStatus}
             </span>
           </div>
         </div>

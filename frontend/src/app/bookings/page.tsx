@@ -22,6 +22,7 @@ export default function BookingsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'CONFIRMED': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+      case 'CHECKED_IN': return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
       case 'PENDING': return 'bg-[var(--color-gold-500)]/10 text-[var(--color-gold-400)] border-[var(--color-gold-500)]/20';
       case 'CANCELLED': return 'bg-[var(--color-crimson-500)]/10 text-[var(--color-crimson-400)] border-[var(--color-crimson-500)]/20';
       case 'EXPIRED': return 'bg-white/5 text-[var(--color-text-muted)] border-white/10';
@@ -57,6 +58,7 @@ export default function BookingsPage() {
             const st = booking.showtimeId as any;
             const movie = st?.movieId;
             const theatre = st?.theatreId;
+            const isCompleted = st?.endTime && new Date(st.endTime) < new Date();
             return (
               <motion.div
                 key={booking._id}
@@ -66,7 +68,7 @@ export default function BookingsPage() {
                 className="glass-card p-5"
               >
                 <div className="flex flex-col sm:flex-row gap-4">
-                  {/* Poster */}
+                   {/* Poster */}
                   {movie?.poster && (
                     <div className="w-20 h-28 rounded-lg overflow-hidden shrink-0">
                       <img src={movie.poster} alt={movie.title} className="w-full h-full object-cover" />
@@ -82,8 +84,16 @@ export default function BookingsPage() {
                           <MapPin className="w-3 h-3" /> {theatre?.name} · {theatre?.city}
                         </p>
                       </div>
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide border shrink-0 ${getStatusColor(booking.bookingStatus)}`}>
-                        {booking.bookingStatus}
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide border shrink-0 ${
+                        isCompleted
+                          ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                          : getStatusColor(booking.bookingStatus)
+                      }`}>
+                        {isCompleted 
+                          ? 'SHOW COMPLETED' 
+                          : booking.bookingStatus === 'CHECKED_IN' 
+                            ? 'IN THEATER' 
+                            : booking.bookingStatus}
                       </span>
                     </div>
 
@@ -114,7 +124,7 @@ export default function BookingsPage() {
                             </Button>
                           </Link>
                         )}
-                        {booking.bookingStatus === 'CONFIRMED' && (
+                        {booking.bookingStatus === 'CONFIRMED' && !isCompleted && (
                           <Button variant="danger" size="sm" onClick={() => handleCancel(booking._id)}>
                             Cancel
                           </Button>

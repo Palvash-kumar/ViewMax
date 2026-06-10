@@ -86,7 +86,7 @@ export interface Booking {
   seatNumbers: string[];
   totalAmount: number;
   paymentStatus: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
-  bookingStatus: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'EXPIRED';
+  bookingStatus: 'PENDING' | 'PROCESSING' | 'CONFIRMED' | 'CHECKED_IN' | 'EXPIRED' | 'CANCELLED' | 'REFUNDED' | 'TRANSFERRED';
   qrCode?: string;
   stripeSessionId?: string;
   createdAt?: string;
