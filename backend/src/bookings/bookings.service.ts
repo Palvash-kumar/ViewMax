@@ -18,7 +18,6 @@ import { PaginatedResult } from '../common/dto/pagination.dto';
 import { QueueService } from '../queue/queue.service';
 import { NotificationType } from '../notifications/schemas/notification.schema';
 import { generateIcsString } from '../common/utils/calendar.utils';
-import * as QRCode from 'qrcode';
 import { QrEngineService } from '../tickets/qr-engine.service';
 
 @Injectable()
@@ -480,7 +479,13 @@ export class BookingsService {
       return bookingObj;
     });
 
-    return { data: mappedData as any, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return {
+      data: mappedData as any,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findById(id: string): Promise<BookingDocument> {

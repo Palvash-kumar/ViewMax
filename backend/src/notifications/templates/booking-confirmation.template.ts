@@ -26,9 +26,10 @@ export function compileBookingConfirmationEmail(
   data: BookingConfirmationTemplateData,
   trackingPixelUrl?: string,
 ): string {
-  const validStartTime = data.startTime instanceof Date && !isNaN(data.startTime.getTime())
-    ? data.startTime
-    : new Date();
+  const validStartTime =
+    data.startTime instanceof Date && !isNaN(data.startTime.getTime())
+      ? data.startTime
+      : new Date();
 
   const showDate = validStartTime.toLocaleDateString('en-US', {
     weekday: 'long',

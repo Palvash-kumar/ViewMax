@@ -18,6 +18,7 @@ import { compileReminderNotificationEmail } from '../../notifications/templates/
 import { compileTicketCancelledEmail } from '../../notifications/templates/ticket-cancelled.template';
 import { compileTicketRefundedEmail } from '../../notifications/templates/ticket-refunded.template';
 import { compileShowtimeChangedEmail } from '../../notifications/templates/showtime-changed.template';
+import { generateIcsString } from '../../common/utils/calendar.utils';
 
 interface EmailJobData {
   template: string;
@@ -78,7 +79,8 @@ export class EmailProcessor extends WorkerHost {
             const parts = context.qrCode.split(',');
             if (parts.length > 1) {
               const base64Data = parts[1];
-              const contentType = parts[0].split(';')[0].split(':')[1] || 'image/png';
+              const contentType =
+                parts[0].split(';')[0].split(':')[1] || 'image/png';
               const ext = contentType.split('/')[1] || 'png';
               currentAttachments.push({
                 filename: `ticket-qr.${ext}`,
@@ -92,12 +94,13 @@ export class EmailProcessor extends WorkerHost {
 
           // Dynamic invite.ics calendar attachment
           try {
-            const { generateIcsString } = require('../../common/utils/calendar.utils');
             const startTime = new Date(context.startTime);
             const duration = Number(context.duration) || 120;
-            const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
+            const endTime = new Date(
+              startTime.getTime() + duration * 60 * 1000,
+            );
             const calDescription = `Your premium movie ticket for ${context.movieTitle} is confirmed!\n\nBooking ID: ${context.bookingId}\nSeats: ${context.seatNumbers?.join(', ') || ''}\nScreen: ${context.screenName || ''} (${context.screenType || ''})\n\nBooked via ViewMax`;
-            
+
             const calendarOptions = {
               title: `${context.movieTitle} - ViewMax Cinema`,
               description: calDescription,
@@ -114,7 +117,9 @@ export class EmailProcessor extends WorkerHost {
               contentType: 'text/calendar; charset=utf-8; method=REQUEST',
             });
           } catch (calErr) {
-            this.logger.error(`Failed to generate calendar invite attachment: ${calErr.message}`);
+            this.logger.error(
+              `Failed to generate calendar invite attachment: ${calErr.message}`,
+            );
           }
 
           if (currentAttachments.length > 0) {
@@ -169,7 +174,8 @@ export class EmailProcessor extends WorkerHost {
             const parts = context.qrCode.split(',');
             if (parts.length > 1) {
               const base64Data = parts[1];
-              const contentType = parts[0].split(';')[0].split(':')[1] || 'image/png';
+              const contentType =
+                parts[0].split(';')[0].split(':')[1] || 'image/png';
               const ext = contentType.split('/')[1] || 'png';
               currentAttachments.push({
                 filename: `ticket-qr.${ext}`,

@@ -43,14 +43,13 @@ export class ShowtimesService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    this.logger.log('Initializing ViewMax Showtime Completed CleanUp Scheduler...');
-    // Run cleanup every 60 seconds (1 minute) in background
-    this.cleanupIntervalId = setInterval(
-      () => {
-        void this.deleteCompletedShowtimes();
-      },
-      60 * 1000,
+    this.logger.log(
+      'Initializing ViewMax Showtime Completed CleanUp Scheduler...',
     );
+    // Run cleanup every 60 seconds (1 minute) in background
+    this.cleanupIntervalId = setInterval(() => {
+      void this.deleteCompletedShowtimes();
+    }, 60 * 1000);
     // Run first check after 5 seconds of server startup
     this.cleanupTimeoutId = setTimeout(() => {
       void this.deleteCompletedShowtimes();
@@ -78,11 +77,15 @@ export class ShowtimesService implements OnModuleInit, OnModuleDestroy {
         .exec();
 
       if (completedShowtimes.length > 0) {
-        this.logger.log(`Found ${completedShowtimes.length} completed showtimes to archive details and delete`);
+        this.logger.log(
+          `Found ${completedShowtimes.length} completed showtimes to archive details and delete`,
+        );
 
         // Backup details in bookings associated with these showtimes
         for (const showtime of completedShowtimes) {
-          const bookings = await this.bookingModel.find({ showtimeId: showtime._id }).exec();
+          const bookings = await this.bookingModel
+            .find({ showtimeId: showtime._id })
+            .exec();
           for (const booking of bookings) {
             if (!booking.completedShowtimeDetails) {
               booking.completedShowtimeDetails = {
@@ -104,11 +107,18 @@ export class ShowtimesService implements OnModuleInit, OnModuleDestroy {
         }
 
         const ids = completedShowtimes.map((s) => s._id);
-        const result = await this.showtimeModel.deleteMany({ _id: { $in: ids } }).exec();
-        this.logger.log(`Successfully deleted ${result.deletedCount} completed showtimes`);
+        const result = await this.showtimeModel
+          .deleteMany({ _id: { $in: ids } })
+          .exec();
+        this.logger.log(
+          `Successfully deleted ${result.deletedCount} completed showtimes`,
+        );
       }
     } catch (error) {
-      this.logger.error(`Error deleting completed showtimes: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error deleting completed showtimes: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
