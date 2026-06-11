@@ -1,8 +1,9 @@
 'use client';
 
-import { Suspense, useState, useCallback } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Suspense, useState, useCallback, useEffect } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import * as THREE from 'three';
 import TheatreScene from './TheatreScene';
 import ViewControls from './ViewControls';
 import type { Theatre3DDataResponse, CameraPreset } from '@/types';
@@ -10,6 +11,29 @@ import type { Theatre3DDataResponse, CameraPreset } from '@/types';
 interface TheatreViewerProps {
   data: Theatre3DDataResponse;
   className?: string;
+}
+
+function ResponsiveCamera({ position }: { position: [number, number, number] }) {
+  const { camera, size } = useThree();
+  const aspect = size.width / size.height;
+
+  useEffect(() => {
+    if (camera instanceof THREE.PerspectiveCamera) {
+      const baseFov = 50;
+      camera.fov = aspect < 1 ? Math.min(85, baseFov / aspect) : baseFov;
+      camera.updateProjectionMatrix();
+    }
+  }, [aspect, camera]);
+
+  return (
+    <PerspectiveCamera
+      makeDefault
+      position={position}
+      fov={50}
+      near={0.1}
+      far={500}
+    />
+  );
 }
 
 export default function TheatreViewer({ data, className = '' }: TheatreViewerProps) {
@@ -30,12 +54,8 @@ export default function TheatreViewer({ data, className = '' }: TheatreViewerPro
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: false }}
       >
-        <PerspectiveCamera
-          makeDefault
+        <ResponsiveCamera
           position={currentPreset.position}
-          fov={50}
-          near={0.1}
-          far={500}
         />
         <OrbitControls
           enableDamping

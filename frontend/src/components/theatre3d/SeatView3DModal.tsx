@@ -28,7 +28,8 @@ interface SeatCameraControlsProps {
 }
 
 function SeatCameraControls({ position, target, audioListener }: SeatCameraControlsProps) {
-  const { camera, gl } = useThree();
+  const { camera, gl, size } = useThree();
+  const aspect = size.width / size.height;
 
   // Store target and smoothed yaw/pitch rotations
   const rotationRef = useRef({ yaw: 0, pitch: 0 });
@@ -129,6 +130,15 @@ function SeatCameraControls({ position, target, audioListener }: SeatCameraContr
     };
   }, [gl, camera]);
 
+  // Adjust camera FOV dynamically on aspect ratio change
+  useEffect(() => {
+    if (camera instanceof THREE.PerspectiveCamera) {
+      const baseFov = 72;
+      camera.fov = aspect < 1 ? Math.min(95, baseFov / aspect) : baseFov;
+      camera.updateProjectionMatrix();
+    }
+  }, [aspect, camera]);
+
   // Smoothly damp (lerp) camera movements for buttery visual feedback
   useFrame(() => {
     // Force seat position (eye height level)
@@ -165,6 +175,7 @@ export default function SeatView3DModal({
   const [selectedVideo, setSelectedVideo] = useState<DemoVideo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showGuide, setShowGuide] = useState(false);
   
   // Audio state
   const [isMuted, setIsMuted] = useState(true);
@@ -409,11 +420,11 @@ export default function SeatView3DModal({
           className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex flex-col select-none"
         >
           {/* Header bar */}
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3 bg-black/50 border-b border-white/5 relative z-20">
+          <div className="flex items-center justify-between px-3 sm:px-6 py-2 sm:py-3 bg-black/50 border-b border-white/5 relative z-20">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--color-gold-500)]/10 border border-[var(--color-gold-500)]/20">
-                <Eye className="w-4 h-4 text-[var(--color-gold-400)]" />
-                <span className="text-sm font-semibold text-[var(--color-gold-400)]">
+              <div className="flex items-center gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-[var(--color-gold-500)]/10 border border-[var(--color-gold-500)]/20">
+                <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--color-gold-400)]" />
+                <span className="text-xs sm:text-sm font-semibold text-[var(--color-gold-400)]">
                   Seat {seatLabel} View
                 </span>
               </div>
@@ -423,10 +434,11 @@ export default function SeatView3DModal({
             </div>
             <button
               onClick={onClose}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/15 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 text-red-400 hover:text-red-300 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-lg bg-red-500/15 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 text-red-400 hover:text-red-300 transition-all cursor-pointer"
             >
-              <X className="w-4 h-4" />
-              <span className="text-sm font-semibold">Exit 3D View</span>
+              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="text-xs font-semibold sm:hidden">Exit</span>
+              <span className="text-sm font-semibold hidden sm:inline">Exit 3D View</span>
             </button>
           </div>
 
@@ -487,18 +499,18 @@ export default function SeatView3DModal({
                 </Canvas>
 
                 {/* Glassmorphic Audio & Video HUD Controller */}
-                <div className="absolute top-4 right-4 flex items-center gap-4 bg-black/60 backdrop-blur-md border border-white/10 px-4 py-2.5 rounded-xl shadow-2xl z-10">
+                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-2 sm:gap-4 bg-black/60 backdrop-blur-md border border-white/10 px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-xl shadow-2xl z-10">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={toggleMute}
-                      className={`p-2 rounded-lg transition-all cursor-pointer ${
+                      className={`p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer ${
                         isMuted
                           ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
                           : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
                       }`}
                       title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
                     >
-                      {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                      {isMuted ? <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                     </button>
                     
                     <input
@@ -514,13 +526,13 @@ export default function SeatView3DModal({
                           setIsMuted(false);
                         }
                       }}
-                      className="w-20 accent-purple-500 cursor-pointer h-1 rounded-lg bg-white/20"
+                      className="w-14 sm:w-20 accent-purple-500 cursor-pointer h-1 rounded-lg bg-white/20"
                     />
                   </div>
 
-                  <div className="h-4 w-px bg-white/10" />
+                  <div className="hidden sm:block h-4 w-px bg-white/10" />
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="hidden sm:flex items-center gap-1.5">
                     <span className="text-[10px] uppercase font-bold tracking-wider text-white/40">Audio:</span>
                     <span className="text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">
                       {isMuted ? 'Muted' : selectedVideo ? '3D Positional' : 'Cinema Hum'}
@@ -538,20 +550,38 @@ export default function SeatView3DModal({
                 </div>
 
                 {/* Control Guide HUD (bottom-left) */}
-                <div className="absolute bottom-4 left-4 flex flex-col gap-1 bg-black/60 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-white/5 pointer-events-none z-10">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-white/70 mb-1">
-                    <Info className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Theater Controls</span>
+                <div className="absolute bottom-4 left-4 z-10 flex flex-col items-start gap-2">
+                  <button
+                    onClick={() => setShowGuide(!showGuide)}
+                    className="sm:hidden p-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-purple-400 hover:text-white transition-all cursor-pointer shadow-lg"
+                    title="Show controls guide"
+                  >
+                    <Info className="w-4 h-4" />
+                  </button>
+
+                  <div className={`${showGuide ? 'flex' : 'hidden sm:flex'} flex-col gap-1 bg-black/60 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-white/5 max-w-[240px]`}>
+                    <div className="flex items-center justify-between gap-2 text-xs font-semibold text-white/70 mb-1">
+                      <div className="flex items-center gap-2">
+                        <Info className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Theater Controls</span>
+                      </div>
+                      <button 
+                        onClick={() => setShowGuide(false)}
+                        className="sm:hidden p-0.5 rounded hover:bg-white/10 text-white/40 hover:text-white cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-white/50">
+                      • Drag pointer anywhere to look around (360° view)
+                    </p>
+                    <p className="text-[10px] text-white/50">
+                      • Pinch screen or scroll to zoom in/out
+                    </p>
+                    <p className="text-[10px] text-white/40 italic mt-1 font-mono">
+                      Sound will pan dynamically as you look around
+                    </p>
                   </div>
-                  <p className="text-[10px] text-white/50">
-                    • Drag pointer anywhere to look around (360° view)
-                  </p>
-                  <p className="text-[10px] text-white/50">
-                    • Scroll mouse wheel to zoom in/out
-                  </p>
-                  <p className="text-[10px] text-white/40 italic mt-1 font-mono">
-                    Sound will pan dynamically as you look around
-                  </p>
                 </div>
               </div>
             ) : null}
@@ -561,17 +591,17 @@ export default function SeatView3DModal({
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute top-4 left-4 flex items-center gap-2.5 px-3 py-2 rounded-xl bg-black/60 backdrop-blur-md border border-purple-500/20 z-10"
+                className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg sm:rounded-xl bg-black/60 backdrop-blur-md border border-purple-500/20 z-10"
               >
-                <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-                <span className="text-xs font-medium text-purple-300">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-purple-400 animate-pulse" />
+                <span className="text-[10px] sm:text-xs font-medium text-purple-300">
                   Playing: {selectedVideo.title}
                 </span>
                 <button
                   onClick={handleClearVideo}
                   className="ml-1.5 p-0.5 rounded hover:bg-white/10 text-purple-300 hover:text-white transition-all cursor-pointer"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 </button>
               </motion.div>
             )}
@@ -583,11 +613,11 @@ export default function SeatView3DModal({
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.1 }}
-              className="bg-black/80 border-t border-white/5 px-4 sm:px-6 py-4 z-20"
+              className="bg-black/80 border-t border-white/5 px-3 sm:px-6 py-2.5 sm:py-4 z-20"
             >
-              <div className="flex items-center gap-3 mb-2.5">
-                <Play className="w-4 h-4 text-[var(--color-gold-400)]" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+              <div className="flex items-center gap-3 mb-2">
+                <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--color-gold-400)]" />
+                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
                   Demo Formats — Watch from Seat
                 </span>
               </div>
@@ -596,28 +626,28 @@ export default function SeatView3DModal({
                 {demoVideos.length > 3 && (
                   <button
                     onClick={() => scrollVideos('left')}
-                    className="shrink-0 p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-white transition-all cursor-pointer"
+                    className="shrink-0 p-1.5 sm:p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-white transition-all cursor-pointer"
                   >
-                    <ChevronLeft className="w-4.5 h-4.5" />
+                    <ChevronLeft className="w-4 sm:w-4.5 sm:h-4.5 h-4" />
                   </button>
                 )}
 
                 <div
                   ref={videoCarouselRef}
-                  className="flex gap-3 overflow-x-auto scrollbar-hide flex-1"
+                  className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide flex-1"
                   style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
                   {demoVideos.map((video) => (
                     <button
                       key={video._id}
                       onClick={() => handleVideoSelect(video)}
-                      className={`shrink-0 flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all cursor-pointer ${
+                      className={`shrink-0 flex items-center gap-2.5 sm:gap-3.5 px-2.5 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl transition-all cursor-pointer ${
                         selectedVideo?._id === video._id
                           ? 'bg-purple-600/20 border border-purple-500/40 shadow-lg shadow-purple-500/10'
                           : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20'
                       }`}
                     >
-                      <div className="w-16 h-10 rounded-lg overflow-hidden shrink-0 bg-white/5">
+                      <div className="w-12 h-8 sm:w-16 sm:h-10 rounded-md sm:rounded-lg overflow-hidden shrink-0 bg-white/5">
                         <img
                           src={video.posterUrl}
                           alt={video.title}
@@ -625,20 +655,20 @@ export default function SeatView3DModal({
                         />
                       </div>
                       <div className="text-left">
-                        <p className={`text-xs font-semibold ${
+                        <p className={`text-[10px] sm:text-xs font-semibold ${
                           selectedVideo?._id === video._id
                             ? 'text-purple-300 font-bold'
                             : 'text-[var(--color-text-primary)]'
                         }`}>
                           {video.title}
                         </p>
-                        <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">
+                        <p className="text-[9px] sm:text-[10px] text-[var(--color-text-muted)] mt-0.5">
                           {selectedVideo?._id === video._id ? 'Playing on 3D Screen' : 'Click to watch'}
                         </p>
                       </div>
                       {selectedVideo?._id === video._id && (
-                        <div className="shrink-0 w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center animate-pulse">
-                          <Play className="w-3 h-3 text-purple-400 fill-purple-400" />
+                        <div className="shrink-0 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-purple-500/20 flex items-center justify-center animate-pulse">
+                          <Play className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-purple-400 fill-purple-400" />
                         </div>
                       )}
                     </button>
@@ -648,9 +678,9 @@ export default function SeatView3DModal({
                 {demoVideos.length > 3 && (
                   <button
                     onClick={() => scrollVideos('right')}
-                    className="shrink-0 p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-white transition-all cursor-pointer"
+                    className="shrink-0 p-1.5 sm:p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-white transition-all cursor-pointer"
                   >
-                    <ChevronRight className="w-4.5 h-4.5" />
+                    <ChevronRight className="w-4 sm:w-4.5 sm:h-4.5 h-4" />
                   </button>
                 )}
               </div>
