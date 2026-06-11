@@ -45,10 +45,12 @@ export class CloudinaryService {
     }
 
     return new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
+      const uploadStream = cloudinary.uploader.upload_chunked_stream(
         {
           folder,
           resource_type: 'video',
+          chunk_size: 6000000, // 6 MB chunks
+          timeout: 120000,     // 2 minutes timeout per chunk
           transformation: [{ quality: 'auto' }],
         },
         (error, result) => {

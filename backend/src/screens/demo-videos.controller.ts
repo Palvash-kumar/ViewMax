@@ -56,7 +56,7 @@ export class DemoVideosController {
     @Param('screenId') screenId: string,
     @Body('title') title: string,
     @UploadedFiles()
-    files: {
+    files?: {
       poster?: Express.Multer.File[];
       video?: Express.Multer.File[];
     },
@@ -64,8 +64,8 @@ export class DemoVideosController {
     return this.demoVideosService.create(
       screenId,
       title || 'Demo Video',
-      files.poster?.[0] as Express.Multer.File,
-      files.video?.[0] as Express.Multer.File,
+      files?.poster?.[0] as Express.Multer.File,
+      files?.video?.[0] as Express.Multer.File,
     );
   }
 
