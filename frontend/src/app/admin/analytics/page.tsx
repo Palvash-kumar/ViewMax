@@ -6,7 +6,7 @@ import {
   TrendingUp, Users, DollarSign, Ticket, Film, Building2,
   Activity, ArrowUpRight, BarChart3, Download
 } from 'lucide-react';
-import api from '@/lib/axios';
+import api, { API_URL } from '@/lib/axios';
 import { useAuthStore } from '@/stores/auth.store';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -122,7 +122,7 @@ export default function AnalyticsDashboard() {
           </div>
           <div className="flex gap-2">
             <a
-              href="http://localhost:4000/api/export/bookings/csv"
+              href={`${API_URL}/export/bookings/csv`}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-all"
             >
               <Download size={14} /> Export CSV

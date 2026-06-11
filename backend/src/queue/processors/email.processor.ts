@@ -57,11 +57,9 @@ export class EmailProcessor extends WorkerHost {
     await emailLog.save();
 
     try {
-      const backendUrl = this.configService.get<string>('smtp.user')
-        ? this.configService
-            .get<string>('frontend.url')
-            ?.replace('3000', '4000') || 'http://localhost:4000'
-        : 'http://localhost:4000'; // Fallback to local port 4000 for local dev
+      const backendUrl =
+        this.configService.get<string>('backend.url') ||
+        'http://localhost:4000';
 
       const trackingPixelUrl = `${backendUrl}/api/notifications/track-email/${emailLog._id.toString()}/open`;
 

@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { Film, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { Button } from '@/components/ui';
+import { API_URL } from '@/lib/axios';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -42,7 +43,7 @@ export default function LoginPage() {
     }
   };
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 animate-fade-in">

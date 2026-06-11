@@ -26,6 +26,9 @@ export default () => ({
   frontend: {
     url: process.env.FRONTEND_URL || 'http://localhost:3000',
   },
+  backend: {
+    url: process.env.BACKEND_URL || 'http://localhost:4000',
+  },
   smtp: {
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT || '587', 10),

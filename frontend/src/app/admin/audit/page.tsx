@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ClipboardList, Search, Download, Filter, RefreshCw } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/axios';
+import api, { API_URL } from '@/lib/axios';
 
 function ActionBadge({ action }: { action: string }) {
   const isDelete = action.includes('DELETE') || action.includes('CANCEL') || action.includes('FAILED');
@@ -60,7 +60,7 @@ export default function AuditLogPage() {
               <RefreshCw size={16} />
             </button>
             <a
-              href={`http://localhost:4000/api/export/audit-logs/csv${actionFilter ? `?action=${actionFilter}` : ''}`}
+              href={`${API_URL}/export/audit-logs/csv${actionFilter ? `?action=${actionFilter}` : ''}`}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-[var(--color-text-secondary)] transition-all"
             >
               <Download size={14} /> Export CSV

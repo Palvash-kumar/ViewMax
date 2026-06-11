@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Eye, Play, Volume2, VolumeX, ChevronLeft, ChevronRight, Loader2, Info } from 'lucide-react';
 import * as THREE from 'three';
 import TheatreScene from './TheatreScene';
-import api from '@/lib/axios';
+import api, { API_URL } from '@/lib/axios';
 import type { Theatre3DDataResponse, DemoVideo } from '@/types';
 
 interface SeatView3DModalProps {
@@ -18,7 +18,7 @@ interface SeatView3DModalProps {
   seatLabel: string;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const API_BASE = API_URL;
 
 // ─── Custom Camera Controls for Head Look-Around ──────────────────────────────
 interface SeatCameraControlsProps {

@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { Film, Mail, Lock, Eye, EyeOff, User, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { Button } from '@/components/ui';
+import { API_URL } from '@/lib/axios';
 
 const registerSchema = z.object({
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
@@ -53,7 +54,7 @@ export default function RegisterPage() {
     }
   };
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 animate-fade-in">

@@ -19,6 +19,7 @@ export const validationSchema = Joi.object({
   STRIPE_SECRET_KEY: Joi.string().required(),
   STRIPE_WEBHOOK_SECRET: Joi.string().required(),
   FRONTEND_URL: Joi.string().default('http://localhost:3000'),
+  BACKEND_URL: Joi.string().default('http://localhost:4000'),
   SMTP_HOST: Joi.string().required(),
   SMTP_PORT: Joi.number().default(587),
   SMTP_USER: Joi.string().required(),
