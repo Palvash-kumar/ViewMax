@@ -129,6 +129,9 @@ export class AuthService {
   ): Promise<any> {
     const user = await this.usersService.findByEmailWithPassword(email);
     if (!user) return null;
+    if (user.isBlocked) {
+      throw new UnauthorizedException('Your account has been blocked');
+    }
     if (!user.passwordHash) return null;
 
     const isValid = await argon2.verify(user.passwordHash, password);
@@ -216,6 +219,9 @@ export class AuthService {
     if (!user || !user.refreshToken) {
       throw new UnauthorizedException('Access denied');
     }
+    if (user.isBlocked) {
+      throw new UnauthorizedException('Your account has been blocked');
+    }
 
     const isValid = await argon2.verify(user.refreshToken, refreshToken);
     if (!isValid) {
@@ -265,6 +271,9 @@ export class AuthService {
     user: any,
     sessionDetails?: { ipAddress?: string; userAgent?: string },
   ) {
+    if (user.isBlocked) {
+      throw new UnauthorizedException('Your account has been blocked');
+    }
     let sessionId: string | undefined;
     if (sessionDetails) {
       const userAgent = sessionDetails.userAgent || 'Unknown';

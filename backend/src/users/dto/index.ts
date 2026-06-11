@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsString,
   MinLength,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Role } from '../../common/constants/roles.enum';
@@ -53,4 +54,10 @@ export class UpdateRoleDto {
   @ApiProperty({ enum: Role })
   @IsEnum(Role)
   role: Role;
+}
+
+export class BlockUserDto {
+  @ApiProperty()
+  @IsBoolean()
+  isBlocked: boolean;
 }

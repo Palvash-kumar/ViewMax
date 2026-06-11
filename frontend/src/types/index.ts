@@ -9,6 +9,7 @@ export interface User {
   provider?: string;
   createdAt?: string;
   updatedAt?: string;
+  isBlocked?: boolean;
 }
 
 export type Role = 'CUSTOMER' | 'THEATRE_MODERATOR' | 'THEATRE_OWNER' | 'ADMIN';

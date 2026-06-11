@@ -18,6 +18,7 @@ import { compileReminderNotificationEmail } from '../../notifications/templates/
 import { compileTicketCancelledEmail } from '../../notifications/templates/ticket-cancelled.template';
 import { compileTicketRefundedEmail } from '../../notifications/templates/ticket-refunded.template';
 import { compileShowtimeChangedEmail } from '../../notifications/templates/showtime-changed.template';
+import { compileUserAccountActivityEmail } from '../../notifications/templates/user-account-activity.template';
 import { generateIcsString } from '../../common/utils/calendar.utils';
 
 interface EmailJobData {
@@ -256,6 +257,21 @@ export class EmailProcessor extends WorkerHost {
             trackingPixelUrl,
           );
           subject = `Schedule Update: ${context.movieTitle} Showtime Changed`;
+          break;
+
+        case 'user-account-activity':
+          html = compileUserAccountActivityEmail(
+            {
+              activityType: context.activityType,
+              recipientName: context.recipientName,
+              email: context.email,
+              newRole: context.newRole,
+              reason: context.reason,
+              backendUrl,
+            },
+            trackingPixelUrl,
+          );
+          subject = context.subject || `ViewMax Account Update`;
           break;
 
         default:

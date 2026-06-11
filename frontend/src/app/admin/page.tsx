@@ -102,6 +102,37 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleToggleBlock = async (userId: string, isCurrentlyBlocked: boolean) => {
+    if (!confirm(`Are you sure you want to ${isCurrentlyBlocked ? 'unblock' : 'block'} this user?`)) return;
+    setUpdatingUserId(userId);
+    try {
+      await api.patch(`/users/${userId}/block`, { isBlocked: !isCurrentlyBlocked });
+      setUsers((prevUsers) =>
+        prevUsers.map((u) => (u._id === userId ? { ...u, isBlocked: !isCurrentlyBlocked } : u))
+      );
+    } catch (err) {
+      console.error('Failed to toggle block status:', err);
+      alert('Failed to update block status');
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user? This action is permanent and will cancel all active bookings.')) return;
+    setUpdatingUserId(userId);
+    try {
+      await api.delete(`/users/${userId}`);
+      setUsers((prevUsers) => prevUsers.filter((u) => u._id !== userId));
+      setStats((prev) => ({ ...prev, users: Math.max(0, prev.users - 1) }));
+    } catch (err) {
+      console.error('Failed to delete user:', err);
+      alert('Failed to delete user');
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
   // ─── Movie CRUD ───────────────────────────────────────────────────────────
   const handleOpenAddMovie = () => {
     setMovieForm({
@@ -683,6 +714,11 @@ export default function AdminDashboard() {
                             You
                           </span>
                         )}
+                        {u.isBlocked && (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-semibold bg-red-500/20 text-red-400 border border-red-500/30 uppercase">
+                            Blocked
+                          </span>
+                        )}
                       </h3>
                       <p className="text-xs text-[var(--color-text-muted)]">{u.email}</p>
                     </div>
@@ -702,6 +738,28 @@ export default function AdminDashboard() {
                       <option value="THEATRE_MODERATOR" className="bg-[var(--color-bg-primary)]">Theatre Moderator</option>
                       <option value="ADMIN" className="bg-[var(--color-bg-primary)]">Admin</option>
                     </select>
+
+                    <button
+                      onClick={() => handleToggleBlock(u._id, !!u.isBlocked)}
+                      disabled={updatingUserId === u._id || u._id === currentUser?._id}
+                      className={`p-1.5 rounded-lg border transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                        u.isBlocked
+                          ? 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30'
+                          : 'bg-white/5 text-[var(--color-text-muted)] border-white/10 hover:bg-white/10 hover:text-white'
+                      }`}
+                      title={u.isBlocked ? 'Unblock User' : 'Block User'}
+                    >
+                      <Ban className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteUser(u._id)}
+                      disabled={updatingUserId === u._id || u._id === currentUser?._id}
+                      className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/30 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Delete User"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               );

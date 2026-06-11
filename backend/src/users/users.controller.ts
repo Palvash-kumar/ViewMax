@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { UsersService } from './users.service';
-import { UpdateUserDto, UpdateRoleDto } from './dto';
+import { UpdateUserDto, UpdateRoleDto, BlockUserDto } from './dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
@@ -82,5 +82,14 @@ export class UsersController {
   @ApiOperation({ summary: 'Change user role (Admin)' })
   updateRole(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
     return this.usersService.updateRole(id, dto);
+  }
+
+  @Patch(':id/block')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Block/Unblock a user (Admin)' })
+  updateBlockStatus(@Param('id') id: string, @Body() dto: BlockUserDto) {
+    return this.usersService.updateBlockStatus(id, dto.isBlocked);
   }
 }

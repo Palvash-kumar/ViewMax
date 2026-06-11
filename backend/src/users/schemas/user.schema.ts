@@ -27,6 +27,9 @@ export class User {
   @Prop({ default: false })
   isVerified: boolean;
 
+  @Prop({ default: false })
+  isBlocked: boolean;
+
   @Prop({ default: 'local', enum: ['local', 'google'] })
   provider: string;
 

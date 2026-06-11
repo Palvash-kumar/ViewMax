@@ -27,6 +27,9 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     if (!user) {
       throw new UnauthorizedException();
     }
+    if (user.isBlocked) {
+      throw new UnauthorizedException('Your account has been blocked');
+    }
     const userJson = user.toJSON();
     return {
       ...userJson,
