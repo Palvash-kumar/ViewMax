@@ -165,8 +165,6 @@ export default function SeatInstances({ coordinates, seatMap }: SeatInstancesPro
       <instancedMesh
         ref={cushionRef}
         args={[undefined, undefined, count]}
-        castShadow
-        receiveShadow
       >
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial roughness={0.75} metalness={0.05} />
@@ -176,8 +174,6 @@ export default function SeatInstances({ coordinates, seatMap }: SeatInstancesPro
       <instancedMesh
         ref={backrestRef}
         args={[undefined, undefined, count]}
-        castShadow
-        receiveShadow
       >
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial roughness={0.7} metalness={0.05} />
@@ -187,8 +183,6 @@ export default function SeatInstances({ coordinates, seatMap }: SeatInstancesPro
       <instancedMesh
         ref={leftArmRef}
         args={[undefined, undefined, count]}
-        castShadow
-        receiveShadow
       >
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial roughness={0.8} metalness={0.1} />
@@ -198,8 +192,6 @@ export default function SeatInstances({ coordinates, seatMap }: SeatInstancesPro
       <instancedMesh
         ref={rightArmRef}
         args={[undefined, undefined, count]}
-        castShadow
-        receiveShadow
       >
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial roughness={0.8} metalness={0.1} />

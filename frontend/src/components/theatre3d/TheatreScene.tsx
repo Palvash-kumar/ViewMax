@@ -29,18 +29,9 @@ function ScreenGlowLight({
   useFrame(({ clock }) => {
     if (!lightRef.current) return;
     if (isVideoPlaying) {
-      const time = clock.getElapsedTime();
-      // Fast high-frequency flicker overlayed with a slower sine wave for projection look
-      const flicker =
-        Math.sin(time * 18) * 0.2 +
-        Math.sin(time * 4.5) * 0.15 +
-        Math.random() * 0.15;
-      
-      lightRef.current.intensity = 2.4 + flicker;
-
-      // Dynamically shift color slightly to mimic movie scenes shifting (blue-white to warm-white)
-      const colorMod = 0.8 + Math.sin(time * 1.5) * 0.08 + Math.random() * 0.04;
-      lightRef.current.color.setRGB(colorMod * 0.88, colorMod * 0.94, colorMod);
+      // During video playback, disable this spotlight entirely to prevent
+      // any shadow artifacts. Ambient light handles seat visibility.
+      lightRef.current.intensity = 0;
     } else {
       // Gentle blue standby glow
       lightRef.current.intensity = 0.55;
@@ -72,15 +63,15 @@ export default function TheatreScene({
 
   return (
     <group>
-      {/* 1. Global Ambient Light (boosted for a lighter room) */}
-      <ambientLight intensity={0.38} />
+      {/* 1. Global Ambient Light (dimmed during movie play for immersion) */}
+      <ambientLight intensity={videoUrl ? 0.18 : 0.38} />
 
       {/* 2. Spotlights (simulating recessed overhead lights, dimmed during movie play) */}
       {generated3DData.lighting.spots.map((spot, i) => (
         <spotLight
           key={i}
           position={spot.position}
-          intensity={videoUrl ? spot.intensity * 0.15 : spot.intensity * 1.6}
+          intensity={videoUrl ? 0 : spot.intensity * 1.6}
           angle={0.5}
           penumbra={0.6}
           color="#fef08a" // subtle warm tint
@@ -96,7 +87,7 @@ export default function TheatreScene({
       {/* 4. Rear/Backlight wash for architectural outline (dimmed during movie play) */}
       <pointLight
         position={[0, generated3DData.floor.depth / 2, generated3DData.floor.depth - 2]}
-        intensity={videoUrl ? 0.1 : 0.65}
+        intensity={videoUrl ? 0 : 0.65}
         color="#fbbf24"
         distance={25}
       />

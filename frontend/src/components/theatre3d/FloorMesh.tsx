@@ -69,7 +69,7 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
     const angle = Math.atan2(deltaY, roomDepth);
 
     // Cylinder pointing along Z
-    const geo = new THREE.CylinderGeometry(0.08, 12.0, length, 32, 1, true);
+    const geo = new THREE.CylinderGeometry(0, 0, length, 32, 1, true);
     // Rotate to point forward/downward
     geo.rotateX(Math.PI / 2 + angle);
     return { geo, length, yOffset: startY + deltaY / 2 };
@@ -81,7 +81,6 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
       <mesh
         position={stage.position}
         rotation={[-Math.PI / 2, 0, 0]}
-        receiveShadow
       >
         <planeGeometry args={[stage.width, stage.depth]} />
         <meshStandardMaterial
@@ -101,7 +100,6 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
             key={i}
             position={[0, segment.y - 0.01, zCenter]}
             rotation={[-Math.PI / 2, 0, 0]}
-            receiveShadow
           >
             <planeGeometry args={[floor.width, depth]} />
             <meshStandardMaterial
@@ -144,7 +142,6 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
           <mesh
             key={`riser-${i}`}
             position={[0, prev.y + riserHeight / 2, segment.zStart]}
-            receiveShadow
           >
             <boxGeometry args={[floor.width, riserHeight, 0.02]} />
             <meshStandardMaterial
@@ -160,7 +157,7 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
       {[-1, 1].map((side) => (
         <group key={`side-wall-${side}`} position={[side * (floor.width / 2), 0, 0]}>
           {/* Main Wall Mesh (Dark grey acoustic fabric) */}
-          <mesh position={[side * 0.05, roomHeight / 2, roomDepth / 2]} receiveShadow>
+          <mesh position={[side * 0.05, roomHeight / 2, roomDepth / 2]}>
             <boxGeometry args={[0.1, roomHeight, roomDepth + 1.0]} />
             <meshStandardMaterial
               color="#07090d"
@@ -174,7 +171,6 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
             <mesh
               key={`ac-panel-${idx}`}
               position={[side * 0.07, panel.y, panel.z]}
-              receiveShadow
             >
               <boxGeometry args={[0.04, panel.height, 1.6]} />
               <meshStandardMaterial
@@ -188,7 +184,7 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
           {/* Surround Speakers (Dolby design) */}
           {acousticPanels.map((panel, idx) => (
             <group key={`wall-speaker-${idx}`} position={[side * 0.12, panel.y + 1.5, panel.z]}>
-              <mesh rotation={[0.15, side * -0.2, 0]} castShadow>
+              <mesh rotation={[0.15, side * -0.2, 0]}>
                 <boxGeometry args={[0.22, 0.38, 0.2]} />
                 <meshStandardMaterial color="#111827" roughness={0.8} />
               </mesh>
@@ -225,7 +221,7 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
 
       {/* 6. Back Wall with Projector Window */}
       <group>
-        <mesh position={[0, roomHeight / 2, roomDepth]} receiveShadow>
+        <mesh position={[0, roomHeight / 2, roomDepth]}>
           <boxGeometry args={[floor.width + 0.2, roomHeight, 0.1]} />
           <meshStandardMaterial
             color="#080a0f"
@@ -248,7 +244,6 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
       {/* 7. Front Wall (Proscenium wall behind screen) */}
       <mesh
         position={[0, roomHeight / 2, -0.1]}
-        receiveShadow
       >
         <boxGeometry args={[floor.width + 0.2, roomHeight, 0.1]} />
         <meshStandardMaterial
@@ -262,7 +257,6 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
       <mesh
         position={[0, roomHeight, roomDepth / 2]}
         rotation={[Math.PI / 2, 0, 0]}
-        receiveShadow
       >
         <planeGeometry args={[floor.width + 0.2, roomDepth + 1.0]} />
         <meshStandardMaterial
@@ -290,14 +284,16 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
         <mesh
           position={[0, projectorBeamGeometry.yOffset, roomDepth / 2]}
           geometry={projectorBeamGeometry.geo}
+          renderOrder={-1}
         >
           <meshBasicMaterial
             color="#bae6fd"
             transparent
-            opacity={0.065}
+            opacity={0.018}
             blending={THREE.AdditiveBlending}
             side={THREE.DoubleSide}
             depthWrite={false}
+            depthTest={false}
           />
         </mesh>
       )}

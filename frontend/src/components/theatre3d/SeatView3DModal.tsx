@@ -484,7 +484,7 @@ export default function SeatView3DModal({
                   )}
 
                   <color attach="background" args={['#020406']} />
-                  <fog attach="fog" args={['#020406', 20, 100]} />
+                  <fog attach="fog" args={['#020406', 30, 200]} />
 
                   <Suspense fallback={null}>
                     <TheatreScene

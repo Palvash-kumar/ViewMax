@@ -468,18 +468,20 @@ export default function ScreenMesh({
       {/* 1. Base Screen Surface (Physical standby screen / matte border backing) */}
       <mesh geometry={baseGeometry}>
         <meshStandardMaterial
-          color="#06090e"
-          emissive={standbyNeonColor}
-          emissiveIntensity={0.15}
+          color={videoReady ? '#000000' : '#06090e'}
+          emissive={videoReady ? '#000000' : standbyNeonColor}
+          emissiveIntensity={videoReady ? 0 : 0.15}
           side={THREE.DoubleSide}
           roughness={0.4}
           metalness={0.1}
         />
-        <Edges
-          color={neonColor}
-          lineWidth={1.5}
-          threshold={15}
-        />
+        {!videoReady && (
+          <Edges
+            color={neonColor}
+            lineWidth={1.5}
+            threshold={15}
+          />
+        )}
       </mesh>
 
       {/* 2. Active Video/Projection Surface (rendered on top of base screen when video is ready) */}
@@ -490,36 +492,23 @@ export default function ScreenMesh({
             side={THREE.DoubleSide}
             toneMapped={false}
           />
-          <Edges
-            color={borderColor}
-            lineWidth={2.5}
-            threshold={15}
-          />
         </mesh>
       )}
 
-      {/* 3. Sleek metallic outliner frame around screen */}
-      {videoReady && (
-        <mesh geometry={frameGeometry} position={[0, 0, 0.008]}>
-          <meshStandardMaterial
-            color="#1e293b" // slate silver frame
-            roughness={0.25}
-            metalness={0.9}
+      {/* 3. Sleek metallic outliner frame around screen — hidden during video to prevent shadow */}
+
+      {/* 4. LED Neon Backlight Glow (glows onto proscenium wall behind screen — hidden during video) */}
+      {!videoReady && (
+        <mesh position={[0, 0, -0.05]} geometry={baseGeometry}>
+          <meshBasicMaterial
+            color={standbyNeonColor}
+            toneMapped={false}
+            transparent
+            opacity={0.35}
             side={THREE.DoubleSide}
           />
         </mesh>
       )}
-
-      {/* 4. LED Neon Backlight Glow (glows onto proscenium wall behind screen) */}
-      <mesh position={[0, 0, -0.05]} geometry={baseGeometry}>
-        <meshBasicMaterial
-          color={videoReady ? neonColor : standbyNeonColor}
-          toneMapped={false}
-          transparent
-          opacity={0.35}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
 
       {/* 5. Curved Screen border frame backing (Replaced flat box geometry to prevent clipping) */}
       <mesh geometry={backingGeometry} position={[0, 0, -0.025]}>
@@ -533,8 +522,8 @@ export default function ScreenMesh({
       {/* 6. Dynamic back-reflection projector glow onto proscenium wall */}
       <pointLight
         position={[0, 0, -0.25]}
-        intensity={videoReady ? 2.5 : 0.8}
-        color={videoReady ? borderColor : neonColor}
+        intensity={videoReady ? 0 : 0.8}
+        color={neonColor}
         distance={screen.width * 1.5}
       />
     </group>

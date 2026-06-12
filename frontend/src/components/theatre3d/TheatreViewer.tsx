@@ -66,7 +66,7 @@ export default function TheatreViewer({ data, className = '' }: TheatreViewerPro
 
         {/* Background */}
         <color attach="background" args={['#050810']} />
-        <fog attach="fog" args={['#050810', 30, 80]} />
+        <fog attach="fog" args={['#050810', 40, 200]} />
 
         <Suspense fallback={null}>
           <TheatreScene data={data} />
