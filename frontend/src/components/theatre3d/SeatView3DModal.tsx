@@ -464,7 +464,6 @@ export default function SeatView3DModal({
             ) : sceneData ? (
               <div className="w-full h-full relative">
                 <Canvas
-                  shadows
                   dpr={[1, 2]}
                   gl={{ antialias: true, alpha: false }}
                   className="w-full h-full cursor-grab active:cursor-grabbing"

@@ -50,7 +50,6 @@ export default function TheatreViewer({ data, className = '' }: TheatreViewerPro
   return (
     <div className={`relative w-full h-full bg-[#050810] rounded-xl overflow-hidden ${className}`}>
       <Canvas
-        shadows
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: false }}
       >

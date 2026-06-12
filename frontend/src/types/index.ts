@@ -203,6 +203,7 @@ export interface Generated3DScreen {
   width: number;
   height: number;
   curvature: number;
+  screenType?: string;
 }
 
 export interface Generated3DFloor {

@@ -57,9 +57,6 @@ function ScreenGlowLight({
       angle={Math.PI / 2.5}
       penumbra={0.9}
       distance={60.0}
-      castShadow
-      shadow-mapSize-width={512}
-      shadow-mapSize-height={512}
     />
   );
 }
@@ -86,9 +83,6 @@ export default function TheatreScene({
           intensity={videoUrl ? spot.intensity * 0.15 : spot.intensity * 1.6}
           angle={0.5}
           penumbra={0.6}
-          castShadow
-          shadow-mapSize-width={1024}
-          shadow-mapSize-height={1024}
           color="#fef08a" // subtle warm tint
         />
       ))}
@@ -121,6 +115,7 @@ export default function TheatreScene({
         floor={generated3DData.floor} 
         stage={generated3DData.stage} 
         isVideoPlaying={!!videoUrl} 
+        screen={generated3DData.screen}
       />
 
       {/* 7. Enhanced Seating Model Mesh */}

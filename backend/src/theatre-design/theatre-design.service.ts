@@ -272,6 +272,7 @@ export class TheatreDesignService {
     let seatSpacing = 0.6;
     let rowSpacing = 1.0;
     let rakeAngle = 12;
+    let screenType: string | undefined;
 
     if (layout.templateId) {
       try {
@@ -281,8 +282,22 @@ export class TheatreDesignService {
         seatSpacing = template.seatSpacing;
         rowSpacing = template.rowSpacing;
         rakeAngle = template.rakeAngle;
+        screenType = template.screenType;
       } catch {
         // Use defaults if template not found
+      }
+    }
+
+    if (!screenType && layout.screenId) {
+      try {
+        const screen = await this.screensService.findById(
+          layout.screenId.toString(),
+        );
+        if (screen) {
+          screenType = screen.screenType;
+        }
+      } catch {
+        // Ignore
       }
     }
 
@@ -320,6 +335,7 @@ export class TheatreDesignService {
       seatSpacing,
       rowSpacing,
       rakeAngle,
+      screenType,
     });
 
     const geometryData = this.geometryEngine.generateGeometry({
@@ -330,6 +346,7 @@ export class TheatreDesignService {
       seatSpacing,
       rowSpacing,
       rakeAngle,
+      screenType,
     });
 
     layout.geometryData = geometryData;

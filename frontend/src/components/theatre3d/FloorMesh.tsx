@@ -2,22 +2,27 @@
 
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import type { Generated3DFloor, Generated3DStage } from '@/types';
+import type { Generated3DFloor, Generated3DStage, Generated3DScreen } from '@/types';
 
 interface FloorMeshProps {
   floor: Generated3DFloor;
   stage: Generated3DStage;
   isVideoPlaying?: boolean;
+  screen?: Generated3DScreen;
 }
 
-export default function FloorMesh({ floor, stage, isVideoPlaying = false }: FloorMeshProps) {
+export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen }: FloorMeshProps) {
   // Calculate max elevation in the theater to scale walls/ceiling height
   const maxElevation = useMemo(() => {
     if (!floor.segments || floor.segments.length === 0) return 0;
     return Math.max(...floor.segments.map((s) => s.y));
   }, [floor.segments]);
 
-  const roomHeight = maxElevation + 10.0;
+  const roomHeight = useMemo(() => {
+    const screenTop = screen ? screen.position[1] + screen.height / 2 : 0;
+    return Math.max(maxElevation + 10.0, screenTop + 3.0);
+  }, [maxElevation, screen]);
+
   const roomDepth = floor.depth + stage.depth;
 
   // Generate positions for vertical wall LEDs along both side walls
@@ -292,6 +297,7 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false }: Floo
             opacity={0.065}
             blending={THREE.AdditiveBlending}
             side={THREE.DoubleSide}
+            depthWrite={false}
           />
         </mesh>
       )}

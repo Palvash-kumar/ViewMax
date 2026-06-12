@@ -16,6 +16,7 @@ export interface GeometryEngineInput {
   seatSpacing: number;
   rowSpacing: number;
   rakeAngle: number;
+  screenType?: string;
 }
 
 /**
@@ -67,20 +68,48 @@ export class GeometryEngine {
 
   generate3DData(input: GeometryEngineInput): Generated3DData {
     const geometry = this.generateGeometry(input);
-    const { screenConfig, rows, rakeAngle, rowSpacing } = input;
+    const { screenConfig, rows, rakeAngle, rowSpacing, screenType } = input;
 
     // Screen
-    const screenCurvature =
-      screenConfig.aspectRatio === '1.43:1' ||
-      screenConfig.aspectRatio === '1.90:1'
-        ? 0.05
-        : 0;
+    let screenCurvature = 0;
+    if (screenType) {
+      switch (screenType) {
+        case 'TRUE_IMAX':
+          screenCurvature = 0.06;
+          break;
+        case 'IMAX_DIGITAL':
+          screenCurvature = 0.04;
+          break;
+        case 'EPIC':
+          screenCurvature = 0.03;
+          break;
+        case 'DOLBY':
+          screenCurvature = 0.03;
+          break;
+        case 'FILM_70MM':
+          screenCurvature = 0.04;
+          break;
+        case 'FILM_35MM':
+        case 'STANDARD':
+        case 'CUSTOM':
+        default:
+          screenCurvature = 0;
+          break;
+      }
+    } else {
+      screenCurvature =
+        screenConfig.aspectRatio === '1.43:1' ||
+        screenConfig.aspectRatio === '1.90:1'
+          ? 0.05
+          : 0;
+    }
 
     const screen = {
       position: geometry.screenPosition,
       width: screenConfig.width,
       height: screenConfig.height,
       curvature: screenCurvature,
+      screenType: screenType || 'STANDARD',
     };
 
     // Floor segments (stepped for stadium seating)

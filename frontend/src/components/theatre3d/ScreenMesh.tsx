@@ -414,20 +414,69 @@ export default function ScreenMesh({
     return new THREE.PlaneGeometry(w, h);
   }, [screen]);
 
+  // Curated premium design system for different screen templates
+  const { neonColor, borderColor, standbyNeonColor } = useMemo(() => {
+    switch (screen.screenType) {
+      case 'TRUE_IMAX':
+        return {
+          neonColor: '#8b5cf6',       // Vibrant deep purple
+          borderColor: '#a78bfa',     // Lavender/light purple glow
+          standbyNeonColor: '#4c1d95' // Deep dark purple
+        };
+      case 'IMAX_DIGITAL':
+        return {
+          neonColor: '#06b6d4',       // Cyan/neon blue
+          borderColor: '#22d3ee',     // Bright cyan glow
+          standbyNeonColor: '#083344' // Deep teal/cyan
+        };
+      case 'DOLBY':
+        return {
+          neonColor: '#ef4444',       // Crimson red
+          borderColor: '#f87171',     // Red glow
+          standbyNeonColor: '#450a0a' // Dark red
+        };
+      case 'EPIC':
+        return {
+          neonColor: '#f97316',       // Orange
+          borderColor: '#fb923c',     // Warm amber/orange glow
+          standbyNeonColor: '#431407' // Dark burnt orange
+        };
+      case 'FILM_70MM':
+        return {
+          neonColor: '#eab308',       // Warm yellow/gold
+          borderColor: '#facc15',     // Golden glow
+          standbyNeonColor: '#422006' // Dark brown/gold
+        };
+      case 'FILM_35MM':
+        return {
+          neonColor: '#10b981',       // Emerald green
+          borderColor: '#34d399',     // Emerald glow
+          standbyNeonColor: '#022c22' // Dark emerald
+        };
+      case 'STANDARD':
+      default:
+        return {
+          neonColor: '#3b82f6',       // Electric blue
+          borderColor: '#60a5fa',     // Soft blue glow
+          standbyNeonColor: '#172554' // Midnight blue
+        };
+    }
+  }, [screen.screenType]);
+
   return (
     <group position={screen.position}>
       {/* 1. Base Screen Surface (Physical standby screen / matte border backing) */}
       <mesh geometry={baseGeometry}>
         <meshStandardMaterial
           color="#06090e"
-          emissive="#0a0f1d"
-          emissiveIntensity={0.1}
+          emissive={standbyNeonColor}
+          emissiveIntensity={0.15}
           side={THREE.DoubleSide}
           roughness={0.4}
           metalness={0.1}
         />
         <Edges
-          color="#1e3a8a" // deep blue standby border
+          color={neonColor}
           lineWidth={1.5}
           threshold={15}
         />
@@ -436,18 +485,13 @@ export default function ScreenMesh({
       {/* 2. Active Video/Projection Surface (rendered on top of base screen when video is ready) */}
       {videoReady && textureRef.current && (
         <mesh ref={meshRef} geometry={videoGeometry} position={[0, 0, 0.015]}>
-          <meshStandardMaterial
+          <meshBasicMaterial
             map={textureRef.current}
-            emissive="#ffffff"
-            emissiveMap={textureRef.current}
-            emissiveIntensity={0.65} // subtle boost for vivid theater projection
             side={THREE.DoubleSide}
-            roughness={0.08}
-            metalness={0.02}
             toneMapped={false}
           />
           <Edges
-            color="#fbbf24" // premium glowing gold/amber border
+            color={borderColor}
             lineWidth={2.5}
             threshold={15}
           />
@@ -469,7 +513,7 @@ export default function ScreenMesh({
       {/* 4. LED Neon Backlight Glow (glows onto proscenium wall behind screen) */}
       <mesh position={[0, 0, -0.05]} geometry={baseGeometry}>
         <meshBasicMaterial
-          color={videoReady ? '#8b5cf6' : '#1e3a8a'} // Vibrant purple playing, deep blue standby
+          color={videoReady ? neonColor : standbyNeonColor}
           toneMapped={false}
           transparent
           opacity={0.35}
@@ -490,7 +534,7 @@ export default function ScreenMesh({
       <pointLight
         position={[0, 0, -0.25]}
         intensity={videoReady ? 2.5 : 0.8}
-        color={videoReady ? '#c4b5fd' : '#1e3a8a'}
+        color={videoReady ? borderColor : neonColor}
         distance={screen.width * 1.5}
       />
     </group>

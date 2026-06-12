@@ -60,6 +60,7 @@ export interface Generated3DData {
     width: number;
     height: number;
     curvature: number;
+    screenType?: string;
   };
   floor: {
     width: number;
