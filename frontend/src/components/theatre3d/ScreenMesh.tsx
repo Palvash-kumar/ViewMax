@@ -495,9 +495,68 @@ export default function ScreenMesh({
         </mesh>
       )}
 
-      {/* 3. Sleek metallic outliner frame around screen — hidden during video to prevent shadow */}
+      {/* 3. Golden Yellow Border Frame Light — visible during video playback */}
+      {videoReady && (
+        <>
+          {/* Yellow glowing frame border — slightly larger than video, behind it */}
+          <mesh geometry={frameGeometry} position={[0, 0, 0.005]}>
+            <meshBasicMaterial
+              color="#fbbf24"
+              toneMapped={false}
+              transparent
+              opacity={0.85}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
 
-      {/* 4. LED Neon Backlight Glow (glows onto proscenium wall behind screen — hidden during video) */}
+          {/* Subtle yellow edge outline on the video surface */}
+          <mesh geometry={videoGeometry} position={[0, 0, 0.016]}>
+            <meshBasicMaterial
+              visible={false}
+            />
+            <Edges
+              color="#fbbf24"
+              lineWidth={2.0}
+              threshold={15}
+            />
+          </mesh>
+
+          {/* Yellow glow cast onto proscenium wall behind screen */}
+          <pointLight
+            position={[0, 0, -0.3]}
+            intensity={1.2}
+            color="#fbbf24"
+            distance={screen.width * 1.2}
+          />
+
+          {/* Corner accent lights for warm frame ambiance */}
+          <pointLight
+            position={[-displayWidth / 2, displayHeight / 2, 0.1]}
+            intensity={0.4}
+            color="#f59e0b"
+            distance={4}
+          />
+          <pointLight
+            position={[displayWidth / 2, displayHeight / 2, 0.1]}
+            intensity={0.4}
+            color="#f59e0b"
+            distance={4}
+          />
+          <pointLight
+            position={[-displayWidth / 2, -displayHeight / 2, 0.1]}
+            intensity={0.3}
+            color="#f59e0b"
+            distance={3}
+          />
+          <pointLight
+            position={[displayWidth / 2, -displayHeight / 2, 0.1]}
+            intensity={0.3}
+            color="#f59e0b"
+            distance={3}
+          />
+        </>
+      )}
+      {/* 4. Standby LED Neon Backlight Glow (visible only when no video is playing) */}
       {!videoReady && (
         <mesh position={[0, 0, -0.05]} geometry={baseGeometry}>
           <meshBasicMaterial
@@ -510,7 +569,7 @@ export default function ScreenMesh({
         </mesh>
       )}
 
-      {/* 5. Curved Screen border frame backing (Replaced flat box geometry to prevent clipping) */}
+      {/* 5. Curved Screen border frame backing */}
       <mesh geometry={backingGeometry} position={[0, 0, -0.025]}>
         <meshStandardMaterial
           color="#030508"
