@@ -3,6 +3,7 @@ import {
   ConflictException,
   UnauthorizedException,
   BadRequestException,
+  NotFoundException,
   Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -14,6 +15,7 @@ import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto';
 import { SecurityService } from '../security/security.service';
 import { SecurityEventType } from '../security/schemas/security-event.schema';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -25,6 +27,7 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private securityService: SecurityService,
+    private mailService: MailService,
   ) {
     this.transporter = nodemailer.createTransport({
       host: this.configService.get<string>('smtp.host'),
@@ -334,27 +337,28 @@ export class AuthService {
   async forgotPassword(email: string) {
     const user = await this.usersService.findByEmail(email);
     if (!user) {
-      // Don't reveal whether email exists
-      return { message: 'If the email exists, a reset link has been sent' };
+      throw new NotFoundException('No account associated with this email address');
     }
 
-    const resetToken = uuid();
-    const expires = new Date(Date.now() + 3600000); // 1 hour
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
     await this.usersService.setPasswordResetToken(
       user._id.toString(),
-      resetToken,
+      otp,
       expires,
     );
 
-    await this.sendPasswordResetEmail(email, resetToken);
+    await this.sendOtpEmail(email, otp, `${user.firstName} ${user.lastName}`);
 
-    return { message: 'If the email exists, a reset link has been sent' };
+    return { message: 'Verification OTP has been sent to your email' };
   }
 
-  async resetPassword(email: string, token: string, newPassword: string) {
+  async verifyOtp(email: string, token: string) {
     const user = await this.usersService.findByEmail(email);
     if (!user) {
-      throw new BadRequestException('Invalid reset request');
+      throw new BadRequestException('User with this email does not exist');
     }
 
     const userWithTokens = await this.usersService.findByIdWithTokens(
@@ -369,7 +373,7 @@ export class AuthService {
     }
 
     if (userWithTokens.passwordResetExpires < new Date()) {
-      throw new BadRequestException('Reset token has expired');
+      throw new BadRequestException('OTP code has expired');
     }
 
     const isValid = await argon2.verify(
@@ -377,10 +381,27 @@ export class AuthService {
       token,
     );
     if (!isValid) {
-      throw new BadRequestException('Invalid reset token');
+      throw new BadRequestException('Invalid OTP code');
     }
 
+    return { message: 'OTP verified successfully' };
+  }
+
+  async resetPassword(email: string, token: string, newPassword: string) {
+    // 1. Verify the OTP first
+    await this.verifyOtp(email, token);
+
+    // 2. Find user
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      throw new BadRequestException('Invalid reset request');
+    }
+
+    // 3. Reset password in database
     await this.usersService.resetPassword(user._id.toString(), newPassword);
+
+    // 4. Send confirmation email
+    await this.sendPasswordChangedSuccessEmail(email, `${user.firstName} ${user.lastName}`);
 
     return { message: 'Password has been reset successfully' };
   }
@@ -487,6 +508,83 @@ export class AuthService {
     } catch (error) {
       this.logger.error('Failed to send reset email', error.message);
       this.logger.debug(`Reset token for ${email}: ${token}`);
+    }
+  }
+
+  private async sendOtpEmail(email: string, otp: string, userName: string) {
+    this.logger.debug(`[DEV ONLY] OTP code for ${email}: ${otp}`);
+    try {
+      await this.mailService.sendMail(
+        email,
+        'ViewMax - Reset Your Password OTP',
+        `
+        <div style="background-color: #0c0a09; color: #f5f5f4; font-family: 'Outfit', 'Inter', Arial, sans-serif; padding: 40px 20px; border-radius: 16px; max-width: 500px; margin: 0 auto; border: 1px solid rgba(245, 158, 11, 0.2); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <div style="display: inline-block; font-size: 28px; font-weight: 800; letter-spacing: 2px; color: #f59e0b; border-bottom: 2px solid #f59e0b; padding-bottom: 5px;">VIEWMAX</div>
+            <div style="font-size: 12px; color: #a8a29e; margin-top: 5px; text-transform: uppercase; letter-spacing: 4px;">Cinematic Excellence</div>
+          </div>
+          
+          <h2 style="color: #f5f5f4; font-size: 20px; font-weight: 600; text-align: center; margin-bottom: 20px;">Reset Your Password</h2>
+          
+          <p style="color: #d6d3d1; font-size: 15px; line-height: 1.6; margin-bottom: 25px;">Hello <strong>${userName}</strong>,</p>
+          <p style="color: #d6d3d1; font-size: 15px; line-height: 1.6; margin-bottom: 30px;">We received a request to reset your ViewMax account password. Use the verification code below to proceed. This OTP is valid for <strong>15 minutes</strong>.</p>
+          
+          <div style="text-align: center; margin-bottom: 35px;">
+            <div style="background-color: rgba(245, 158, 11, 0.1); border: 2px dashed #f59e0b; color: #f59e0b; font-size: 36px; font-weight: 800; letter-spacing: 10px; padding: 15px 30px; border-radius: 12px; display: inline-block; font-family: monospace;">${otp}</div>
+          </div>
+          
+          <p style="color: #a8a29e; font-size: 13px; line-height: 1.6; text-align: center; margin-bottom: 30px;">If you did not make this request, you can safely ignore this email. Your password will remain unchanged.</p>
+          
+          <div style="border-top: 1px solid rgba(245, 158, 11, 0.1); padding-top: 20px; text-align: center;">
+            <p style="color: #78716c; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} ViewMax Booking System. All rights reserved.</p>
+          </div>
+        </div>
+        `
+      );
+      this.logger.debug(`OTP sent successfully to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send OTP email to ${email}: ${error.message}`);
+      // Fallback log for development
+      this.logger.debug(`OTP for ${email}: ${otp}`);
+    }
+  }
+
+  private async sendPasswordChangedSuccessEmail(email: string, userName: string) {
+    try {
+      await this.mailService.sendMail(
+        email,
+        'ViewMax - Password Changed Successfully',
+        `
+        <div style="background-color: #0c0a09; color: #f5f5f4; font-family: 'Outfit', 'Inter', Arial, sans-serif; padding: 40px 20px; border-radius: 16px; max-width: 500px; margin: 0 auto; border: 1px solid rgba(245, 158, 11, 0.2); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <div style="display: inline-block; font-size: 28px; font-weight: 800; letter-spacing: 2px; color: #f59e0b; border-bottom: 2px solid #f59e0b; padding-bottom: 5px;">VIEWMAX</div>
+            <div style="font-size: 12px; color: #a8a29e; margin-top: 5px; text-transform: uppercase; letter-spacing: 4px;">Cinematic Excellence</div>
+          </div>
+          
+          <div style="text-align: center; margin-bottom: 20px;">
+            <div style="background-color: rgba(34, 197, 94, 0.1); border: 2px solid #22c55e; border-radius: 50%; width: 60px; height: 60px; display: inline-flex; align-items: center; justify-content: center;">
+              <span style="color: #22c55e; font-size: 30px; font-weight: bold; line-height: 60px;">✓</span>
+            </div>
+          </div>
+          
+          <h2 style="color: #f5f5f4; font-size: 20px; font-weight: 600; text-align: center; margin-bottom: 20px;">Password Changed Successfully</h2>
+          
+          <p style="color: #d6d3d1; font-size: 15px; line-height: 1.6; margin-bottom: 25px;">Hello <strong>${userName}</strong>,</p>
+          <p style="color: #d6d3d1; font-size: 15px; line-height: 1.6; margin-bottom: 30px;">This email is to confirm that the password for your ViewMax account has been successfully changed.</p>
+          
+          <p style="color: #ea580c; font-size: 14px; line-height: 1.6; text-align: center; margin-bottom: 30px; padding: 10px; background-color: rgba(234, 88, 12, 0.1); border-radius: 8px; border: 1px solid rgba(234, 88, 12, 0.2);">
+            If you did not perform this change, please contact our support team immediately to secure your account.
+          </p>
+          
+          <div style="border-top: 1px solid rgba(245, 158, 11, 0.1); padding-top: 20px; text-align: center;">
+            <p style="color: #78716c; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} ViewMax Booking System. All rights reserved.</p>
+          </div>
+        </div>
+        `
+      );
+      this.logger.debug(`Password changed success email sent successfully to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send password reset confirmation email to ${email}: ${error.message}`);
     }
   }
 }

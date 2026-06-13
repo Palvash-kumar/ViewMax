@@ -71,3 +71,14 @@ export class VerifyEmailDto {
   @IsEmail()
   email: string;
 }
+
+export class VerifyOtpDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  token: string;
+
+  @ApiProperty()
+  @IsEmail()
+  email: string;
+}

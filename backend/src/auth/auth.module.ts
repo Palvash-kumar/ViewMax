@@ -10,6 +10,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
     ConfigModule,
     JwtModule.register({}),
     SecurityModule,
+    MailModule,
   ],
   controllers: [AuthController],
   providers: [
