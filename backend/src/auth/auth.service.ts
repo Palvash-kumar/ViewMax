@@ -470,12 +470,25 @@ export class AuthService {
         to: email,
         subject: 'ViewMax - Verify Your Email',
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #f59e0b;">ViewMax</h1>
-            <h2>Verify Your Email</h2>
-            <p>Click the link below to verify your email address:</p>
-            <a href="${verificationUrl}" style="display: inline-block; padding: 12px 24px; background: #f59e0b; color: #000; text-decoration: none; border-radius: 8px; font-weight: bold;">Verify Email</a>
-            <p style="margin-top: 20px; color: #666;">This link will expire in 24 hours.</p>
+          <div style="background-color: #f5f5f5; padding: 40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; min-height: 100%;">
+            <div style="background-color: #ffffff; border-radius: 16px; max-width: 500px; margin: 0 auto; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.025); overflow: hidden;">
+              <div style="height: 6px; background-color: #add8e6;"></div>
+              <div style="padding: 42px 32px 32px 32px;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                  <span style="font-size: 26px; font-weight: 800; letter-spacing: 2px; color: #0284c7;">VIEWMAX</span>
+                  <div style="font-size: 11px; color: #94a3b8; margin-top: 4px; text-transform: uppercase; letter-spacing: 3px;">Cinematic Excellence</div>
+                </div>
+                <h2 style="color: #1e293b; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 20px; margin-top: 0; letter-spacing: -0.5px;">Verify Your Email</h2>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px; margin-top: 0; text-align: center;">Click the button below to verify your email address and activate your account:</p>
+                <div style="text-align: center; margin-bottom: 24px;">
+                  <a href="${verificationUrl}" style="display: inline-block; padding: 14px 28px; background-color: #0284c7; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(2, 132, 199, 0.2);">Verify Email</a>
+                </div>
+                <p style="color: #94a3b8; font-size: 13px; line-height: 1.6; text-align: center; margin-bottom: 32px; margin-top: 0;">This link will expire in 24 hours.</p>
+                <div style="border-top: 1px solid #f1f5f9; padding-top: 24px; text-align: center;">
+                  <p style="color: #94a3b8; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} ViewMax Booking System. All rights reserved.</p>
+                </div>
+              </div>
+            </div>
           </div>
         `,
       });
@@ -496,12 +509,25 @@ export class AuthService {
         to: email,
         subject: 'ViewMax - Reset Your Password',
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #f59e0b;">ViewMax</h1>
-            <h2>Reset Your Password</h2>
-            <p>Click the link below to reset your password:</p>
-            <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background: #f59e0b; color: #000; text-decoration: none; border-radius: 8px; font-weight: bold;">Reset Password</a>
-            <p style="margin-top: 20px; color: #666;">This link will expire in 1 hour.</p>
+          <div style="background-color: #f5f5f5; padding: 40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; min-height: 100%;">
+            <div style="background-color: #ffffff; border-radius: 16px; max-width: 500px; margin: 0 auto; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.025); overflow: hidden;">
+              <div style="height: 6px; background-color: #add8e6;"></div>
+              <div style="padding: 42px 32px 32px 32px;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                  <span style="font-size: 26px; font-weight: 800; letter-spacing: 2px; color: #0284c7;">VIEWMAX</span>
+                  <div style="font-size: 11px; color: #94a3b8; margin-top: 4px; text-transform: uppercase; letter-spacing: 3px;">Cinematic Excellence</div>
+                </div>
+                <h2 style="color: #1e293b; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 20px; margin-top: 0; letter-spacing: -0.5px;">Reset Your Password</h2>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px; margin-top: 0; text-align: center;">Click the button below to reset your password:</p>
+                <div style="text-align: center; margin-bottom: 24px;">
+                  <a href="${resetUrl}" style="display: inline-block; padding: 14px 28px; background-color: #0284c7; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(2, 132, 199, 0.2);">Reset Password</a>
+                </div>
+                <p style="color: #94a3b8; font-size: 13px; line-height: 1.6; text-align: center; margin-bottom: 32px; margin-top: 0;">This link will expire in 1 hour.</p>
+                <div style="border-top: 1px solid #f1f5f9; padding-top: 24px; text-align: center;">
+                  <p style="color: #94a3b8; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} ViewMax Booking System. All rights reserved.</p>
+                </div>
+              </div>
+            </div>
           </div>
         `,
       });
@@ -518,25 +544,25 @@ export class AuthService {
         email,
         'ViewMax - Reset Your Password OTP',
         `
-        <div style="background-color: #0c0a09; color: #f5f5f4; font-family: 'Outfit', 'Inter', Arial, sans-serif; padding: 40px 20px; border-radius: 16px; max-width: 500px; margin: 0 auto; border: 1px solid rgba(245, 158, 11, 0.2); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <div style="display: inline-block; font-size: 28px; font-weight: 800; letter-spacing: 2px; color: #f59e0b; border-bottom: 2px solid #f59e0b; padding-bottom: 5px;">VIEWMAX</div>
-            <div style="font-size: 12px; color: #a8a29e; margin-top: 5px; text-transform: uppercase; letter-spacing: 4px;">Cinematic Excellence</div>
-          </div>
-          
-          <h2 style="color: #f5f5f4; font-size: 20px; font-weight: 600; text-align: center; margin-bottom: 20px;">Reset Your Password</h2>
-          
-          <p style="color: #d6d3d1; font-size: 15px; line-height: 1.6; margin-bottom: 25px;">Hello <strong>${userName}</strong>,</p>
-          <p style="color: #d6d3d1; font-size: 15px; line-height: 1.6; margin-bottom: 30px;">We received a request to reset your ViewMax account password. Use the verification code below to proceed. This OTP is valid for <strong>15 minutes</strong>.</p>
-          
-          <div style="text-align: center; margin-bottom: 35px;">
-            <div style="background-color: rgba(245, 158, 11, 0.1); border: 2px dashed #f59e0b; color: #f59e0b; font-size: 36px; font-weight: 800; letter-spacing: 10px; padding: 15px 30px; border-radius: 12px; display: inline-block; font-family: monospace;">${otp}</div>
-          </div>
-          
-          <p style="color: #a8a29e; font-size: 13px; line-height: 1.6; text-align: center; margin-bottom: 30px;">If you did not make this request, you can safely ignore this email. Your password will remain unchanged.</p>
-          
-          <div style="border-top: 1px solid rgba(245, 158, 11, 0.1); padding-top: 20px; text-align: center;">
-            <p style="color: #78716c; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} ViewMax Booking System. All rights reserved.</p>
+        <div style="background-color: #f5f5f5; padding: 40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; min-height: 100%;">
+          <div style="background-color: #ffffff; border-radius: 16px; max-width: 500px; margin: 0 auto; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.025); overflow: hidden;">
+            <div style="height: 6px; background-color: #add8e6;"></div>
+            <div style="padding: 42px 32px 32px 32px;">
+              <div style="text-align: center; margin-bottom: 32px;">
+                <span style="font-size: 26px; font-weight: 800; letter-spacing: 2px; color: #0284c7;">VIEWMAX</span>
+                <div style="font-size: 11px; color: #94a3b8; margin-top: 4px; text-transform: uppercase; letter-spacing: 3px;">Cinematic Excellence</div>
+              </div>
+              <h2 style="color: #1e293b; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 20px; margin-top: 0; letter-spacing: -0.5px;">Reset Your Password</h2>
+              <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 16px; margin-top: 0;">Hello <strong>${userName}</strong>,</p>
+              <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px; margin-top: 0;">We received a request to reset your ViewMax account password. Use the verification code below to proceed. This OTP is valid for <strong>15 minutes</strong>.</p>
+              <div style="text-align: center; margin-bottom: 32px;">
+                <div style="background-color: #f0f9ff; border: 2px dashed #add8e6; color: #0284c7; font-size: 36px; font-weight: 800; letter-spacing: 8px; padding: 14px 28px; border-radius: 12px; display: inline-block; font-family: monospace;">${otp}</div>
+              </div>
+              <p style="color: #94a3b8; font-size: 13px; line-height: 1.6; text-align: center; margin-bottom: 32px; margin-top: 0;">If you did not make this request, you can safely ignore this email. Your password will remain unchanged.</p>
+              <div style="border-top: 1px solid #f1f5f9; padding-top: 24px; text-align: center;">
+                <p style="color: #94a3b8; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} ViewMax Booking System. All rights reserved.</p>
+              </div>
+            </div>
           </div>
         </div>
         `
@@ -555,29 +581,34 @@ export class AuthService {
         email,
         'ViewMax - Password Changed Successfully',
         `
-        <div style="background-color: #0c0a09; color: #f5f5f4; font-family: 'Outfit', 'Inter', Arial, sans-serif; padding: 40px 20px; border-radius: 16px; max-width: 500px; margin: 0 auto; border: 1px solid rgba(245, 158, 11, 0.2); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <div style="display: inline-block; font-size: 28px; font-weight: 800; letter-spacing: 2px; color: #f59e0b; border-bottom: 2px solid #f59e0b; padding-bottom: 5px;">VIEWMAX</div>
-            <div style="font-size: 12px; color: #a8a29e; margin-top: 5px; text-transform: uppercase; letter-spacing: 4px;">Cinematic Excellence</div>
-          </div>
-          
-          <div style="text-align: center; margin-bottom: 20px;">
-            <div style="background-color: rgba(34, 197, 94, 0.1); border: 2px solid #22c55e; border-radius: 50%; width: 60px; height: 60px; display: inline-flex; align-items: center; justify-content: center;">
-              <span style="color: #22c55e; font-size: 30px; font-weight: bold; line-height: 60px;">✓</span>
+        <div style="background-color: #f5f5f5; padding: 40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; min-height: 100%;">
+          <div style="background-color: #ffffff; border-radius: 16px; max-width: 500px; margin: 0 auto; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.025); overflow: hidden;">
+            <div style="height: 6px; background-color: #add8e6;"></div>
+            <div style="padding: 42px 32px 32px 32px;">
+              <div style="text-align: center; margin-bottom: 32px;">
+                <span style="font-size: 26px; font-weight: 800; letter-spacing: 2px; color: #0284c7;">VIEWMAX</span>
+                <div style="font-size: 11px; color: #94a3b8; margin-top: 4px; text-transform: uppercase; letter-spacing: 3px;">Cinematic Excellence</div>
+              </div>
+              
+              <div style="text-align: center; margin-bottom: 24px;">
+                <div style="background-color: #e0f2fe; border-radius: 50%; width: 64px; height: 64px; margin: 0 auto; text-align: center; line-height: 64px;">
+                  <span style="color: #0284c7; font-size: 32px; font-weight: bold; line-height: 64px;">✓</span>
+                </div>
+              </div>
+              
+              <h2 style="color: #1e293b; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 20px; margin-top: 0; letter-spacing: -0.5px;">Password Reset Successfully</h2>
+              
+              <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 16px; margin-top: 0;">Hello <strong>${userName}</strong>,</p>
+              <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px; margin-top: 0;">This email is to confirm that the password for your ViewMax account has been successfully changed.</p>
+              
+              <div style="color: #0369a1; font-size: 13.5px; line-height: 1.5; padding: 16px; background-color: #f0f9ff; border-radius: 12px; border: 1px solid #bae6fd; margin-bottom: 32px; font-weight: 500;">
+                If you did not perform this change, please contact our support team immediately to secure your account.
+              </div>
+              
+              <div style="border-top: 1px solid #f1f5f9; padding-top: 24px; text-align: center;">
+                <p style="color: #94a3b8; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} ViewMax Booking System. All rights reserved.</p>
+              </div>
             </div>
-          </div>
-          
-          <h2 style="color: #f5f5f4; font-size: 20px; font-weight: 600; text-align: center; margin-bottom: 20px;">Password Changed Successfully</h2>
-          
-          <p style="color: #d6d3d1; font-size: 15px; line-height: 1.6; margin-bottom: 25px;">Hello <strong>${userName}</strong>,</p>
-          <p style="color: #d6d3d1; font-size: 15px; line-height: 1.6; margin-bottom: 30px;">This email is to confirm that the password for your ViewMax account has been successfully changed.</p>
-          
-          <p style="color: #ea580c; font-size: 14px; line-height: 1.6; text-align: center; margin-bottom: 30px; padding: 10px; background-color: rgba(234, 88, 12, 0.1); border-radius: 8px; border: 1px solid rgba(234, 88, 12, 0.2);">
-            If you did not perform this change, please contact our support team immediately to secure your account.
-          </p>
-          
-          <div style="border-top: 1px solid rgba(245, 158, 11, 0.1); padding-top: 20px; text-align: center;">
-            <p style="color: #78716c; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} ViewMax Booking System. All rights reserved.</p>
           </div>
         </div>
         `
