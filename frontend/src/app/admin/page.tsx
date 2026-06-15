@@ -396,8 +396,8 @@ export default function AdminDashboard() {
   ];
 
   // ─── Input class helper ───────────────────────────────────────────────────
-  const inputClass = "w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all";
-  const selectClass = `${inputClass} cursor-pointer text-white`;
+  const inputClass = "w-full bg-white/5 border border-white/10 focus:border-[var(--color-gold-500)]/50 focus:ring-1 focus:ring-[var(--color-gold-500)]/30 rounded-xl px-4 py-2.5 text-sm text-[var(--color-text-primary)] focus:outline-none transition-all";
+  const selectClass = `${inputClass} cursor-pointer text-[var(--color-text-primary)]`;
   const labelClass = "block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-1";
 
   return (
@@ -731,7 +731,7 @@ export default function AdminDashboard() {
                       value={u.role}
                       onChange={(e) => handleRoleChange(u._id, e.target.value as Role)}
                       disabled={updatingUserId === u._id || u._id === currentUser?._id}
-                      className="bg-white/5 border border-white/10 hover:border-white/20 text-white rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--color-gold-500)] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      className="bg-white/5 border border-white/10 hover:border-white/20 text-[var(--color-text-primary)] rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--color-gold-500)] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       <option value="CUSTOMER" className="bg-[var(--color-bg-primary)]">Customer</option>
                       <option value="THEATRE_OWNER" className="bg-[var(--color-bg-primary)]">Theatre Owner</option>
@@ -745,7 +745,7 @@ export default function AdminDashboard() {
                       className={`p-1.5 rounded-lg border transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                         u.isBlocked
                           ? 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30'
-                          : 'bg-white/5 text-[var(--color-text-muted)] border-white/10 hover:bg-white/10 hover:text-white'
+                          : 'bg-white/5 text-[var(--color-text-muted)] border-white/10 hover:bg-white/10 hover:text-[var(--color-text-primary)]'
                       }`}
                       title={u.isBlocked ? 'Unblock User' : 'Block User'}
                     >
@@ -778,7 +778,7 @@ export default function AdminDashboard() {
           >
             <button
               onClick={() => setIsMovieModalOpen(false)}
-              className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/5 text-[var(--color-text-muted)] hover:text-white transition-all cursor-pointer"
+              className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-all cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -844,7 +844,7 @@ export default function AdminDashboard() {
                     required
                     value={movieForm.releaseDate}
                     onChange={(e) => setMovieForm({ ...movieForm, releaseDate: e.target.value })}
-                    className={`${inputClass} text-white`}
+                    className={inputClass}
                   />
                 </div>
 
@@ -929,7 +929,7 @@ export default function AdminDashboard() {
           >
             <button
               onClick={() => setIsScreenModalOpen(false)}
-              className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/5 text-[var(--color-text-muted)] hover:text-white transition-all cursor-pointer"
+              className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/10 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-all cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1015,7 +1015,7 @@ export default function AdminDashboard() {
           >
             <button
               onClick={() => setIsShowtimeModalOpen(false)}
-              className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/5 text-[var(--color-text-muted)] hover:text-white transition-all cursor-pointer"
+              className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/10 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-all cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1110,7 +1110,7 @@ export default function AdminDashboard() {
                     required
                     value={showtimeForm.startTime}
                     onChange={(e) => setShowtimeForm({ ...showtimeForm, startTime: e.target.value })}
-                    className={`${inputClass} text-white`}
+                    className={inputClass}
                   />
                 </div>
                 <div>
@@ -1120,7 +1120,7 @@ export default function AdminDashboard() {
                     required
                     value={showtimeForm.endTime}
                     onChange={(e) => setShowtimeForm({ ...showtimeForm, endTime: e.target.value })}
-                    className={`${inputClass} text-white`}
+                    className={inputClass}
                   />
                 </div>
               </div>
@@ -1147,7 +1147,7 @@ export default function AdminDashboard() {
                   onChange={(e) => setShowtimeForm({ ...showtimeForm, isRecurring: e.target.checked })}
                   className="w-4 h-4 rounded border-white/10 bg-white/5 text-[var(--color-gold-500)] focus:ring-[var(--color-gold-500)]/30 cursor-pointer"
                 />
-                <label htmlFor="isRecurring" className="text-sm font-medium text-white cursor-pointer select-none">
+                <label htmlFor="isRecurring" className="text-sm font-medium text-[var(--color-text-secondary)] cursor-pointer select-none">
                   Repeat Daily (Schedule for everyday)
                 </label>
               </div>
@@ -1161,7 +1161,7 @@ export default function AdminDashboard() {
                     required={showtimeForm.isRecurring}
                     value={showtimeForm.recurringEndDate}
                     onChange={(e) => setShowtimeForm({ ...showtimeForm, recurringEndDate: e.target.value })}
-                    className={`${inputClass} text-white`}
+                    className={inputClass}
                   />
                   <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
                     Showtimes will be scheduled daily at the specified time up to and including this date.

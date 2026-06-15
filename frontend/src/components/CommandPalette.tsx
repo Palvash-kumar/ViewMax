@@ -86,7 +86,7 @@ export default function CommandPalette() {
               exit={{ opacity: 0, y: -20, scale: 0.96 }}
               transition={{ duration: 0.2 }}
               className="w-full max-w-xl glass-card overflow-hidden shadow-2xl"
-              style={{ border: '1px solid rgba(245,158,11,0.2)' }}
+              style={{ border: '1px solid var(--color-border)' }}
             >
               <div className="flex items-center gap-3 p-4 border-b border-white/5">
                 {isLoading && debouncedQuery.length >= 2 ? (

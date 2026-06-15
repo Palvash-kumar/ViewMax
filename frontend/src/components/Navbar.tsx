@@ -29,7 +29,7 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-[var(--color-border)]"
-      style={{ background: 'rgba(10, 14, 26, 0.85)', backdropFilter: 'blur(16px)' }}>
+      style={{ background: 'rgba(248, 249, 250, 0.85)', backdropFilter: 'blur(16px)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -51,7 +51,7 @@ export default function Navbar() {
                 <Link key={href} href={href}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
                     ${isActive
-                      ? 'bg-[var(--color-gold-500)]/10 text-[var(--color-gold-400)]'
+                      ? 'bg-[var(--color-gold-500)]/10 text-[var(--color-gold-500)]'
                       : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-white/5'
                     }`}>
                   <Icon className="w-4 h-4" />
@@ -63,7 +63,7 @@ export default function Navbar() {
               <Link key={href} href={href}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
                   ${pathname.startsWith(href)
-                    ? 'bg-[var(--color-gold-500)]/10 text-[var(--color-gold-400)]'
+                    ? 'bg-[var(--color-gold-500)]/10 text-[var(--color-gold-500)]'
                     : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-white/5'
                   }`}>
                 <Icon className="w-4 h-4" />
@@ -107,7 +107,7 @@ export default function Navbar() {
                       <div className="px-3 py-2 border-b border-white/5">
                         <p className="text-sm font-medium">{user.firstName} {user.lastName}</p>
                         <p className="text-xs text-[var(--color-text-muted)]">{user.email}</p>
-                        <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--color-gold-500)]/10 text-[var(--color-gold-400)]">
+                        <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--color-gold-500)]/10 text-[var(--color-gold-500)]">
                           {user.role.replace('_', ' ')}
                         </span>
                       </div>
@@ -166,7 +166,7 @@ export default function Navbar() {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             className="md:hidden border-t border-[var(--color-border)] overflow-hidden"
-            style={{ background: 'rgba(10, 14, 26, 0.95)' }}>
+            style={{ background: 'rgba(248, 249, 250, 0.95)' }}>
             <div className="px-4 py-3 space-y-1">
               {navLinks.map(({ href, label, icon: Icon, auth }) => {
                 if (auth && !isAuthenticated) return null;

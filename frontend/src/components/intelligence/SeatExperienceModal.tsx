@@ -112,11 +112,11 @@ export default function SeatExperienceModal({
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[580px] sm:max-h-[85vh] z-50 overflow-y-auto rounded-2xl"
             style={{
-              background: 'rgba(14, 18, 32, 0.95)',
+              background: 'var(--color-bg-card)',
               backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--color-border)',
               boxShadow:
-                '0 25px 60px rgba(0,0,0,0.5), 0 0 40px rgba(59,130,246,0.05)',
+                '0 25px 60px rgba(15,23,42,0.1), 0 0 40px rgba(30,64,175,0.05)',
             }}
           >
             {/* Header */}
@@ -222,7 +222,7 @@ export default function SeatExperienceModal({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 + i * 0.05 }}
                     className="flex items-center gap-2.5 p-3 rounded-xl"
-                    style={{ background: 'rgba(255,255,255,0.03)' }}
+                    style={{ background: 'var(--color-bg-tertiary)' }}
                   >
                     <span className="text-text-muted">{item.icon}</span>
                     <div>
@@ -299,9 +299,9 @@ export default function SeatExperienceModal({
                   onClick={onClose}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02]"
                   style={{
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    color: '#94a3b8',
+                    background: 'var(--color-bg-tertiary)',
+                    border: '1px solid var(--color-border)',
+                    color: 'var(--color-text-secondary)',
                   }}
                 >
                   Close

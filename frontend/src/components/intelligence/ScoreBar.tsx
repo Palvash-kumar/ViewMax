@@ -54,7 +54,7 @@ export default function ScoreBar({
       </div>
       <div
         className={`w-full ${barHeight} rounded-full overflow-hidden`}
-        style={{ background: 'rgba(255,255,255,0.06)' }}
+        style={{ background: 'var(--color-border)' }}
       >
         <motion.div
           className={`${barHeight} rounded-full`}

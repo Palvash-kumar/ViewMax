@@ -98,7 +98,7 @@ export default function SeatHeatmap({
           </p>
         </div>
         {/* Mode Toggle */}
-        <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+        <div className="flex gap-1 p-1 rounded-xl bg-[var(--color-bg-tertiary)] border border-[var(--color-border)]">
           {MODE_CONFIG.map(({ mode, label, icon }) => (
             <button
               key={mode}

@@ -98,7 +98,7 @@ export default function PreviewPage({ params }: PageProps) {
     <div className="fixed top-16 bottom-0 left-0 right-0 bg-[var(--color-bg-primary)]">
       {/* Toolbar */}
       <div className="absolute top-0 left-0 right-0 z-20 h-14 border-b border-[var(--color-border)] flex items-center px-4 gap-3"
-        style={{ background: 'rgba(10, 14, 26, 0.85)', backdropFilter: 'blur(16px)' }}>
+        style={{ background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)' }}>
         <button
           onClick={() => router.push('/owner')}
           className="p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
