@@ -11,8 +11,11 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { BookingsService } from './bookings.service';
-import { CreateBookingDto } from './dto';
+import { CreateBookingDto, AdminBookingHistoryQueryDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../guards/roles.guard';
+import { Roles } from '../decorators/roles.decorator';
+import { Role } from '../common/constants/roles.enum';
 import { CurrentUser } from '../decorators/current-user.decorator';
 
 @ApiTags('Bookings')
@@ -42,6 +45,15 @@ export class BookingsController {
     @Query('limit') limit?: number,
   ) {
     return this.bookingsService.findByUser(userId, page || 1, limit || 10);
+  }
+
+  @Get('admin/history')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all bookings history (Admin only)' })
+  findAllAdmin(@Query() query: AdminBookingHistoryQueryDto) {
+    return this.bookingsService.findAllAdmin(query);
   }
 
   @Get(':id')

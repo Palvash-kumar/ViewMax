@@ -388,3 +388,72 @@ export interface DemoVideo {
   order: number;
 }
 
+// ─── Admin Booking History Types ──────────────────────────────────────────
+
+export interface AdminBookingUser {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatar?: string;
+}
+
+export interface AdminBooking {
+  _id: string;
+  userId: AdminBookingUser;
+  showtimeId: {
+    _id: string | null;
+    startTime: string;
+    endTime: string;
+    ticketPrice: number;
+    status?: string;
+    movieId: {
+      title: string;
+      poster?: string;
+      duration: number;
+      genres?: string[];
+    };
+    theatreId: {
+      _id?: string;
+      name: string;
+      city: string;
+      address?: string;
+    };
+    screenId: {
+      name: string;
+      screenType: string;
+      capacity?: number;
+    };
+  };
+  seatNumbers: string[];
+  totalAmount: number;
+  paymentStatus: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
+  bookingStatus: 'PENDING' | 'PROCESSING' | 'CONFIRMED' | 'CHECKED_IN' | 'EXPIRED' | 'CANCELLED' | 'REFUNDED' | 'TRANSFERRED';
+  qrCode?: string;
+  checkedInAt?: string;
+  checkedInBy?: { firstName: string; lastName: string };
+  transferredTo?: { firstName: string; lastName: string; email: string };
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AdminBookingStats {
+  totalBookings: number;
+  totalRevenue: number;
+  confirmed: number;
+  checkedIn: number;
+  cancelled: number;
+  pending: number;
+  expired: number;
+  refunded: number;
+}
+
+export interface AdminBookingHistoryResponse {
+  data: AdminBooking[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  stats: AdminBookingStats;
+}
+

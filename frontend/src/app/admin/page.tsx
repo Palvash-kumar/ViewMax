@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Film, Building2, Users, Ticket, BarChart3, Shield, Plus, Search, Loader2, Trash2, X, Monitor, Calendar, Clock, CheckCircle, XCircle, Ban } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Film, Building2, Users, Ticket, BarChart3, Shield, Plus, Search, Loader2, Trash2, X, Monitor, Calendar, Clock, CheckCircle, XCircle, Ban, ChevronDown, ChevronRight, DollarSign, Eye, Filter, RefreshCw, CreditCard, MapPin, Hash, UserCheck, ArrowUpDown, ChevronLeft } from 'lucide-react';
 import api from '@/lib/axios';
 import { useAuthStore } from '@/stores/auth.store';
 import { Button } from '@/components/ui';
-import type { Movie, Theatre, User, Role, Screen, Showtime } from '@/types';
+import type { Movie, Theatre, User, Role, Screen, Showtime, AdminBooking, AdminBookingStats, AdminBookingHistoryResponse } from '@/types';
 
 export default function AdminDashboard() {
   const { user: currentUser } = useAuthStore();
@@ -15,10 +15,25 @@ export default function AdminDashboard() {
   const [theatres, setTheatres] = useState<Theatre[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [showtimes, setShowtimes] = useState<Showtime[]>([]);
-  const [activeTab, setActiveTab] = useState<'movies' | 'theatres' | 'users' | 'showtimes'>('movies');
+  const [activeTab, setActiveTab] = useState<'movies' | 'theatres' | 'users' | 'showtimes' | 'bookings'>('movies');
   const [loading, setLoading] = useState(true);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Booking History State
+  const [bookingHistory, setBookingHistory] = useState<AdminBooking[]>([]);
+  const [bookingStats, setBookingStats] = useState<AdminBookingStats | null>(null);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingPage, setBookingPage] = useState(1);
+  const [bookingTotalPages, setBookingTotalPages] = useState(1);
+  const [bookingTotal, setBookingTotal] = useState(0);
+  const [bookingTheatreFilter, setBookingTheatreFilter] = useState('');
+  const [bookingStatusFilter, setBookingStatusFilter] = useState('');
+  const [bookingSearchQuery, setBookingSearchQuery] = useState('');
+  const [bookingSearchInput, setBookingSearchInput] = useState('');
+  const [expandedShowtimeId, setExpandedShowtimeId] = useState<string | null>(null);
+  const [bookingDateFrom, setBookingDateFrom] = useState('');
+  const [bookingDateTo, setBookingDateTo] = useState('');
 
   // Movie Modal
   const [isMovieModalOpen, setIsMovieModalOpen] = useState(false);
@@ -381,6 +396,98 @@ export default function AdminDashboard() {
   };
 
   // ─── Stat Cards & Tabs ────────────────────────────────────────────────────
+  // ─── Booking History Fetch ──────────────────────────────────────────────
+  const fetchBookingHistory = useCallback(async (page = 1) => {
+    setBookingLoading(true);
+    try {
+      const params: Record<string, any> = { page, limit: 20 };
+      if (bookingTheatreFilter) params.theatreId = bookingTheatreFilter;
+      if (bookingStatusFilter) params.bookingStatus = bookingStatusFilter;
+      if (bookingSearchQuery) params.search = bookingSearchQuery;
+      if (bookingDateFrom) params.dateFrom = new Date(bookingDateFrom).toISOString();
+      if (bookingDateTo) {
+        const dt = new Date(bookingDateTo);
+        dt.setHours(23, 59, 59, 999);
+        params.dateTo = dt.toISOString();
+      }
+
+      const res = await api.get('/bookings/admin/history', { params });
+      const result: AdminBookingHistoryResponse = res.data.data || res.data;
+      setBookingHistory(result.data || []);
+      setBookingStats(result.stats || null);
+      setBookingTotalPages(result.totalPages || 1);
+      setBookingTotal(result.total || 0);
+      setBookingPage(result.page || 1);
+    } catch (err) {
+      console.error('Failed to fetch booking history:', err);
+      setBookingHistory([]);
+      setBookingStats(null);
+    } finally {
+      setBookingLoading(false);
+    }
+  }, [bookingTheatreFilter, bookingStatusFilter, bookingSearchQuery, bookingDateFrom, bookingDateTo]);
+
+  useEffect(() => {
+    if (activeTab === 'bookings') {
+      fetchBookingHistory(1);
+    }
+  }, [activeTab, fetchBookingHistory]);
+
+  const handleBookingSearch = () => {
+    setBookingSearchQuery(bookingSearchInput);
+    setBookingPage(1);
+  };
+
+  const handleClearBookingFilters = () => {
+    setBookingTheatreFilter('');
+    setBookingStatusFilter('');
+    setBookingSearchQuery('');
+    setBookingSearchInput('');
+    setBookingDateFrom('');
+    setBookingDateTo('');
+    setBookingPage(1);
+  };
+
+  // ─── Booking History Helpers ────────────────────────────────────────────
+  const groupBookingsByShowtime = (bookings: AdminBooking[]) => {
+    const grouped: Record<string, { showtime: AdminBooking['showtimeId']; bookings: AdminBooking[] }> = {};
+    bookings.forEach((b) => {
+      const st = b.showtimeId;
+      if (!st) return;
+      const key = st._id || `${st.movieId?.title}-${st.startTime}`;
+      if (!grouped[key]) {
+        grouped[key] = { showtime: st, bookings: [] };
+      }
+      grouped[key].bookings.push(b);
+    });
+    return Object.entries(grouped).sort(([, a], [, b]) => {
+      return new Date(b.showtime.startTime).getTime() - new Date(a.showtime.startTime).getTime();
+    });
+  };
+
+  const getBookingStatusColor = (status: string) => {
+    switch (status) {
+      case 'CONFIRMED': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+      case 'CHECKED_IN': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+      case 'CANCELLED': return 'bg-red-500/10 text-red-500 border-red-500/20';
+      case 'REFUNDED': return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
+      case 'PENDING': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+      case 'EXPIRED': return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
+      case 'TRANSFERRED': return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
+      default: return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
+    }
+  };
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+      case 'COMPLETED': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+      case 'PENDING': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+      case 'FAILED': return 'bg-red-500/10 text-red-500 border-red-500/20';
+      case 'REFUNDED': return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
+      default: return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
+    }
+  };
+
   const statCards = [
     { label: 'Movies', value: stats.movies, icon: Film, color: 'from-[var(--color-gold-500)] to-[var(--color-gold-600)]' },
     { label: 'Theatres', value: stats.theatres, icon: Building2, color: 'from-purple-500 to-purple-600' },
@@ -393,6 +500,7 @@ export default function AdminDashboard() {
     { key: 'theatres' as const, label: 'Theatres', icon: Building2 },
     { key: 'showtimes' as const, label: 'Showtimes', icon: Calendar },
     { key: 'users' as const, label: 'Users', icon: Users },
+    { key: 'bookings' as const, label: 'Booking History', icon: Ticket },
   ];
 
   // ─── Input class helper ───────────────────────────────────────────────────
@@ -685,6 +793,489 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════════════════ BOOKING HISTORY TAB ═══════════════════ */}
+      {activeTab === 'bookings' && (
+        <div className="space-y-6">
+          {/* Summary Stats */}
+          {bookingStats && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3"
+            >
+              {[
+                { label: 'Total Bookings', value: bookingStats.totalBookings, icon: Ticket, color: 'from-[var(--color-gold-500)] to-[var(--color-gold-600)]', textColor: 'text-[var(--color-gold-400)]' },
+                { label: 'Revenue', value: `₹${bookingStats.totalRevenue.toLocaleString('en-IN')}`, icon: DollarSign, color: 'from-emerald-500 to-emerald-600', textColor: 'text-emerald-500' },
+                { label: 'Confirmed', value: bookingStats.confirmed, icon: CheckCircle, color: 'from-blue-500 to-blue-600', textColor: 'text-blue-500' },
+                { label: 'Cancelled', value: bookingStats.cancelled, icon: XCircle, color: 'from-red-400 to-red-500', textColor: 'text-red-400' },
+              ].map(({ label, value, icon: Icon, color, textColor }, i) => (
+                <motion.div
+                  key={label}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.06 }}
+                  className="glass-card p-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider font-semibold">{label}</p>
+                      <p className={`text-xl font-bold mt-0.5 ${textColor}`}>{value}</p>
+                    </div>
+                    <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${color} flex items-center justify-center`}>
+                      <Icon className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+
+          {/* Mini stat pills */}
+          {bookingStats && (
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: 'Checked In', value: bookingStats.checkedIn, color: 'bg-blue-500/10 text-blue-600' },
+                { label: 'Pending', value: bookingStats.pending, color: 'bg-amber-500/10 text-amber-600' },
+                { label: 'Expired', value: bookingStats.expired, color: 'bg-slate-500/10 text-slate-500' },
+                { label: 'Refunded', value: bookingStats.refunded, color: 'bg-orange-500/10 text-orange-600' },
+              ].map(({ label, value, color }) => (
+                <span key={label} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold ${color}`}>
+                  {label}: {value}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Filters Bar */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="glass-card p-4"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Filter className="w-4 h-4 text-[var(--color-gold-400)]" />
+              <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">Filters</h4>
+              {(bookingTheatreFilter || bookingStatusFilter || bookingSearchQuery || bookingDateFrom || bookingDateTo) && (
+                <button
+                  onClick={handleClearBookingFilters}
+                  className="ml-auto flex items-center gap-1 text-[10px] text-[var(--color-crimson-400)] hover:text-[var(--color-crimson-500)] font-medium cursor-pointer transition-colors"
+                >
+                  <X className="w-3 h-3" /> Clear All
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {/* Theatre filter */}
+              <div>
+                <label className={labelClass}>Theatre</label>
+                <select
+                  value={bookingTheatreFilter}
+                  onChange={(e) => { setBookingTheatreFilter(e.target.value); setBookingPage(1); }}
+                  className={selectClass}
+                >
+                  <option value="" className="bg-[var(--color-bg-primary)]">All Theatres</option>
+                  {theatres.map((t) => (
+                    <option key={t._id} value={t._id} className="bg-[var(--color-bg-primary)]">{t.name} ({t.city})</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Booking status filter */}
+              <div>
+                <label className={labelClass}>Status</label>
+                <select
+                  value={bookingStatusFilter}
+                  onChange={(e) => { setBookingStatusFilter(e.target.value); setBookingPage(1); }}
+                  className={selectClass}
+                >
+                  <option value="" className="bg-[var(--color-bg-primary)]">All Statuses</option>
+                  <option value="CONFIRMED" className="bg-[var(--color-bg-primary)]">Confirmed</option>
+                  <option value="CHECKED_IN" className="bg-[var(--color-bg-primary)]">Checked In</option>
+                  <option value="CANCELLED" className="bg-[var(--color-bg-primary)]">Cancelled</option>
+                  <option value="PENDING" className="bg-[var(--color-bg-primary)]">Pending</option>
+                  <option value="EXPIRED" className="bg-[var(--color-bg-primary)]">Expired</option>
+                  <option value="REFUNDED" className="bg-[var(--color-bg-primary)]">Refunded</option>
+                </select>
+              </div>
+
+              {/* Date From */}
+              <div>
+                <label className={labelClass}>From Date</label>
+                <input
+                  type="date"
+                  value={bookingDateFrom}
+                  onChange={(e) => { setBookingDateFrom(e.target.value); setBookingPage(1); }}
+                  className={inputClass}
+                />
+              </div>
+
+              {/* Date To */}
+              <div>
+                <label className={labelClass}>To Date</label>
+                <input
+                  type="date"
+                  value={bookingDateTo}
+                  onChange={(e) => { setBookingDateTo(e.target.value); setBookingPage(1); }}
+                  className={inputClass}
+                />
+              </div>
+
+              {/* Search */}
+              <div>
+                <label className={labelClass}>Search User</label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    value={bookingSearchInput}
+                    onChange={(e) => setBookingSearchInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleBookingSearch(); }}
+                    placeholder="Name or email..."
+                    className={inputClass}
+                  />
+                  <button
+                    onClick={handleBookingSearch}
+                    className="shrink-0 px-2.5 rounded-xl bg-[var(--color-gold-500)]/10 text-[var(--color-gold-400)] hover:bg-[var(--color-gold-500)]/20 border border-[var(--color-gold-500)]/20 transition-all cursor-pointer"
+                  >
+                    <Search className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Results */}
+          {bookingLoading ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 text-[var(--color-gold-400)] animate-spin mb-3" />
+              <p className="text-sm text-[var(--color-text-muted)]">Loading booking history...</p>
+            </div>
+          ) : bookingHistory.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-16 glass-card"
+            >
+              <Ticket className="w-14 h-14 mx-auto mb-3 text-[var(--color-text-muted)] opacity-40" />
+              <p className="text-[var(--color-text-primary)] font-semibold">No bookings found</p>
+              <p className="text-xs text-[var(--color-text-muted)] mt-1 max-w-xs mx-auto">
+                {bookingTheatreFilter || bookingStatusFilter || bookingSearchQuery
+                  ? 'Try adjusting your filters or search query.'
+                  : 'Bookings will appear here once customers start booking tickets.'}
+              </p>
+            </motion.div>
+          ) : (
+            <>
+              {/* Results info */}
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  Showing <span className="font-semibold text-[var(--color-text-primary)]">{bookingHistory.length}</span> of <span className="font-semibold text-[var(--color-text-primary)]">{bookingTotal}</span> bookings
+                </p>
+                <button
+                  onClick={() => fetchBookingHistory(bookingPage)}
+                  className="flex items-center gap-1 text-[10px] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-gold-400)] transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-3 h-3" /> Refresh
+                </button>
+              </div>
+
+              {/* Grouped by Showtime */}
+              <div className="space-y-3">
+                {groupBookingsByShowtime(bookingHistory).map(([key, { showtime, bookings }]) => {
+                  const isExpanded = expandedShowtimeId === key;
+                  const totalSeats = bookings.reduce((sum, b) => sum + b.seatNumbers.length, 0);
+                  const groupRevenue = bookings.reduce((sum, b) => sum + b.totalAmount, 0);
+
+                  return (
+                    <motion.div
+                      key={key}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="glass-card overflow-hidden"
+                    >
+                      {/* Show Header — clickable to expand */}
+                      <button
+                        onClick={() => setExpandedShowtimeId(isExpanded ? null : key)}
+                        className="w-full text-left p-4 flex items-center gap-4 hover:bg-white/[0.02] transition-colors cursor-pointer"
+                      >
+                        {/* Movie Poster */}
+                        <div className="w-12 h-16 rounded-lg overflow-hidden bg-[var(--color-bg-elevated)] shrink-0 border border-white/5">
+                          {showtime.movieId?.poster ? (
+                            <img src={showtime.movieId.poster} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-lg bg-white/5">🎬</div>
+                          )}
+                        </div>
+
+                        {/* Show Info */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm text-[var(--color-text-primary)] truncate">
+                            {showtime.movieId?.title || 'Unknown Movie'}
+                          </h4>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-[var(--color-text-muted)] mt-0.5">
+                            <span className="flex items-center gap-1">
+                              <Building2 className="w-3 h-3" /> {showtime.theatreId?.name || 'Unknown'}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Monitor className="w-3 h-3" /> {showtime.screenId?.name || 'Screen'}
+                              <span className="text-[9px] px-1.5 py-0 rounded bg-purple-500/10 text-purple-500 font-medium">
+                                {(showtime.screenId?.screenType || '').replace('_', ' ')}
+                              </span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" /> {formatDateTime(showtime.startTime)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Show Summary Badges */}
+                        <div className="hidden sm:flex items-center gap-3 shrink-0">
+                          <div className="text-center">
+                            <p className="text-[9px] uppercase tracking-wider text-[var(--color-text-muted)] font-semibold">Bookings</p>
+                            <p className="text-sm font-bold text-[var(--color-text-primary)]">{bookings.length}</p>
+                          </div>
+                          <div className="w-px h-8 bg-white/10" />
+                          <div className="text-center">
+                            <p className="text-[9px] uppercase tracking-wider text-[var(--color-text-muted)] font-semibold">Seats</p>
+                            <p className="text-sm font-bold text-[var(--color-text-primary)]">{totalSeats}</p>
+                          </div>
+                          <div className="w-px h-8 bg-white/10" />
+                          <div className="text-center">
+                            <p className="text-[9px] uppercase tracking-wider text-[var(--color-text-muted)] font-semibold">Revenue</p>
+                            <p className="text-sm font-bold text-emerald-500">₹{groupRevenue.toLocaleString('en-IN')}</p>
+                          </div>
+                        </div>
+
+                        {/* Expand/Collapse chevron */}
+                        <div className="shrink-0 ml-1">
+                          <motion.div
+                            animate={{ rotate: isExpanded ? 90 : 0 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)]" />
+                          </motion.div>
+                        </div>
+                      </button>
+
+                      {/* Mobile summary (visible on small screens) */}
+                      <div className="sm:hidden flex items-center gap-3 px-4 pb-2 text-[10px]">
+                        <span className="text-[var(--color-text-muted)]">{bookings.length} bookings</span>
+                        <span className="text-[var(--color-text-muted)]">{totalSeats} seats</span>
+                        <span className="text-emerald-500 font-semibold">₹{groupRevenue.toLocaleString('en-IN')}</span>
+                      </div>
+
+                      {/* Expanded Booking Details */}
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25 }}
+                            className="border-t border-white/5"
+                          >
+                            {/* Desktop Table */}
+                            <div className="hidden md:block overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="bg-white/[0.02]">
+                                    <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-wider text-[var(--color-text-muted)] font-semibold">User</th>
+                                    <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-wider text-[var(--color-text-muted)] font-semibold">Seats</th>
+                                    <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-wider text-[var(--color-text-muted)] font-semibold">Amount</th>
+                                    <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-wider text-[var(--color-text-muted)] font-semibold">Booking</th>
+                                    <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-wider text-[var(--color-text-muted)] font-semibold">Payment</th>
+                                    <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-wider text-[var(--color-text-muted)] font-semibold">Check-In</th>
+                                    <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-wider text-[var(--color-text-muted)] font-semibold">Booked At</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/[0.03]">
+                                  {bookings.map((booking) => {
+                                    const user = booking.userId;
+                                    const initials = `${user?.firstName?.charAt(0) || ''}${user?.lastName?.charAt(0) || ''}`.toUpperCase() || '?';
+                                    return (
+                                      <tr key={booking._id} className="hover:bg-white/[0.02] transition-colors">
+                                        {/* User */}
+                                        <td className="px-4 py-3">
+                                          <div className="flex items-center gap-2.5">
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--color-gold-500)]/20 to-[var(--color-gold-600)]/20 border border-[var(--color-gold-500)]/25 flex items-center justify-center text-[var(--color-gold-400)] font-bold text-[10px] shrink-0">
+                                              {user?.avatar ? (
+                                                <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                                              ) : (
+                                                initials
+                                              )}
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="font-medium text-[var(--color-text-primary)] truncate text-xs">
+                                                {user?.firstName} {user?.lastName}
+                                              </p>
+                                              <p className="text-[10px] text-[var(--color-text-muted)] truncate">{user?.email}</p>
+                                            </div>
+                                          </div>
+                                        </td>
+                                        {/* Seats */}
+                                        <td className="px-4 py-3">
+                                          <div className="flex flex-wrap gap-1 max-w-[160px]">
+                                            {booking.seatNumbers.map((seat) => (
+                                              <span
+                                                key={seat}
+                                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-[var(--color-gold-500)]/10 text-[var(--color-gold-400)] border border-[var(--color-gold-500)]/15"
+                                              >
+                                                {seat}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        </td>
+                                        {/* Amount */}
+                                        <td className="px-4 py-3">
+                                          <span className="font-semibold text-[var(--color-text-primary)]">₹{booking.totalAmount.toLocaleString('en-IN')}</span>
+                                        </td>
+                                        {/* Booking Status */}
+                                        <td className="px-4 py-3">
+                                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase border ${getBookingStatusColor(booking.bookingStatus)}`}>
+                                            {booking.bookingStatus.replace('_', ' ')}
+                                          </span>
+                                        </td>
+                                        {/* Payment Status */}
+                                        <td className="px-4 py-3">
+                                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase border ${getPaymentStatusColor(booking.paymentStatus)}`}>
+                                            {booking.paymentStatus}
+                                          </span>
+                                        </td>
+                                        {/* Check-in */}
+                                        <td className="px-4 py-3">
+                                          {booking.checkedInAt ? (
+                                            <div>
+                                              <span className="flex items-center gap-1 text-emerald-500 text-[10px] font-medium">
+                                                <UserCheck className="w-3 h-3" />
+                                                {formatDateTime(booking.checkedInAt)}
+                                              </span>
+                                              {booking.checkedInBy && (
+                                                <span className="text-[9px] text-[var(--color-text-muted)]">
+                                                  by {booking.checkedInBy.firstName} {booking.checkedInBy.lastName}
+                                                </span>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <span className="text-[10px] text-[var(--color-text-muted)] italic">—</span>
+                                          )}
+                                        </td>
+                                        {/* Booked At */}
+                                        <td className="px-4 py-3 text-[10px] text-[var(--color-text-muted)]">
+                                          {booking.createdAt ? formatDateTime(booking.createdAt) : '—'}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+
+                            {/* Mobile Cards */}
+                            <div className="md:hidden divide-y divide-white/[0.03]">
+                              {bookings.map((booking) => {
+                                const user = booking.userId;
+                                const initials = `${user?.firstName?.charAt(0) || ''}${user?.lastName?.charAt(0) || ''}`.toUpperCase() || '?';
+                                return (
+                                  <div key={booking._id} className="p-4 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[var(--color-gold-500)]/20 to-[var(--color-gold-600)]/20 border border-[var(--color-gold-500)]/25 flex items-center justify-center text-[var(--color-gold-400)] font-bold text-[9px]">
+                                          {initials}
+                                        </div>
+                                        <div>
+                                          <p className="font-medium text-xs text-[var(--color-text-primary)]">{user?.firstName} {user?.lastName}</p>
+                                          <p className="text-[10px] text-[var(--color-text-muted)]">{user?.email}</p>
+                                        </div>
+                                      </div>
+                                      <span className="font-semibold text-sm text-[var(--color-text-primary)]">₹{booking.totalAmount.toLocaleString('en-IN')}</span>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      <span className="text-[10px] text-[var(--color-text-muted)] mr-1">Seats:</span>
+                                      {booking.seatNumbers.map((seat) => (
+                                        <span key={seat} className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-[var(--color-gold-500)]/10 text-[var(--color-gold-400)] border border-[var(--color-gold-500)]/15">
+                                          {seat}
+                                        </span>
+                                      ))}
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase border ${getBookingStatusColor(booking.bookingStatus)}`}>
+                                        {booking.bookingStatus.replace('_', ' ')}
+                                      </span>
+                                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase border ${getPaymentStatusColor(booking.paymentStatus)}`}>
+                                        {booking.paymentStatus}
+                                      </span>
+                                      {booking.checkedInAt && (
+                                        <span className="flex items-center gap-1 text-emerald-500 text-[10px] font-medium">
+                                          <UserCheck className="w-3 h-3" /> Checked In
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-[var(--color-text-muted)]">
+                                      Booked: {booking.createdAt ? formatDateTime(booking.createdAt) : '—'}
+                                    </p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Pagination */}
+              {bookingTotalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  <button
+                    onClick={() => fetchBookingHistory(bookingPage - 1)}
+                    disabled={bookingPage <= 1}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 border border-white/10 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-white/10 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="w-3 h-3" /> Previous
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(bookingTotalPages, 5) }, (_, i) => {
+                      let pageNum: number;
+                      if (bookingTotalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (bookingPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (bookingPage >= bookingTotalPages - 2) {
+                        pageNum = bookingTotalPages - 4 + i;
+                      } else {
+                        pageNum = bookingPage - 2 + i;
+                      }
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => fetchBookingHistory(pageNum)}
+                          className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            pageNum === bookingPage
+                              ? 'bg-[var(--color-gold-500)] text-white shadow-sm'
+                              : 'bg-white/5 text-[var(--color-text-muted)] hover:bg-white/10 hover:text-[var(--color-text-primary)]'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    onClick={() => fetchBookingHistory(bookingPage + 1)}
+                    disabled={bookingPage >= bookingTotalPages}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 border border-white/10 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-white/10 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Next <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
