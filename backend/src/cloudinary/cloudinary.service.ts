@@ -51,11 +51,25 @@ export class CloudinaryService {
           resource_type: 'video',
           chunk_size: 6000000, // 6 MB chunks
           timeout: 120000,     // 2 minutes timeout per chunk
-          transformation: [{ quality: 'auto' }],
         },
         (error, result) => {
           if (error) return reject(new Error(error.message || 'Upload failed'));
           if (!result) return reject(new Error('Upload failed'));
+
+          // Apply quality auto transformation dynamically in the URL
+          if (result.secure_url) {
+            result.secure_url = result.secure_url.replace(
+              '/video/upload/',
+              '/video/upload/q_auto/',
+            );
+          }
+          if (result.url) {
+            result.url = result.url.replace(
+              '/video/upload/',
+              '/video/upload/q_auto/',
+            );
+          }
+
           resolve(result);
         },
       );
