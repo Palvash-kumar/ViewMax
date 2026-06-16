@@ -31,7 +31,7 @@ export default function ViewMaxLogo({
   const accentColor = '#3B82F6';
   const textColor = theme === 'dark' ? '#F8FAFC' : '#0F172A';
 
-  const LogoIcon = () => (
+  const logoIcon = (
     <svg
       width={s.icon}
       height={s.icon}
@@ -92,7 +92,7 @@ export default function ViewMaxLogo({
   if (variant === 'icon') {
     return (
       <span className={`inline-flex items-center ${className}`} role="img" aria-label="ViewMax logo">
-        <LogoIcon />
+        {logoIcon}
       </span>
     );
   }
@@ -129,7 +129,7 @@ export default function ViewMaxLogo({
       role="img"
       aria-label="ViewMax"
     >
-      <LogoIcon />
+      {logoIcon}
       <span
         style={{
           fontSize: s.fontSize,
