@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
-import { Film, User, LogOut, Menu, X, Ticket, LayoutDashboard, ChevronDown, Shield, Scan } from 'lucide-react';
+import { User, LogOut, Menu, X, Ticket, Film, LayoutDashboard, ChevronDown, Shield, Scan } from 'lucide-react';
+import ViewMaxLogo from './ViewMaxLogo';
 import { useAuthStore } from '@/stores/auth.store';
 import NotificationCenter from './NotificationCenter';
 import CommandPalette from './CommandPalette';
@@ -33,13 +34,8 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[var(--color-gold-400)] to-[var(--color-gold-600)] flex items-center justify-center shadow-lg">
-              <Film className="w-5 h-5 text-[var(--color-bg-primary)]" />
-            </div>
-            <span className="text-xl font-bold font-[var(--font-display)] text-gradient-gold">
-              ViewMax
-            </span>
+          <Link href="/" className="flex items-center group">
+            <ViewMaxLogo variant="full" size="sm" />
           </Link>
 
           {/* Desktop Nav */}
