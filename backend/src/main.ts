@@ -6,12 +6,17 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import compression from 'compression';
 import { join } from 'path';
+import dns from 'dns';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { TransformInterceptor } from './interceptors/transform.interceptor';
 import { AuditInterceptor } from './audit/audit.interceptor';
 import { AuditService } from './audit/audit.service';
+
+// Force Node's DNS resolver to prioritize IPv4. This is essential in environments like Render
+// that do not support IPv6 outbound routing, preventing "connect ENETUNREACH" errors.
+dns.setDefaultResultOrder('ipv4first');
 
 const logger = new Logger('Bootstrap');
 

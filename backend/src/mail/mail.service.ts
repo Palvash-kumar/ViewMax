@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import dns from 'dns';
 
 @Injectable()
 export class MailService {
@@ -8,6 +9,10 @@ export class MailService {
   private transporter: nodemailer.Transporter;
 
   constructor(private readonly configService: ConfigService) {
+    // Force Node's DNS resolver to prioritize IPv4. This is essential in environments like Render
+    // that do not support IPv6 outbound routing, preventing "connect ENETUNREACH" errors.
+    dns.setDefaultResultOrder('ipv4first');
+
     const host = this.configService.get<string>('smtp.host');
     const port = this.configService.get<number>('smtp.port', 587);
     const user = this.configService.get<string>('smtp.user');
