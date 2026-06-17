@@ -705,7 +705,10 @@ export default function HomePage() {
               <ul className="space-y-2">
                 {['Movies', 'Theatres', 'Seat Intelligence', 'Pricing'].map((item) => (
                   <li key={item}>
-                    <Link href="/movies" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">
+                    <Link
+                      href={item === 'Theatres' ? '/theatres' : item === 'Movies' ? '/movies' : '/'}
+                      className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+                    >
                       {item}
                     </Link>
                   </li>

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
-import { User, LogOut, Menu, X, Ticket, Film, LayoutDashboard, ChevronDown, Shield, Scan } from 'lucide-react';
+import { User, LogOut, Menu, X, Ticket, Film, LayoutDashboard, ChevronDown, Shield, Scan, MapPin } from 'lucide-react';
 import ViewMaxLogo from './ViewMaxLogo';
 import { useAuthStore } from '@/stores/auth.store';
 import NotificationCenter from './NotificationCenter';
@@ -19,6 +19,7 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/movies', label: 'Movies', icon: Film },
+    { href: '/theatres', label: 'Theatres', icon: MapPin },
     { href: '/bookings', label: 'My Bookings', icon: Ticket, auth: true },
   ];
 
