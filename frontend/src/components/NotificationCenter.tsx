@@ -57,13 +57,14 @@ export default function NotificationCenter() {
     queryKey: ['notifications-count'],
     queryFn: () => api.get('/notifications/unread-count').then(r => r.data.data),
     enabled: isAuthenticated,
-    refetchInterval: 30000,
+    refetchInterval: 5000, // Poll count every 5 seconds for real-time badge updates
   });
 
   const { data: notifData, isLoading } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => api.get('/notifications?limit=20').then(r => r.data.data),
     enabled: isAuthenticated && open,
+    refetchInterval: open ? 5000 : false, // Poll active notifications list every 5 seconds when dropdown is open
   });
 
   const markReadMutation = useMutation({

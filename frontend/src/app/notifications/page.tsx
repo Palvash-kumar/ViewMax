@@ -41,6 +41,7 @@ export default function NotificationsPage() {
     queryKey: ['all-notifications'],
     queryFn: () => api.get('/notifications?limit=50').then(r => r.data.data),
     enabled: isAuthenticated,
+    refetchInterval: 5000, // Poll all notifications every 5 seconds for real-time updates
   });
 
   const markAllMutation = useMutation({
