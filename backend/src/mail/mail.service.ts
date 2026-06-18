@@ -7,33 +7,51 @@ import dns from 'dns';
 export class MailService {
   private readonly logger = new Logger(MailService.name);
   private transporter: nodemailer.Transporter;
+  private initializationPromise: Promise<void>;
 
   constructor(private readonly configService: ConfigService) {
-    // Force Node's DNS resolver to prioritize IPv4. This is essential in environments like Render
-    // that do not support IPv6 outbound routing, preventing "connect ENETUNREACH" errors.
-    dns.setDefaultResultOrder('ipv4first');
+    this.initializationPromise = this.initializeTransporter();
+  }
 
+  private async initializeTransporter(): Promise<void> {
     const host = this.configService.get<string>('smtp.host');
     const port = this.configService.get<number>('smtp.port', 587);
     const user = this.configService.get<string>('smtp.user');
     const pass = this.configService.get<string>('smtp.pass');
 
+    let targetHost = host;
+    const tlsConfig: any = {
+      rejectUnauthorized: false, // Essential to bypass local certificates issues or TLS handshakes on development systems
+    };
+
+    if (host && !/^[0-9.]+$/.test(host)) {
+      try {
+        const addresses = await dns.promises.resolve4(host);
+        if (addresses && addresses.length > 0) {
+          targetHost = addresses[0];
+          tlsConfig.servername = host; // Required for TLS validation to match the certificate to the original host
+          this.logger.log(`Resolved SMTP host ${host} to IPv4: ${targetHost}`);
+        }
+      } catch (dnsErr) {
+        this.logger.warn(
+          `Failed to resolve SMTP host ${host} to IPv4: ${dnsErr.message}. Falling back to default host resolution.`,
+        );
+      }
+    }
+
     this.logger.log(
-      `Initializing SMTP Mail Service using host: ${host}, port: ${port}`,
+      `Initializing SMTP Mail Service using host: ${targetHost} (original: ${host}), port: ${port}`,
     );
 
     this.transporter = nodemailer.createTransport({
-      host,
+      host: targetHost,
       port,
       secure: port === 465,
       auth: {
         user,
         pass,
       },
-      tls: {
-        // Essential to bypass local certificates issues or TLS handshakes on development systems
-        rejectUnauthorized: false,
-      },
+      tls: tlsConfig,
     });
   }
 
@@ -50,6 +68,8 @@ export class MailService {
     html: string,
     attachments?: any[],
   ): Promise<void> {
+    await this.initializationPromise;
+
     const from =
       this.configService.get<string>('smtp.from') ||
       'ViewMax <noreply@viewmax.app>';

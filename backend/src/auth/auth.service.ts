@@ -10,7 +10,6 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
 import { v4 as uuid } from 'uuid';
-import * as nodemailer from 'nodemailer';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto';
 import { SecurityService } from '../security/security.service';
@@ -20,7 +19,6 @@ import { MailService } from '../mail/mail.service';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private transporter: nodemailer.Transporter;
 
   constructor(
     private usersService: UsersService,
@@ -28,17 +26,7 @@ export class AuthService {
     private configService: ConfigService,
     private securityService: SecurityService,
     private mailService: MailService,
-  ) {
-    this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('smtp.host'),
-      port: this.configService.get<number>('smtp.port'),
-      secure: false,
-      auth: {
-        user: this.configService.get<string>('smtp.user'),
-        pass: this.configService.get<string>('smtp.pass'),
-      },
-    });
-  }
+  ) {}
 
   // --- Registration ---
 
@@ -465,11 +453,10 @@ export class AuthService {
     const verificationUrl = `${frontendUrl}/verify-email?token=${token}&email=${email}`;
 
     try {
-      await this.transporter.sendMail({
-        from: this.configService.get<string>('smtp.user'),
-        to: email,
-        subject: 'ViewMax - Verify Your Email',
-        html: `
+      await this.mailService.sendMail(
+        email,
+        'ViewMax - Verify Your Email',
+        `
           <div style="background-color: #f5f5f5; padding: 40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; min-height: 100%;">
             <div style="background-color: #ffffff; border-radius: 16px; max-width: 500px; margin: 0 auto; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.025); overflow: hidden;">
               <div style="height: 6px; background-color: #add8e6;"></div>
@@ -491,7 +478,7 @@ export class AuthService {
             </div>
           </div>
         `,
-      });
+      );
     } catch (error) {
       this.logger.error('Failed to send verification email', error.message);
       // Log token in dev for testing
@@ -504,11 +491,10 @@ export class AuthService {
     const resetUrl = `${frontendUrl}/reset-password?token=${token}&email=${email}`;
 
     try {
-      await this.transporter.sendMail({
-        from: this.configService.get<string>('smtp.user'),
-        to: email,
-        subject: 'ViewMax - Reset Your Password',
-        html: `
+      await this.mailService.sendMail(
+        email,
+        'ViewMax - Reset Your Password',
+        `
           <div style="background-color: #f5f5f5; padding: 40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; min-height: 100%;">
             <div style="background-color: #ffffff; border-radius: 16px; max-width: 500px; margin: 0 auto; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.025); overflow: hidden;">
               <div style="height: 6px; background-color: #add8e6;"></div>
@@ -530,7 +516,7 @@ export class AuthService {
             </div>
           </div>
         `,
-      });
+      );
     } catch (error) {
       this.logger.error('Failed to send reset email', error.message);
       this.logger.debug(`Reset token for ${email}: ${token}`);
