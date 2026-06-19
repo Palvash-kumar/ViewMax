@@ -21,7 +21,6 @@ import {
 import MovieCard from '@/components/MovieCard';
 import api from '@/lib/axios';
 import type { Movie } from '@/types';
-import { Button } from '@/components/ui';
 import ViewMaxLogo from '@/components/ViewMaxLogo';
 
 /* ─── Feature Card ─────────────────────────────────────────────────────── */
@@ -259,7 +258,6 @@ function Theatre3DSimulator() {
     </div>
   );
 }
-
 /* ─── Main Page ────────────────────────────────────────────────────────── */
 export default function HomePage() {
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -634,7 +632,7 @@ export default function HomePage() {
               Premium Cinema Technology
             </p>
             <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12 text-[var(--color-text-muted)]">
-              {['IMAX', 'DOLBY ATMOS', '4DX', 'SCREENX', 'RPX', 'LASER'].map((tech) => (
+              {['TRUE IMAX', 'DOLBY ATMOS', 'DIGITAL IMAX', 'LASER PROJECTION'].map((tech) => (
                 <span
                   key={tech}
                   className="text-sm sm:text-base font-semibold tracking-wider opacity-40 hover:opacity-70 transition-opacity cursor-default"
@@ -721,7 +719,7 @@ export default function HomePage() {
                 {['About', 'Careers', 'Blog', 'Contact'].map((item) => (
                   <li key={item}>
                     <Link
-                      href={item === 'About' ? '/about' : '/'}
+                      href={item === 'Contact' ? '/contact' : item === 'About' ? '/about' : '/'}
                       className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
                     >
                       {item}
