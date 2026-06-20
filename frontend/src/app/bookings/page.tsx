@@ -38,7 +38,9 @@ export default function BookingsPage() {
     try {
       await api.post(`/bookings/${bookingId}/cancel`);
       setBookings(bookings.map(b => b._id === bookingId ? { ...b, bookingStatus: 'CANCELLED' } : b));
-    } catch { /* ignore */ }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to cancel the booking. Please try again.');
+    }
   };
 
   return (
@@ -59,6 +61,13 @@ export default function BookingsPage() {
             const movie = st?.movieId;
             const theatre = st?.theatreId;
             const isCompleted = st?.endTime && new Date(st.endTime) < new Date();
+            
+            const now = new Date();
+            const showtimeStart = st?.startTime ? new Date(st.startTime) : null;
+            const isWithin90Mins = showtimeStart
+              ? (showtimeStart.getTime() - now.getTime()) / (1000 * 60) < 90
+              : true;
+
             return (
               <motion.div
                 key={booking._id}
@@ -125,9 +134,18 @@ export default function BookingsPage() {
                           </Link>
                         )}
                         {booking.bookingStatus === 'CONFIRMED' && !isCompleted && (
-                          <Button variant="danger" size="sm" onClick={() => handleCancel(booking._id)}>
-                            Cancel
-                          </Button>
+                          isWithin90Mins ? (
+                            <span 
+                              className="text-xs text-[var(--color-text-muted)] border border-white/5 bg-white/3 px-3 py-1.5 rounded-lg select-none cursor-help"
+                              title="Cancellations are only permitted at least 90 minutes before the show starts."
+                            >
+                              Cancellation Closed
+                            </span>
+                          ) : (
+                            <Button variant="danger" size="sm" onClick={() => handleCancel(booking._id)}>
+                              Cancel
+                            </Button>
+                          )
                         )}
                       </div>
                     </div>

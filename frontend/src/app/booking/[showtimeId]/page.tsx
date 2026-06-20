@@ -245,6 +245,17 @@ export default function BookingPage() {
             <p className="text-[10px] text-[var(--color-text-muted)] text-center mt-3">
               Seats are locked for 10 minutes after booking starts
             </p>
+
+            {/* Cancellation Policy Notice */}
+            <div className="flex gap-2.5 items-start p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/15 mt-4">
+              <AlertCircle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+              <div className="text-left">
+                <p className="text-xs font-semibold text-blue-400">Cancellation Policy</p>
+                <p className="text-[10px] text-[var(--color-text-secondary)] mt-0.5 leading-relaxed">
+                  Cancellations with full refunds are available only up to 90 minutes before the show starts.
+                </p>
+              </div>
+            </div>
           </motion.div>
         </div>
       </div>

@@ -123,6 +123,20 @@ export class BookingsService {
       return; // Already confirmed (idempotent)
     }
 
+    // Retrieve Stripe payment intent if not already stored
+    try {
+      const session = await this.paymentsService.retrieveCheckoutSession(stripeSessionId);
+      const paymentIntentId = typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : session.payment_intent?.id;
+      if (paymentIntentId) {
+        booking.stripePaymentIntentId = paymentIntentId;
+        this.logger.log(`Retrieved payment intent ID for booking ${booking._id}: ${paymentIntentId}`);
+      }
+    } catch (err) {
+      this.logger.error(`Failed to retrieve checkout session for intent ID: ${err.message}`);
+    }
+
     const showtimeIdStr =
       (booking.showtimeId as any)._id?.toString() ||
       booking.showtimeId.toString();
@@ -335,18 +349,52 @@ export class BookingsService {
       );
     }
 
+    // Enforce 90-minute cancellation window
+    const now = new Date();
+    const showtimeStart = new Date(showtime.startTime);
+    const timeDiffMs = showtimeStart.getTime() - now.getTime();
+    const timeDiffMins = timeDiffMs / (1000 * 60);
+
+    if (timeDiffMins < 90) {
+      throw new BadRequestException(
+        'Cancellations are only permitted at least 90 minutes before the show start time.',
+      );
+    }
+
     const showtimeIdStr =
       (booking.showtimeId as any)._id?.toString() ||
       booking.showtimeId.toString();
     const userIdStr =
       (booking.userId as any)._id?.toString() || booking.userId.toString();
 
-    if (userIdStr !== userId) {
+    this.logger.debug(`userIdStr: "${userIdStr}" (type: ${typeof userIdStr}), userId: "${userId}" (type: ${typeof userId}), userId.toString(): "${userId?.toString()}"`);
+
+    if (userIdStr !== userId.toString()) {
       throw new BadRequestException('You can only cancel your own bookings');
     }
 
     if (booking.bookingStatus === BookingStatus.CANCELLED) {
       throw new BadRequestException('Booking is already cancelled');
+    }
+
+    // Process Stripe refund if there is a payment intent ID
+    if (
+      booking.paymentStatus === PaymentStatus.COMPLETED &&
+      booking.stripePaymentIntentId
+    ) {
+      try {
+        await this.paymentsService.refundPayment(
+          booking.stripePaymentIntentId,
+          booking.totalAmount,
+        );
+        this.logger.log(
+          `Successfully processed Stripe refund of ₹${booking.totalAmount} for booking ${booking._id}`,
+        );
+      } catch (err) {
+        this.logger.error(
+          `Failed to process Stripe refund for booking ${booking._id}: ${err.message}`,
+        );
+      }
     }
 
     // Remove seats from showtime booked list
@@ -541,7 +589,7 @@ export class BookingsService {
     if (!booking) throw new NotFoundException('Booking not found');
 
     const userIdStr = booking.userId.toString();
-    if (userIdStr !== userId) {
+    if (userIdStr !== userId.toString()) {
       throw new BadRequestException(
         'You can only update reminders for your own bookings',
       );

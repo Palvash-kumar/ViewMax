@@ -98,6 +98,20 @@ export class PaymentsService {
     await this.paymentModel.findOneAndUpdate({ stripeSessionId }, { status });
   }
 
+  async refundPayment(paymentIntentId: string, amount: number) {
+    try {
+      const refund = await this.stripe.refunds.create({
+        payment_intent: paymentIntentId,
+        amount: Math.round(amount * 100),
+      });
+      this.logger.log(`Refunded payment intent ${paymentIntentId}: ${refund.id}`);
+      return refund;
+    } catch (err) {
+      this.logger.error(`Failed to refund payment intent ${paymentIntentId}: ${err.message}`);
+      throw err;
+    }
+  }
+
   async findByBookingId(bookingId: string): Promise<PaymentDocument | null> {
     return this.paymentModel.findOne({ bookingId }).exec();
   }
