@@ -688,9 +688,9 @@ export default function HomePage() {
       {/* ─── FOOTER ───────────────────────────────────────────────────── */}
       <footer className="border-t border-[var(--color-border)] py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 mb-10">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-10">
             {/* Brand */}
-            <div className="md:col-span-1">
+            <div className="col-span-2 md:col-span-1">
               <ViewMaxLogo variant="full" size="sm" />
               <p className="text-xs text-[var(--color-text-muted)] mt-3 leading-relaxed max-w-[240px]">
                 The next-generation cinema intelligence platform for premium movie experiences.
@@ -726,6 +726,21 @@ export default function HomePage() {
                     </Link>
                   </li>
                 ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-primary)] mb-3">Open Source</h4>
+              <ul className="space-y-2">
+                <li>
+                  <a
+                    href="https://github.com/Palvash-kumar/ViewMax"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+                  >
+                    GitHub
+                  </a>
+                </li>
               </ul>
             </div>
             <div>
