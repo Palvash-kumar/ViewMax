@@ -34,7 +34,11 @@ function SeatCameraControls({ position, target, audioListener }: SeatCameraContr
   // Store target and smoothed yaw/pitch rotations
   const rotationRef = useRef({ yaw: 0, pitch: 0 });
   const currentRotationRef = useRef({ yaw: 0, pitch: 0 });
-  const pointerRef = useRef({ isDragging: false, startX: 0, startY: 0, startYaw: 0, startPitch: 0 });
+  const pointerRef = useRef({ isDragging: false, startX: 0, startY: 0, startYaw: 0, startPitch: 0, isTouchInput: false });
+  const pinchRef = useRef({ active: false, initialDistance: 0, initialFov: 72 });
+
+  // Detect if we're on a touch device (used for sensitivity + lerp tuning)
+  const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
   // Initialize heading angles to point directly at the screen center
   useEffect(() => {
@@ -60,6 +64,18 @@ function SeatCameraControls({ position, target, audioListener }: SeatCameraContr
     };
   }, [position, target, camera, audioListener]);
 
+  // Prevent browser from hijacking touch gestures on the canvas
+  useEffect(() => {
+    const dom = gl.domElement;
+    dom.style.touchAction = 'none';
+    // Prevent accidental pull-to-refresh / back-swipe on mobile
+    dom.style.overscrollBehavior = 'contain';
+    return () => {
+      dom.style.touchAction = '';
+      dom.style.overscrollBehavior = '';
+    };
+  }, [gl]);
+
   // Handle pointer/touch dragging to look around
   useEffect(() => {
     const handlePointerDown = (e: PointerEvent) => {
@@ -69,6 +85,7 @@ function SeatCameraControls({ position, target, audioListener }: SeatCameraContr
         startY: e.clientY,
         startYaw: rotationRef.current.yaw,
         startPitch: rotationRef.current.pitch,
+        isTouchInput: e.pointerType === 'touch',
       };
       try {
         gl.domElement.setPointerCapture(e.pointerId);
@@ -77,10 +94,15 @@ function SeatCameraControls({ position, target, audioListener }: SeatCameraContr
 
     const handlePointerMove = (e: PointerEvent) => {
       if (!pointerRef.current.isDragging) return;
+      // Skip single-pointer drag if pinch (2-finger) is active
+      if (pinchRef.current.active) return;
+
       const dx = e.clientX - pointerRef.current.startX;
       const dy = e.clientY - pointerRef.current.startY;
 
-      const sensitivity = 0.0035; // speed constant
+      // Touch input on mobile uses 3x higher sensitivity because finger
+      // swipes produce much smaller pixel deltas than mouse drags
+      const sensitivity = pointerRef.current.isTouchInput ? 0.010 : 0.0035;
       let newYaw = pointerRef.current.startYaw - dx * sensitivity;
       let newPitch = pointerRef.current.startPitch + dy * sensitivity;
 
@@ -102,15 +124,71 @@ function SeatCameraControls({ position, target, audioListener }: SeatCameraContr
     dom.addEventListener('pointerdown', handlePointerDown);
     dom.addEventListener('pointermove', handlePointerMove);
     dom.addEventListener('pointerup', handlePointerUp);
+    dom.addEventListener('pointercancel', handlePointerUp);
 
     return () => {
       dom.removeEventListener('pointerdown', handlePointerDown);
       dom.removeEventListener('pointermove', handlePointerMove);
       dom.removeEventListener('pointerup', handlePointerUp);
+      dom.removeEventListener('pointercancel', handlePointerUp);
     };
   }, [gl]);
 
-  // Handle mouse scroll wheel to adjust field-of-view (pinch/zoom representation)
+  // Handle pinch-to-zoom on touch devices (2-finger gesture → FOV change)
+  useEffect(() => {
+    const getTouchDistance = (t1: Touch, t2: Touch) => {
+      const dx = t1.clientX - t2.clientX;
+      const dy = t1.clientY - t2.clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        pinchRef.current = {
+          active: true,
+          initialDistance: getTouchDistance(e.touches[0], e.touches[1]),
+          initialFov: camera instanceof THREE.PerspectiveCamera ? camera.fov : 72,
+        };
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && pinchRef.current.active) {
+        e.preventDefault();
+        const currentDistance = getTouchDistance(e.touches[0], e.touches[1]);
+        const scale = pinchRef.current.initialDistance / currentDistance;
+
+        if (camera instanceof THREE.PerspectiveCamera) {
+          let newFov = pinchRef.current.initialFov * scale;
+          newFov = Math.max(30, Math.min(95, newFov));
+          camera.fov = newFov;
+          camera.updateProjectionMatrix();
+        }
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        pinchRef.current.active = false;
+      }
+    };
+
+    const dom = gl.domElement;
+    dom.addEventListener('touchstart', handleTouchStart, { passive: false });
+    dom.addEventListener('touchmove', handleTouchMove, { passive: false });
+    dom.addEventListener('touchend', handleTouchEnd);
+    dom.addEventListener('touchcancel', handleTouchEnd);
+
+    return () => {
+      dom.removeEventListener('touchstart', handleTouchStart);
+      dom.removeEventListener('touchmove', handleTouchMove);
+      dom.removeEventListener('touchend', handleTouchEnd);
+      dom.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [gl, camera]);
+
+  // Handle mouse scroll wheel to adjust field-of-view (desktop only)
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
@@ -139,7 +217,7 @@ function SeatCameraControls({ position, target, audioListener }: SeatCameraContr
     }
   }, [aspect, camera]);
 
-  // Smoothly damp (lerp) camera movements for buttery visual feedback
+  // Smoothly damp (lerp) camera movements — faster lerp on touch for snappier response
   useFrame(() => {
     // Force seat position (eye height level)
     camera.position.set(position[0], position[1], position[2]);
@@ -147,8 +225,10 @@ function SeatCameraControls({ position, target, audioListener }: SeatCameraContr
     const targetRot = rotationRef.current;
     const currRot = currentRotationRef.current;
 
-    currRot.yaw += (targetRot.yaw - currRot.yaw) * 0.14;
-    currRot.pitch += (targetRot.pitch - currRot.pitch) * 0.14;
+    // Touch devices get faster interpolation so camera feels responsive, not floaty
+    const lerpFactor = isTouchDevice ? 0.28 : 0.14;
+    currRot.yaw += (targetRot.yaw - currRot.yaw) * lerpFactor;
+    currRot.pitch += (targetRot.pitch - currRot.pitch) * lerpFactor;
 
     const targetDir = new THREE.Vector3(
       Math.sin(currRot.yaw) * Math.cos(currRot.pitch),
@@ -427,25 +507,24 @@ export default function SeatView3DModal({
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex flex-col select-none"
         >
-          {/* Header bar */}
-          <div className="flex items-center justify-between px-3 sm:px-6 py-2 sm:py-3 bg-black/50 border-b border-white/5 relative z-20">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-[var(--color-gold-500)]/10 border border-[var(--color-gold-500)]/20">
+          {/* Header bar — compact on mobile for max 3D viewport area */}
+          <div className="flex items-center justify-between px-2 sm:px-6 py-1.5 sm:py-3 bg-black/50 border-b border-white/5 relative z-20">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-1.5 sm:gap-2 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-[var(--color-gold-500)]/10 border border-[var(--color-gold-500)]/20">
                 <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--color-gold-400)]" />
-                <span className="text-xs sm:text-sm font-semibold text-[var(--color-gold-400)]">
-                  Seat {activeSeat} View
+                <span className="text-[11px] sm:text-sm font-semibold text-[var(--color-gold-400)]">
+                  Seat {activeSeat}
                 </span>
               </div>
               <span className="text-xs text-[var(--color-text-muted)] hidden md:inline">
-                Drag pointer to look around • Scroll to zoom
+                Drag to look around • Scroll to zoom
               </span>
             </div>
             <button
               onClick={onClose}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-lg bg-red-500/15 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 text-red-400 hover:text-red-300 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 min-w-[44px] min-h-[44px] justify-center sm:min-w-0 sm:min-h-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-lg bg-red-500/15 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 text-red-400 hover:text-red-300 transition-all cursor-pointer"
             >
-              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="text-xs font-semibold sm:hidden">Exit</span>
+              <X className="w-4 h-4 sm:w-4 sm:h-4" />
               <span className="text-sm font-semibold hidden sm:inline">Exit 3D View</span>
             </button>
           </div>
@@ -472,9 +551,10 @@ export default function SeatView3DModal({
             ) : sceneData ? (
               <div className="w-full h-full relative">
                 <Canvas
-                  dpr={[1, 2]}
+                  dpr={[1, 1.5]}
                   gl={{ antialias: true, alpha: false }}
                   className="w-full h-full cursor-grab active:cursor-grabbing"
+                  style={{ touchAction: 'none' }}
                 >
                   <PerspectiveCamera
                     makeDefault
@@ -506,38 +586,36 @@ export default function SeatView3DModal({
                 </Canvas>
 
                 {/* Glassmorphic Audio & Video HUD Controller */}
-                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex flex-col items-end gap-2 sm:gap-3 z-10">
-                  {/* Audio controls row */}
-                  <div className="flex items-center gap-2 sm:gap-4 bg-black/60 backdrop-blur-md border border-white/10 px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-xl shadow-2xl">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={toggleMute}
-                        className={`p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer ${
-                          isMuted
-                            ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                            : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
-                        }`}
-                        title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
-                      >
-                        {isMuted ? <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-                      </button>
-                      
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.05"
-                        value={volume}
-                        onChange={(e) => {
-                          const newVol = parseFloat(e.target.value);
-                          setVolume(newVol);
-                          if (newVol > 0 && isMuted) {
-                            setIsMuted(false);
-                          }
-                        }}
-                        className="w-14 sm:w-20 accent-purple-500 cursor-pointer h-1 rounded-lg bg-white/20"
-                      />
-                    </div>
+                <div className="absolute top-2 right-2 sm:top-4 sm:right-4 flex flex-col items-end gap-1.5 sm:gap-3 z-10">
+                  {/* Audio controls row — minimal on mobile */}
+                  <div className="flex items-center gap-1.5 sm:gap-4 bg-black/60 backdrop-blur-md border border-white/10 px-2 sm:px-4 py-1 sm:py-2.5 rounded-xl shadow-2xl">
+                    <button
+                      onClick={toggleMute}
+                      className={`min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center p-2 sm:p-2 rounded-lg transition-all cursor-pointer ${
+                        isMuted
+                          ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                          : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
+                      }`}
+                      title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
+                    >
+                      {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                    </button>
+                    
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={volume}
+                      onChange={(e) => {
+                        const newVol = parseFloat(e.target.value);
+                        setVolume(newVol);
+                        if (newVol > 0 && isMuted) {
+                          setIsMuted(false);
+                        }
+                      }}
+                      className="w-14 sm:w-20 accent-purple-500 cursor-pointer h-1.5 sm:h-1 rounded-lg bg-white/20"
+                    />
 
                     <div className="hidden sm:block h-4 w-px bg-white/10" />
 
@@ -550,7 +628,7 @@ export default function SeatView3DModal({
                     
                     {/* Animated Sound Wave micro-animation */}
                     {!isMuted && (
-                      <div className="flex items-end gap-[3px] h-3.5 px-1">
+                      <div className="hidden sm:flex items-end gap-[3px] h-3.5 px-1">
                         <span className="w-[2px] h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s', animationDuration: '0.8s' }} />
                         <span className="w-[2px] h-3.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.3s', animationDuration: '0.6s' }} />
                         <span className="w-[2px] h-2.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0s', animationDuration: '0.9s' }} />
@@ -560,21 +638,21 @@ export default function SeatView3DModal({
 
                   {/* Selected Seats Switcher */}
                   {seatLabels.length > 1 && (
-                    <div className="bg-black/60 backdrop-blur-md border border-white/10 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl shadow-2xl">
-                      <div className="flex items-center gap-2 mb-1.5">
+                    <div className="bg-black/60 backdrop-blur-md border border-white/10 px-2 sm:px-3 py-1.5 sm:py-2.5 rounded-xl shadow-2xl">
+                      <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
                         <Eye className="w-3 h-3 text-[var(--color-gold-400)]" />
                         <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-white/40">
-                          Selected Seats
+                          Seats
                         </span>
                       </div>
-                      <div className="flex flex-wrap gap-1.5 max-w-[200px]">
+                      <div className="flex flex-wrap gap-1 sm:gap-1.5 max-w-[160px] sm:max-w-[200px]">
                         {seatLabels.sort().map((seat) => (
                           <button
                             key={seat}
-                            onClick={() => setActiveSeat(seat)}
-                            className={`px-2 py-1 rounded-md text-[10px] sm:text-xs font-semibold transition-all duration-300 cursor-pointer ${
+                            onClick={(e) => { e.stopPropagation(); setActiveSeat(seat); }}
+                            className={`min-w-[36px] min-h-[32px] sm:min-w-0 sm:min-h-0 px-2 py-1 rounded-md text-[11px] sm:text-xs font-semibold transition-all duration-200 cursor-pointer ${
                               activeSeat === seat
-                                ? 'bg-[var(--color-gold-500)]/25 text-[var(--color-gold-400)] border border-[var(--color-gold-500)]/50 shadow-lg shadow-[var(--color-gold-500)]/15 scale-105'
+                                ? 'bg-[var(--color-gold-500)]/25 text-[var(--color-gold-400)] border border-[var(--color-gold-500)]/50 shadow-lg shadow-[var(--color-gold-500)]/15'
                                 : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white/90 hover:border-white/20'
                             }`}
                             title={`View from Seat ${seat}`}
@@ -587,37 +665,37 @@ export default function SeatView3DModal({
                   )}
                 </div>
 
-                {/* Control Guide HUD (bottom-left) */}
-                <div className="absolute bottom-4 left-4 z-10 flex flex-col items-start gap-2">
+                {/* Control Guide HUD (bottom-left) — auto-dismissed on mobile for more viewport */}
+                <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 z-10 flex flex-col items-start gap-2">
                   <button
                     onClick={() => setShowGuide(!showGuide)}
-                    className="sm:hidden p-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-purple-400 hover:text-white transition-all cursor-pointer shadow-lg"
+                    className="sm:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-purple-400 hover:text-white transition-all cursor-pointer shadow-lg"
                     title="Show controls guide"
                   >
-                    <Info className="w-4 h-4" />
+                    <Info className="w-5 h-5" />
                   </button>
 
-                  <div className={`${showGuide ? 'flex' : 'hidden sm:flex'} flex-col gap-1 bg-black/60 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-white/5 max-w-[240px]`}>
+                  <div className={`${showGuide ? 'flex' : 'hidden sm:flex'} flex-col gap-1 bg-black/60 backdrop-blur-md px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl border border-white/5 max-w-[220px] sm:max-w-[240px]`}>
                     <div className="flex items-center justify-between gap-2 text-xs font-semibold text-white/70 mb-1">
                       <div className="flex items-center gap-2">
                         <Info className="w-3.5 h-3.5 text-purple-400" />
-                        <span>Theater Controls</span>
+                        <span>Controls</span>
                       </div>
                       <button 
                         onClick={() => setShowGuide(false)}
-                        className="sm:hidden p-0.5 rounded hover:bg-white/10 text-white/40 hover:text-white cursor-pointer"
+                        className="sm:hidden min-w-[32px] min-h-[32px] flex items-center justify-center rounded hover:bg-white/10 text-white/40 hover:text-white cursor-pointer"
                       >
-                        <X className="w-3 h-3" />
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                     <p className="text-[10px] text-white/50">
-                      • Drag pointer anywhere to look around (360° view)
+                      • Swipe to look around (360°)
                     </p>
                     <p className="text-[10px] text-white/50">
-                      • Pinch screen or scroll to zoom in/out
+                      • Pinch to zoom in/out
                     </p>
-                    <p className="text-[10px] text-white/40 italic mt-1 font-mono">
-                      Sound will pan dynamically as you look around
+                    <p className="text-[10px] text-white/40 italic mt-0.5 font-mono">
+                      Audio pans as you look around
                     </p>
                   </div>
                 </div>
