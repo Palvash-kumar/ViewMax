@@ -15,7 +15,7 @@ interface SeatView3DModalProps {
   onClose: () => void;
   layoutId: string;
   screenId: string;
-  seatLabel: string;
+  seatLabels: string[];
 }
 
 const API_BASE = API_URL;
@@ -168,8 +168,9 @@ export default function SeatView3DModal({
   onClose,
   layoutId,
   screenId,
-  seatLabel,
+  seatLabels,
 }: SeatView3DModalProps) {
+  const [activeSeat, setActiveSeat] = useState<string>(seatLabels[0] || '');
   const [sceneData, setSceneData] = useState<Theatre3DDataResponse | null>(null);
   const [demoVideos, setDemoVideos] = useState<DemoVideo[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<DemoVideo | null>(null);
@@ -186,6 +187,13 @@ export default function SeatView3DModal({
   const hvacSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const hvacGainRef = useRef<GainNode | null>(null);
 
+  // Keep activeSeat in sync if seatLabels prop changes (e.g. user deselects the active seat)
+  useEffect(() => {
+    if (seatLabels.length > 0 && !seatLabels.includes(activeSeat)) {
+      setActiveSeat(seatLabels[0]);
+    }
+  }, [seatLabels, activeSeat]);
+
   // Compute camera position (locked exactly to seat coordinates + height offset)
   const getSeatCamera = useCallback((): {
     position: [number, number, number];
@@ -197,7 +205,7 @@ export default function SeatView3DModal({
 
     const seatCoord = sceneData.coordinates.find((c) => {
       const seatMapItem = sceneData.layout.seatMap.find((s) => s.id === c.seatId);
-      return seatMapItem && seatMapItem.id === seatLabel;
+      return seatMapItem && seatMapItem.id === activeSeat;
     });
 
     if (seatCoord) {
@@ -230,7 +238,7 @@ export default function SeatView3DModal({
     }
 
     return { position: [0, 1.8, 12], target: [0, 2.5, 0] };
-  }, [sceneData, seatLabel]);
+  }, [sceneData, activeSeat]);
 
   // Synthesize room tone air conditioner / HVAC murmur (Brown noise through lowpass filter)
   const startHvacHum = (ctx: AudioContext) => {
@@ -425,7 +433,7 @@ export default function SeatView3DModal({
               <div className="flex items-center gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-[var(--color-gold-500)]/10 border border-[var(--color-gold-500)]/20">
                 <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--color-gold-400)]" />
                 <span className="text-xs sm:text-sm font-semibold text-[var(--color-gold-400)]">
-                  Seat {seatLabel} View
+                  Seat {activeSeat} View
                 </span>
               </div>
               <span className="text-xs text-[var(--color-text-muted)] hidden md:inline">
@@ -498,52 +506,83 @@ export default function SeatView3DModal({
                 </Canvas>
 
                 {/* Glassmorphic Audio & Video HUD Controller */}
-                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-2 sm:gap-4 bg-black/60 backdrop-blur-md border border-white/10 px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-xl shadow-2xl z-10">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={toggleMute}
-                      className={`p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer ${
-                        isMuted
-                          ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                          : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
-                      }`}
-                      title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
-                    >
-                      {isMuted ? <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-                    </button>
+                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex flex-col items-end gap-2 sm:gap-3 z-10">
+                  {/* Audio controls row */}
+                  <div className="flex items-center gap-2 sm:gap-4 bg-black/60 backdrop-blur-md border border-white/10 px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-xl shadow-2xl">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={toggleMute}
+                        className={`p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer ${
+                          isMuted
+                            ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                            : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
+                        }`}
+                        title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
+                      >
+                        {isMuted ? <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                      </button>
+                      
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={volume}
+                        onChange={(e) => {
+                          const newVol = parseFloat(e.target.value);
+                          setVolume(newVol);
+                          if (newVol > 0 && isMuted) {
+                            setIsMuted(false);
+                          }
+                        }}
+                        className="w-14 sm:w-20 accent-purple-500 cursor-pointer h-1 rounded-lg bg-white/20"
+                      />
+                    </div>
+
+                    <div className="hidden sm:block h-4 w-px bg-white/10" />
+
+                    <div className="hidden sm:flex items-center gap-1.5">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-white/40">Audio:</span>
+                      <span className="text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">
+                        {isMuted ? 'Muted' : selectedVideo ? '3D Positional' : 'Cinema Hum'}
+                      </span>
+                    </div>
                     
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={volume}
-                      onChange={(e) => {
-                        const newVol = parseFloat(e.target.value);
-                        setVolume(newVol);
-                        if (newVol > 0 && isMuted) {
-                          setIsMuted(false);
-                        }
-                      }}
-                      className="w-14 sm:w-20 accent-purple-500 cursor-pointer h-1 rounded-lg bg-white/20"
-                    />
+                    {/* Animated Sound Wave micro-animation */}
+                    {!isMuted && (
+                      <div className="flex items-end gap-[3px] h-3.5 px-1">
+                        <span className="w-[2px] h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s', animationDuration: '0.8s' }} />
+                        <span className="w-[2px] h-3.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.3s', animationDuration: '0.6s' }} />
+                        <span className="w-[2px] h-2.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0s', animationDuration: '0.9s' }} />
+                      </div>
+                    )}
                   </div>
 
-                  <div className="hidden sm:block h-4 w-px bg-white/10" />
-
-                  <div className="hidden sm:flex items-center gap-1.5">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-white/40">Audio:</span>
-                    <span className="text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">
-                      {isMuted ? 'Muted' : selectedVideo ? '3D Positional' : 'Cinema Hum'}
-                    </span>
-                  </div>
-                  
-                  {/* Animated Sound Wave micro-animation */}
-                  {!isMuted && (
-                    <div className="flex items-end gap-[3px] h-3.5 px-1">
-                      <span className="w-[2px] h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s', animationDuration: '0.8s' }} />
-                      <span className="w-[2px] h-3.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.3s', animationDuration: '0.6s' }} />
-                      <span className="w-[2px] h-2.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0s', animationDuration: '0.9s' }} />
+                  {/* Selected Seats Switcher */}
+                  {seatLabels.length > 1 && (
+                    <div className="bg-black/60 backdrop-blur-md border border-white/10 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl shadow-2xl">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Eye className="w-3 h-3 text-[var(--color-gold-400)]" />
+                        <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-white/40">
+                          Selected Seats
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 max-w-[200px]">
+                        {seatLabels.sort().map((seat) => (
+                          <button
+                            key={seat}
+                            onClick={() => setActiveSeat(seat)}
+                            className={`px-2 py-1 rounded-md text-[10px] sm:text-xs font-semibold transition-all duration-300 cursor-pointer ${
+                              activeSeat === seat
+                                ? 'bg-[var(--color-gold-500)]/25 text-[var(--color-gold-400)] border border-[var(--color-gold-500)]/50 shadow-lg shadow-[var(--color-gold-500)]/15 scale-105'
+                                : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white/90 hover:border-white/20'
+                            }`}
+                            title={`View from Seat ${seat}`}
+                          >
+                            {seat}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

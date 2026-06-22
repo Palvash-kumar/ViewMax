@@ -267,7 +267,7 @@ export default function BookingPage() {
           onClose={() => setShow3DModal(false)}
           layoutId={layoutId}
           screenId={screenId}
-          seatLabel={selectedSeats[0] || ''}
+          seatLabels={selectedSeats}
         />
       )}
     </div>
