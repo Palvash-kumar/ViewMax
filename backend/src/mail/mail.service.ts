@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import dns from 'dns';
 
 @Injectable()
 export class MailService implements OnModuleInit {
@@ -11,29 +12,57 @@ export class MailService implements OnModuleInit {
 
   /**
    * Called automatically by NestJS after the module is initialised.
-   * Creates the SMTP transporter and verifies the connection so any
-   * mis-configuration surfaces immediately in the startup logs.
+   * Resolves the SMTP hostname to an IPv4 address (Render does NOT
+   * support IPv6 outbound), creates the transporter, and verifies
+   * the connection so mis-configuration shows up immediately at boot.
    */
   async onModuleInit(): Promise<void> {
-    this.createTransporter();
+    await this.createTransporter();
     await this.verifyTransporter();
   }
 
   // ── Transporter creation ────────────────────────────────────────────────
 
-  private createTransporter(): void {
+  private async createTransporter(): Promise<void> {
     const host = this.configService.get<string>('smtp.host');
-    const port = this.configService.get<number>('smtp.port', 587);
+    const port = this.configService.get<number>('smtp.port', 465);
     const user = this.configService.get<string>('smtp.user');
     const pass = this.configService.get<string>('smtp.pass');
     const isSecure = port === 465;
 
+    // ── Force IPv4 resolution ──────────────────────────────────────────
+    // Render (and many PaaS providers) do NOT support IPv6 outbound.
+    // Node/Nodemailer may resolve smtp.gmail.com to an IPv6 address
+    // (e.g. 2404:6800:…) which fails with ENETUNREACH.
+    // We explicitly resolve to IPv4 and connect to the IP directly,
+    // while setting `tls.servername` so TLS certificate validation
+    // still matches the original hostname.
+    let connectHost = host;
+
+    if (host && !/^[\d.]+$/.test(host)) {
+      try {
+        const ipv4Addresses = await dns.promises.resolve4(host);
+        if (ipv4Addresses.length > 0) {
+          connectHost = ipv4Addresses[0];
+          this.logger.log(
+            `Resolved SMTP host ${host} → IPv4 ${connectHost}`,
+          );
+        }
+      } catch (dnsErr) {
+        this.logger.warn(
+          `DNS IPv4 resolution for ${host} failed: ${dnsErr.message}. ` +
+            `Falling back to hostname (may use IPv6).`,
+        );
+      }
+    }
+
     this.logger.log(
-      `Configuring SMTP transporter — host: ${host}, port: ${port}, secure: ${isSecure}, user: ${user}`,
+      `Configuring SMTP transporter — connect: ${connectHost}:${port}, ` +
+        `secure: ${isSecure}, user: ${user}`,
     );
 
     this.transporter = nodemailer.createTransport({
-      host,
+      host: connectHost,
       port,
       secure: isSecure, // true for 465 (implicit TLS), false for 587 (STARTTLS)
       auth: {
@@ -41,25 +70,18 @@ export class MailService implements OnModuleInit {
         pass,
       },
 
-      // ── Timeouts — fail fast instead of hanging for 2 minutes ──────────
+      // ── Timeouts — fail fast instead of hanging for 2 minutes ──────
       connectionTimeout: 10_000, // 10 s to establish TCP connection
       greetingTimeout: 10_000, // 10 s for the server EHLO greeting
       socketTimeout: 15_000, // 15 s for any subsequent socket inactivity
 
-      // ── TLS ────────────────────────────────────────────────────────────
+      // ── TLS ────────────────────────────────────────────────────────
       tls: {
-        // Use the hostname for SNI so the certificate matches
+        // servername MUST be the original hostname (not the IP) so the
+        // TLS certificate Subject/SAN matches during the handshake.
         servername: host,
-        // In production keep certificate validation enabled;
-        // only disable in dev if you have self-signed proxy certs.
         rejectUnauthorized: true,
       },
-
-      // ── DNS ────────────────────────────────────────────────────────────
-      // Let Nodemailer resolve the host itself (respects the global
-      // dns.setDefaultResultOrder('ipv4first') already set in main.ts).
-      // Do NOT resolve to an IP manually — it breaks TLS certificate
-      // validation on many cloud providers.
     });
   }
 
@@ -67,7 +89,7 @@ export class MailService implements OnModuleInit {
 
   private async verifyTransporter(): Promise<void> {
     const host = this.configService.get<string>('smtp.host');
-    const port = this.configService.get<number>('smtp.port', 587);
+    const port = this.configService.get<number>('smtp.port', 465);
 
     try {
       await this.transporter.verify();
@@ -82,9 +104,6 @@ export class MailService implements OnModuleInit {
           `   Port : ${port}\n` +
           `   Error: ${error.message}`,
       );
-
-      // Don't crash the entire application — emails will fail at send-time
-      // but all other endpoints remain operational.
       this.logger.warn(
         'The application will continue to start, but email sending will fail. ' +
           'Check your SMTP credentials, network/firewall rules, and whether your ' +
@@ -128,7 +147,7 @@ export class MailService implements OnModuleInit {
       );
     } catch (error) {
       const host = this.configService.get<string>('smtp.host');
-      const port = this.configService.get<number>('smtp.port', 587);
+      const port = this.configService.get<number>('smtp.port', 465);
       const errorType = this.classifySmtpError(error);
 
       this.logger.error(
@@ -150,6 +169,12 @@ export class MailService implements OnModuleInit {
     const msg = (error.message || '').toLowerCase();
     const code = (error.code || '').toUpperCase();
 
+    if (code === 'ENETUNREACH') {
+      return (
+        'NETWORK UNREACHABLE — Tried to connect via IPv6 but the host does not ' +
+        'support IPv6 outbound. Ensure DNS resolves to IPv4.'
+      );
+    }
     if (
       msg.includes('connection timeout') ||
       code === 'ETIMEDOUT' ||
@@ -165,9 +190,6 @@ export class MailService implements OnModuleInit {
     }
     if (code === 'ENOTFOUND' || msg.includes('getaddrinfo')) {
       return 'DNS RESOLUTION FAILED — Cannot resolve the SMTP hostname.';
-    }
-    if (code === 'ENETUNREACH') {
-      return 'NETWORK UNREACHABLE — No route to the SMTP server (likely an IPv6 issue).';
     }
     if (
       msg.includes('invalid login') ||
