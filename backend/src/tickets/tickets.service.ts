@@ -133,6 +133,7 @@ export class TicketsService {
         checkedInAt: booking.checkedInAt,
         showtime: booking.showtimeId,
         user: booking.userId,
+        showtimeStartTime: (booking.showtimeId as any)?.startTime,
       },
     };
   }
@@ -162,6 +163,24 @@ export class TicketsService {
   ): Promise<{ success: boolean; message: string; checkedInAt?: Date }> {
     // 1. Verify QR first (includes fraud guard)
     await this.verifyTicket(bookingId, token, ipAddress);
+
+    // 1b. Enforce 90-minute check-in window
+    const populatedForTime = await this.bookingModel
+      .findById(bookingId)
+      .populate('showtimeId', 'startTime')
+      .exec();
+    const showStartTime = (populatedForTime?.showtimeId as any)?.startTime;
+    if (showStartTime) {
+      const now = new Date();
+      const windowOpensAt = new Date(
+        new Date(showStartTime).getTime() - 90 * 60 * 1000,
+      );
+      if (now < windowOpensAt) {
+        throw new BadRequestException(
+          `Check-in opens 90 minutes before showtime. Check-in available from: ${windowOpensAt.toISOString()}`,
+        );
+      }
+    }
 
     // 2. Re-fetch booking without population for mutation
     const booking = await this.bookingModel.findById(bookingId).exec();

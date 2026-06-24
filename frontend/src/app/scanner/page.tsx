@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Scan, CheckCircle, XCircle, Upload, QrCode,
-  User, Film, Armchair, AlertCircle
+  User, Film, Armchair, AlertCircle, Clock
 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import api from '@/lib/axios';
@@ -19,6 +19,7 @@ interface TicketVerifyResult {
     seats: string[];
     totalAmount: number;
     checkedInAt?: string;
+    showtimeStartTime?: string;
     showtime: any;
     user: any;
   };
@@ -33,6 +34,7 @@ export default function ScannerPage() {
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [manualInput, setManualInput] = useState('');
   const [mode, setMode] = useState<'check' | 'checkin'>('checkin');
+  const [checkInBlockedMessage, setCheckInBlockedMessage] = useState<string>('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -69,6 +71,7 @@ export default function ScannerPage() {
       }
 
       setScanState('scanning');
+      setCheckInBlockedMessage('');
 
       const verifyResult = await api
         .post('/tickets/verify', { token, bookingId })
@@ -77,6 +80,22 @@ export default function ScannerPage() {
       setResult(verifyResult);
 
       if (mode === 'checkin' && verifyResult.booking?.status === 'CONFIRMED') {
+        // Check the 90-minute window on the frontend before calling check-in
+        const startTime = verifyResult.booking?.showtimeStartTime;
+        if (startTime) {
+          const now = new Date();
+          const showStart = new Date(startTime);
+          const windowOpensAt = new Date(showStart.getTime() - 90 * 60 * 1000);
+
+          if (now < windowOpensAt) {
+            // Too early — show verified status with info message
+            const timeStr = windowOpensAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const dateStr = windowOpensAt.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            setCheckInBlockedMessage(`Check-in opens at ${timeStr} on ${dateStr} (90 min before showtime)`);
+            setScanState('success');
+            return;
+          }
+        }
         checkInMutation.mutate({ token, bookingId });
       } else {
         setScanState('success');
@@ -202,6 +221,7 @@ export default function ScannerPage() {
     setResult(undefined);
     setErrorMsg('');
     setManualInput('');
+    setCheckInBlockedMessage('');
   };
 
   const allowedRoles = ['ADMIN', 'THEATRE_OWNER', 'THEATRE_MODERATOR'];
@@ -336,21 +356,44 @@ export default function ScannerPage() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
               className="glass-card p-6 mb-6"
-              style={{ border: '1px solid rgba(34,197,94,0.3)' }}
+              style={{ border: `1px solid ${checkInBlockedMessage ? 'rgba(234,179,8,0.3)' : 'rgba(34,197,94,0.3)'}` }}
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                  <CheckCircle size={24} className="text-emerald-400" />
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                  checkInBlockedMessage ? 'bg-yellow-500/10' : 'bg-emerald-500/10'
+                }`}>
+                  <CheckCircle size={24} className={checkInBlockedMessage ? 'text-yellow-400' : 'text-emerald-400'} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-emerald-400 text-lg">
-                    {result.booking.status === 'CHECKED_IN' ? 'Checked In ✓' : 'Ticket Valid ✓'}
+                  <h3 className={`font-bold text-lg ${
+                    result.booking.status === 'CHECKED_IN'
+                      ? 'text-emerald-400'
+                      : checkInBlockedMessage
+                        ? 'text-yellow-400'
+                        : 'text-emerald-400'
+                  }`}>
+                    {result.booking.status === 'CHECKED_IN' ? 'Checked In ✓' : 'Ticket Verified ✓'}
                   </h3>
                   <p className="text-xs text-[var(--color-text-muted)]">
-                    Status: <span className="text-emerald-400 font-medium">{result.booking.status}</span>
+                    Status: <span className={`font-medium ${
+                      result.booking.status === 'CHECKED_IN'
+                        ? 'text-emerald-400'
+                        : checkInBlockedMessage
+                          ? 'text-yellow-400'
+                          : 'text-emerald-400'
+                    }`}>{result.booking.status}</span>
                   </p>
                 </div>
               </div>
+
+              {/* Check-in time window banner */}
+              {checkInBlockedMessage && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 mb-4">
+                  <Clock size={18} className="text-yellow-400 flex-shrink-0" />
+                  <p className="text-sm text-yellow-300 font-medium">{checkInBlockedMessage}</p>
+                </div>
+              )}
+
               <div className="space-y-3">
                 {result.booking.user && (
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5">
