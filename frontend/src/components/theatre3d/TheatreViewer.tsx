@@ -38,6 +38,13 @@ function ResponsiveCamera({ position }: { position: [number, number, number] }) 
 
 export default function TheatreViewer({ data, className = '' }: TheatreViewerProps) {
   const [activePreset, setActivePreset] = useState<string>('Isometric');
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    }
+  }, []);
 
   const currentPreset = data.generated3DData.cameraPresets.find(
     (p) => p.name === activePreset,
@@ -62,6 +69,8 @@ export default function TheatreViewer({ data, className = '' }: TheatreViewerPro
           minDistance={2}
           maxDistance={100}
           target={currentPreset.target}
+          rotateSpeed={isTouchDevice ? 0.5 : 1.0}
+          panSpeed={isTouchDevice ? 0.5 : 1.0}
         />
 
         {/* Background */}

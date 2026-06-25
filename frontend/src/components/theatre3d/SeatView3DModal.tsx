@@ -100,9 +100,9 @@ function SeatCameraControls({ position, target, audioListener }: SeatCameraContr
       const dx = e.clientX - pointerRef.current.startX;
       const dy = e.clientY - pointerRef.current.startY;
 
-      // Touch input on mobile uses 3x higher sensitivity because finger
-      // swipes produce much smaller pixel deltas than mouse drags
-      const sensitivity = pointerRef.current.isTouchInput ? 0.010 : 0.0035;
+      // Touch input on mobile uses slightly higher sensitivity than mouse
+      // drags to compensate for smaller swipe ranges without being too erratic.
+      const sensitivity = pointerRef.current.isTouchInput ? 0.005 : 0.0035;
       let newYaw = pointerRef.current.startYaw - dx * sensitivity;
       let newPitch = pointerRef.current.startPitch + dy * sensitivity;
 
