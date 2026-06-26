@@ -1,0 +1,76 @@
+# ============================================================================
+# ViewMax — Docker Compose (Production)
+# ============================================================================
+# Orchestrates Frontend (Next.js) + Backend (NestJS)
+# Database: Cloud MongoDB Atlas  |  Cache: Cloud Redis
+#
+# Usage:
+#   Build & Start:  docker compose up --build
+#   Start:          docker compose up
+#   Stop:           docker compose down
+#   View logs:      docker compose logs -f [service]
+#   Rebuild one:    docker compose up --build backend
+# ============================================================================
+
+services:
+  # ── Backend (NestJS API) ──────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: viewmax-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-4000}:4000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - backend_uploads:/app/uploads     # Persist uploaded files
+    networks:
+      - viewmax-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ── Frontend (Next.js) ───────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # These NEXT_PUBLIC_ vars are baked into the client JS bundle at build time
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000/api}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+        NEXT_PUBLIC_FORMSPREE_FORM_ID: ${NEXT_PUBLIC_FORMSPREE_FORM_ID:-}
+    container_name: viewmax-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - viewmax-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# ── Volumes ─────────────────────────────────────────────────────────────────
+volumes:
+  backend_uploads:
+    driver: local
+
+# ── Networks ────────────────────────────────────────────────────────────────
+networks:
+  viewmax-network:
+    driver: bridge
