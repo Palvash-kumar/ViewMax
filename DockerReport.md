@@ -15,13 +15,14 @@
 4. [Architecture Overview](#4-architecture-overview)
 5. [Prerequisites](#5-prerequisites)
 6. [Installation Guide (macOS)](#6-installation-guide-macos)
-7. [Project Docker Structure](#7-project-docker-structure)
-8. [File-by-File Explanation](#8-file-by-file-explanation)
-9. [How to Run](#9-how-to-run)
-10. [Docker Commands Reference](#10-docker-commands-reference)
-11. [Troubleshooting](#11-troubleshooting)
-12. [Production Deployment Considerations](#12-production-deployment-considerations)
-13. [Glossary](#13-glossary)
+7. [Installation Guide (Windows)](#7-installation-guide-windows)
+8. [Project Docker Structure](#8-project-docker-structure)
+9. [File-by-File Explanation](#9-file-by-file-explanation)
+10. [How to Run](#10-how-to-run)
+11. [Docker Commands Reference](#11-docker-commands-reference)
+12. [Troubleshooting](#12-troubleshooting)
+13. [Production Deployment Considerations](#13-production-deployment-considerations)
+14. [Glossary](#14-glossary)
 
 ---
 
@@ -154,7 +155,7 @@ Virtual Machine                      Docker Container
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                        Host Machine (Your Mac)                   │
+│                    Host Machine (Your Mac / Windows PC)           │
 │                                                                  │
 │  ┌────────────────────────────────────────────────────────────┐  │
 │  │                    Docker Engine                           │  │
@@ -228,6 +229,8 @@ The builder stages are discarded → smaller, more secure images.
 
 ## 5. Prerequisites
 
+### macOS
+
 | Requirement | Version | Status |
 |-------------|---------|--------|
 | macOS | 12+ (Monterey or later) | Required |
@@ -235,6 +238,19 @@ The builder stages are discarded → smaller, more secure images.
 | RAM | 4 GB minimum (8 GB recommended) | Docker needs memory |
 | Disk Space | ~5 GB for Docker + images | Docker images take space |
 | Internet | Required | For pulling base images and cloud DB connections |
+
+### Windows
+
+| Requirement | Version | Status |
+|-------------|---------|--------|
+| Windows | 10 (Build 19041+) or Windows 11 | Required |
+| WSL 2 | Latest from Microsoft Store or `wsl --install` | Required (Docker Desktop backend) |
+| Docker Desktop | 4.x+ | Must be installed (see Section 7) |
+| RAM | 4 GB minimum (8 GB recommended) | Docker needs memory |
+| Disk Space | ~5 GB for Docker + images | Docker images take space |
+| Internet | Required | For pulling base images and cloud DB connections |
+
+> 💡 **Why WSL 2?** Docker Desktop for Windows uses WSL 2 (Windows Subsystem for Linux 2) as its backend. WSL 2 runs a real Linux kernel, which Docker needs to create containers. Without it, Docker cannot function on Windows.
 
 ---
 
@@ -290,7 +306,79 @@ Open Docker Desktop → Settings (⚙️):
 
 ---
 
-## 7. Project Docker Structure
+## 7. Installation Guide (Windows)
+
+### Step 1: Enable WSL 2
+
+1. Open **PowerShell as Administrator** (right-click Start → "Windows Terminal (Admin)" or search for PowerShell → Run as administrator)
+2. Run the following command:
+
+```powershell
+wsl --install
+```
+
+This installs WSL 2 and a default Ubuntu distribution. **Restart your PC** when prompted.
+
+3. After reboot, verify WSL 2 is active:
+
+```powershell
+wsl --version
+# Expected: WSL version 2.x.x
+```
+
+> ⚠️ **If `wsl --install` fails**: Your Windows version may be too old. Ensure you're on Windows 10 Build 19041+ or Windows 11. Run `winver` to check your build number.
+
+### Step 2: Download Docker Desktop
+
+1. Visit [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/)
+2. Click **"Download for Windows"**
+3. Download the `Docker Desktop Installer.exe`
+
+### Step 3: Install
+
+1. Double-click the downloaded `Docker Desktop Installer.exe`
+2. Ensure **"Use WSL 2 instead of Hyper-V"** is checked (recommended)
+3. Click **OK** and let the installation complete
+4. **Restart your PC** if prompted
+5. Open **Docker Desktop** from the Start Menu
+6. Accept the Docker Subscription Service Agreement
+7. Skip or complete the optional walkthrough
+
+> 💡 **First launch may take a minute** — Docker Desktop needs to initialize the WSL 2 backend.
+
+### Step 4: Verify Installation
+
+Open **PowerShell** or **Command Prompt** and run:
+
+```powershell
+# Check Docker is installed
+docker --version
+# Expected: Docker version 28.x.x, build xxxxxxx
+
+# Check Docker Compose is available
+docker compose version
+# Expected: Docker Compose version v2.x.x
+
+# Test Docker works by running a hello-world container
+docker run hello-world
+# Expected: "Hello from Docker!" message
+```
+
+### Step 5: Configure Docker Desktop (Recommended)
+
+Open Docker Desktop → Settings (⚙️):
+
+1. **General**: Ensure **"Use the WSL 2 based engine"** is enabled
+2. **Resources → WSL Integration**: Enable integration with your installed Linux distro (e.g., Ubuntu)
+3. **Resources → Memory** (if using Hyper-V backend): Allocate at least **4 GB** (6-8 GB if possible)
+4. **Resources → Disk**: At least **20 GB**
+5. Click **Apply & Restart**
+
+> ⚠️ **Important**: Docker Desktop must be **running** (whale icon 🐳 in your system tray) whenever you use Docker commands. If you see "error during connect" or "Cannot connect to the Docker daemon", open Docker Desktop first.
+
+---
+
+## 8. Project Docker Structure
 
 After implementation, the project structure looks like this:
 
@@ -323,7 +411,7 @@ ViewMax/
 
 ---
 
-## 8. File-by-File Explanation
+## 9. File-by-File Explanation
 
 ### 8.1 `backend/Dockerfile`
 
@@ -474,15 +562,17 @@ const nextConfig: NextConfig = {
 
 ---
 
-## 9. How to Run
+## 10. How to Run
 
 ### First-Time Setup
+
+#### macOS (Terminal)
 
 ```bash
 # 1. Make sure Docker Desktop is running (whale icon 🐳 in menu bar)
 
 # 2. Navigate to your project
-cd /Users/sunny/Clg/testing/ViewMax
+cd /path/to/ViewMax
 
 # 3. Make sure your .env files are configured
 #    backend/.env  → Should have MongoDB Atlas URI, Redis Cloud, Stripe, etc.
@@ -491,6 +581,24 @@ cd /Users/sunny/Clg/testing/ViewMax
 # 4. Build and start everything
 docker compose up --build
 ```
+
+#### Windows (PowerShell or Command Prompt)
+
+```powershell
+# 1. Make sure Docker Desktop is running (whale icon 🐳 in system tray)
+
+# 2. Navigate to your project
+cd C:\path\to\ViewMax
+
+# 3. Make sure your .env files are configured
+#    backend\.env  → Should have MongoDB Atlas URI, Redis Cloud, Stripe, etc.
+#    frontend\.env → Should have NEXT_PUBLIC_API_URL, Stripe key, etc.
+
+# 4. Build and start everything
+docker compose up --build
+```
+
+> 💡 **Tip for Windows users**: You can also run Docker commands from inside WSL 2 (open Ubuntu from Start Menu). The commands are identical to macOS/Linux.
 
 The first build takes **3-8 minutes** (downloading base images + installing dependencies). Subsequent builds are much faster due to Docker's layer caching.
 
@@ -529,7 +637,7 @@ viewmax-frontend  |   - Local: http://localhost:3000
 
 ---
 
-## 10. Docker Commands Reference
+## 11. Docker Commands Reference
 
 ### Essential Commands
 
@@ -574,15 +682,23 @@ viewmax-frontend  |   - Local: http://localhost:3000
 
 ---
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 ### Common Issues
 
 #### "Cannot connect to the Docker daemon"
+
+**macOS:**
 ```
 Error: Cannot connect to the Docker daemon at unix:///var/run/docker.sock
 ```
 **Solution**: Docker Desktop is not running. Open Docker Desktop from Applications.
+
+**Windows:**
+```
+error during connect: in the default daemon configuration on Windows, ...
+```
+**Solution**: Docker Desktop is not running. Open Docker Desktop from the Start Menu. If it still fails, ensure WSL 2 is installed and the Docker WSL integration is enabled (Docker Desktop → Settings → Resources → WSL Integration).
 
 ---
 
@@ -591,8 +707,15 @@ Error: Cannot connect to the Docker daemon at unix:///var/run/docker.sock
 Error: Bind for 0.0.0.0:3000 failed: port is already allocated
 ```
 **Solution**: Something else is using port 3000/4000. Either:
+
+**macOS:**
 - Stop the other process: `lsof -i :3000` to find it, then `kill -9 <PID>`
-- Or change the port in docker-compose.yml: `"3001:3000"`
+
+**Windows (PowerShell):**
+- Find the process: `netstat -ano | findstr :3000`
+- Kill it: `taskkill /PID <PID> /F`
+
+**Both platforms:** Or change the port in docker-compose.yml: `"3001:3000"`
 
 ---
 
@@ -620,6 +743,8 @@ Error: MongoServerError: bad auth
 2. Make sure `.dockerignore` is in place (prevents copying `node_modules` into build context)
 3. Use `docker compose build --parallel` to build services simultaneously
 
+**Windows-specific:** If builds are significantly slower than expected, ensure your project files are stored on the WSL 2 filesystem (`\\wsl$\Ubuntu\...`) rather than the Windows filesystem (`C:\...`). WSL 2 has much faster I/O on its native filesystem.
+
 ---
 
 #### "NEXT_PUBLIC_ variables are undefined"
@@ -629,7 +754,21 @@ Error: MongoServerError: bad auth
 
 ---
 
-## 12. Production Deployment Considerations
+#### Windows: "WSL 2 installation is incomplete"
+**Solution**:
+1. Open PowerShell as Administrator
+2. Run `wsl --update`
+3. Restart Docker Desktop
+4. If the issue persists, run `wsl --install` and restart your PC
+
+---
+
+#### Windows: "Docker Desktop requires a newer WSL kernel version"
+**Solution**: Run `wsl --update` in PowerShell (as Administrator) and restart Docker Desktop.
+
+---
+
+## 13. Production Deployment Considerations
 
 ### Security Checklist
 
@@ -669,7 +808,7 @@ Savings: ~70-80% smaller images
 
 ---
 
-## 13. Glossary
+## 14. Glossary
 
 | Term | Definition |
 |------|-----------|
@@ -678,7 +817,8 @@ Savings: ~70-80% smaller images
 | **Container** | A running instance of a Docker image. Isolated from the host and other containers. |
 | **Daemon** | The background service (`dockerd`) that manages containers. Started by Docker Desktop. |
 | **Docker Compose** | A tool for defining and running multi-container applications using a YAML file. |
-| **Docker Desktop** | The GUI application for Mac/Windows that includes the Docker engine, CLI, and Compose. |
+| **Docker Desktop** | The GUI application for Mac/Windows/Linux that includes the Docker engine, CLI, and Compose. |
+| **WSL 2** | Windows Subsystem for Linux 2 — a lightweight Linux kernel that runs inside Windows. Required by Docker Desktop on Windows. |
 | **Docker Hub** | A cloud registry for sharing Docker images (like npm for containers). |
 | **Dockerfile** | A text file with instructions to build a Docker image. Each instruction creates a layer. |
 | **Health Check** | A command that Docker runs periodically to check if a container is healthy. |
@@ -711,6 +851,6 @@ Savings: ~70-80% smaller images
 
 ---
 
-> **Document Version**: 1.0.0  
-> **Last Updated**: June 26, 2026  
+> **Document Version**: 1.1.0  
+> **Last Updated**: June 27, 2026  
 > **Maintainer**: Palvash
