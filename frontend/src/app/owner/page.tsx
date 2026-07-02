@@ -662,6 +662,7 @@ export default function OwnerDashboard() {
                   <option value="FILM_35MM" className="bg-[var(--color-bg-primary)]">35mm Film</option>
                   <option value="FILM_70MM" className="bg-[var(--color-bg-primary)]">70mm Film</option>
                   <option value="CUSTOM" className="bg-[var(--color-bg-primary)]">Custom Format</option>
+                  <option value="SCREEN_X" className="bg-[var(--color-bg-primary)]">ScreenX</option>
                 </select>
               </div>
 

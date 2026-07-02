@@ -18,6 +18,7 @@ const FORMAT_ICONS: Record<string, string> = {
   FILM_70MM: '📽️',
   STANDARD: '🏛️',
   CUSTOM: '⚙️',
+  SCREEN_X: '🌀',
 };
 
 const FORMAT_GRADIENTS: Record<string, string> = {
@@ -29,6 +30,7 @@ const FORMAT_GRADIENTS: Record<string, string> = {
   FILM_70MM: 'from-violet-600/20 to-fuchsia-600/20',
   STANDARD: 'from-slate-600/20 to-gray-600/20',
   CUSTOM: 'from-[var(--color-gold-500)]/20 to-[var(--color-gold-700)]/20',
+  SCREEN_X: 'from-pink-600/20 to-rose-600/20',
 };
 
 export default function TemplateSelector({

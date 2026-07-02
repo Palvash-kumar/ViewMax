@@ -53,7 +53,7 @@ export interface Screen {
   seatMap: SeatInfo[][];
 }
 
-export type ScreenType = 'TRUE_IMAX' | 'IMAX_DIGITAL' | 'EPIC' | 'DOLBY' | 'STANDARD' | 'FILM_35MM' | 'FILM_70MM' | 'CUSTOM';
+export type ScreenType = 'TRUE_IMAX' | 'IMAX_DIGITAL' | 'EPIC' | 'DOLBY' | 'STANDARD' | 'FILM_35MM' | 'FILM_70MM' | 'CUSTOM' | 'SCREEN_X';
 
 export interface SeatInfo {
   seatNumber: string;

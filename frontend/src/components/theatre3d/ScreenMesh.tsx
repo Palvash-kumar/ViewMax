@@ -453,6 +453,12 @@ export default function ScreenMesh({
           borderColor: '#34d399',     // Emerald glow
           standbyNeonColor: '#022c22' // Dark emerald
         };
+      case 'SCREEN_X':
+        return {
+          neonColor: '#ec4899',       // Vibrant magenta/pink
+          borderColor: '#f472b6',     // Soft pink glow
+          standbyNeonColor: '#500724' // Deep dark rose
+        };
       case 'STANDARD':
       default:
         return {

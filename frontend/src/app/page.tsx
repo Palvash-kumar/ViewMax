@@ -240,6 +240,7 @@ function Theatre3DSimulator() {
               { id: 'imax-digital', label: 'IMAX Digital (1.90:1)' },
               { id: 'dolby', label: 'Dolby Cinema (2.39:1)' },
               { id: 'standard', label: 'Standard (2.39:1)' },
+              { id: 'screen-x', label: 'ScreenX (270°)' },
             ].map((screen) => (
               <button
                 key={screen.id}
