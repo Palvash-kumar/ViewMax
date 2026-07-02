@@ -54,6 +54,12 @@ const SCREEN_DEFAULTS: Record<
     rows: 10,
     columns: 16,
   },
+  [ScreenType.SCREEN_X]: {
+    rows: 16,
+    columns: 22,
+    premiumRows: ['H', 'I', 'J'],
+    vipRows: ['K'],
+  },
 };
 
 @Injectable()

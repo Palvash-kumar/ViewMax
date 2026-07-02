@@ -7,4 +7,5 @@ export enum ScreenType {
   FILM_35MM = 'FILM_35MM',
   FILM_70MM = 'FILM_70MM',
   CUSTOM = 'CUSTOM',
+  SCREEN_X = 'SCREEN_X',
 }

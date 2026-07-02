@@ -224,6 +224,28 @@ const CUSTOM: ScreenFormatProfile = {
   maxHorizontalAngleDeg: 38,
 };
 
+const SCREEN_X_PROFILE: ScreenFormatProfile = {
+  screenType: ScreenType.SCREEN_X,
+  label: 'ScreenX (270°)',
+  optimalDistanceMultiplier: 1.1,
+  maxDistanceMultiplier: 2.4,
+  minDistanceMultiplier: 0.65,
+  coverageWeight: 0.40,
+  distanceWeight: 0.15,
+  alignmentWeight: 0.20,
+  vertAngleWeight: 0.10,
+  horizAngleWeight: 0.15,
+  comfortDistanceWeight: 0.35,
+  comfortNeckWeight: 0.35,
+  comfortAngleWeight: 0.30,
+  premiumImmersionWeight: 0.45,
+  premiumComfortWeight: 0.30,
+  premiumCoverageWeight: 0.25,
+  idealCoverageFovPercent: 55,
+  neckStrainThresholdDeg: 22,
+  maxHorizontalAngleDeg: 32,
+};
+
 // ─── Registry ───────────────────────────────────────────────────────────────
 
 const PROFILES: Record<ScreenType, ScreenFormatProfile> = {
@@ -235,6 +257,7 @@ const PROFILES: Record<ScreenType, ScreenFormatProfile> = {
   [ScreenType.FILM_70MM]: FILM_70MM,
   [ScreenType.STANDARD]: STANDARD,
   [ScreenType.CUSTOM]: CUSTOM,
+  [ScreenType.SCREEN_X]: SCREEN_X_PROFILE,
 };
 
 export function getScreenFormatProfile(

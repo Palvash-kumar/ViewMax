@@ -258,6 +258,28 @@ const TEMPLATES: TemplateSeed[] = [
     isDefault: true,
     cameraPresets: [],
   },
+  {
+    templateName: 'ScreenX',
+    screenType: ScreenType.SCREEN_X,
+    defaultScreenWidth: 20,
+    defaultScreenHeight: 8.4,
+    aspectRatio: '2.39:1',
+    defaultRows: 16,
+    defaultSeatsPerRow: 22,
+    aisleConfiguration: {
+      leftAisle: true,
+      rightAisle: true,
+      centerAisles: [11],
+      aisleWidth: 1.0,
+    },
+    seatSpacing: 0.62,
+    rowSpacing: 1.15,
+    rakeAngle: 15,
+    description:
+      '270° panoramic cinema format with immersive side-wall projections wrapping around the audience.',
+    isDefault: true,
+    cameraPresets: [],
+  },
 ];
 
 async function seed() {
