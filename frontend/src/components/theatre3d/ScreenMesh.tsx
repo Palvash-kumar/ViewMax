@@ -414,6 +414,20 @@ export default function ScreenMesh({
     return new THREE.PlaneGeometry(w, h);
   }, [screen]);
 
+  // ScreenX 270° side wall panel geometry
+  const screenXSide = useMemo(() => {
+    if (screen.screenType !== 'SCREEN_X') return null;
+    const sw = screen.width * 0.42;
+    const sh = screen.height;
+    return {
+      w: sw,
+      h: sh,
+      geo: new THREE.PlaneGeometry(sw, sh),
+      frameGeo: new THREE.PlaneGeometry(sw + 0.12, sh + 0.12),
+      backGeo: new THREE.PlaneGeometry(sw + 0.25, sh + 0.25),
+    };
+  }, [screen]);
+
   // Curated premium design system for different screen templates
   const { neonColor, borderColor, standbyNeonColor } = useMemo(() => {
     switch (screen.screenType) {
@@ -591,6 +605,105 @@ export default function ScreenMesh({
         color={neonColor}
         distance={screen.width * 1.5}
       />
+
+      {/* ═══ 7. ScreenX 270° Side Wall Panels ═══ */}
+      {screen.screenType === 'SCREEN_X' && screenXSide && (
+        <>
+          {([  // ponytail: map over sides to avoid duplicating JSX
+            { key: 'L', xSign: -1, yRot: Math.PI / 2 },
+            { key: 'R', xSign: 1, yRot: -Math.PI / 2 },
+          ] as const).map(({ key, xSign, yRot }) => (
+            <group
+              key={key}
+              position={[xSign * screen.width / 2, 0, screenXSide.w / 2]}
+              rotation={[0, yRot, 0]}
+            >
+              {/* Side panel base surface */}
+              <mesh geometry={screenXSide.geo}>
+                <meshStandardMaterial
+                  color={videoReady ? '#000000' : '#06090e'}
+                  emissive={videoReady ? '#000000' : standbyNeonColor}
+                  emissiveIntensity={videoReady ? 0 : 0.12}
+                  side={THREE.DoubleSide}
+                  roughness={0.4}
+                  metalness={0.1}
+                />
+                {!videoReady && (
+                  <Edges color={neonColor} lineWidth={1.2} threshold={15} />
+                )}
+              </mesh>
+
+              {/* Side panel video projection (dimmed peripheral) */}
+              {videoReady && textureRef.current && (
+                <mesh geometry={screenXSide.geo} position={[0, 0, 0.015]}>
+                  <meshBasicMaterial
+                    map={textureRef.current}
+                    color="#9090a0"
+                    side={THREE.DoubleSide}
+                    toneMapped={false}
+                  />
+                </mesh>
+              )}
+
+              {/* Side panel gold frame border */}
+              {videoReady && (
+                <>
+                  <mesh geometry={screenXSide.frameGeo} position={[0, 0, 0.005]}>
+                    <meshBasicMaterial
+                      color="#fbbf24"
+                      toneMapped={false}
+                      transparent
+                      opacity={0.7}
+                      side={THREE.DoubleSide}
+                    />
+                  </mesh>
+                  <mesh geometry={screenXSide.geo} position={[0, 0, 0.016]}>
+                    <meshBasicMaterial visible={false} />
+                    <Edges color="#fbbf24" lineWidth={1.5} threshold={15} />
+                  </mesh>
+                  {/* Side wall ambient glow from video */}
+                  <pointLight
+                    position={[0, 0, -0.3]}
+                    intensity={0.6}
+                    color="#fbbf24"
+                    distance={screenXSide.w * 1.2}
+                  />
+                </>
+              )}
+
+              {/* Side panel standby neon backlight */}
+              {!videoReady && (
+                <mesh position={[0, 0, -0.05]} geometry={screenXSide.geo}>
+                  <meshBasicMaterial
+                    color={standbyNeonColor}
+                    toneMapped={false}
+                    transparent
+                    opacity={0.3}
+                    side={THREE.DoubleSide}
+                  />
+                </mesh>
+              )}
+
+              {/* Side panel backing */}
+              <mesh geometry={screenXSide.backGeo} position={[0, 0, -0.025]}>
+                <meshStandardMaterial
+                  color="#030508"
+                  roughness={0.9}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+
+              {/* Side wall neon glow */}
+              <pointLight
+                position={[0, 0, -0.25]}
+                intensity={videoReady ? 0 : 0.5}
+                color={neonColor}
+                distance={screenXSide.w * 1.5}
+              />
+            </group>
+          ))}
+        </>
+      )}
     </group>
   );
 }
