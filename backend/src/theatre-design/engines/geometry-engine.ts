@@ -90,7 +90,7 @@ export class GeometryEngine {
           screenCurvature = 0.04;
           break;
         case 'SCREEN_X':
-          screenCurvature = 0.02;
+          screenCurvature = 0.08;
           break;
         case 'FILM_35MM':
         case 'STANDARD':

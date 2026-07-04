@@ -95,6 +95,7 @@ export default function TheatreScene({
       {/* 5. Screen Mesh Component */}
       <ScreenMesh
         screen={generated3DData.screen}
+        floor={generated3DData.floor}
         videoUrl={videoUrl}
         audioListener={audioListener}
         isMuted={isMuted}
