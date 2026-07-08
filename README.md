@@ -44,37 +44,20 @@ An enterprise-grade, full-stack cinema booking and experience ecosystem — feat
 
 ViewMax follows a **monorepo architecture** composed of two independently deployable sub-systems communicating over a RESTful API layer.
 
-```
-                    ┌─────────────────────────────────┐
-                    │     Client Devices (PWA)         │
-                    │   Browser · Mobile · Desktop     │
-                    └───────────────┬─────────────────┘
-                                    │ HTTPS
-                    ┌───────────────▼─────────────────┐
-                    │     Next.js 16 (App Router)      │
-                    │          Port 3000               │
-                    │  React 19 · Tailwind · Framer    │
-                    │  Three.js · Zustand · React Query│
-                    └───────────────┬─────────────────┘
-                                    │ REST / JSON
-                    ┌───────────────▼─────────────────┐
-                    │       NestJS 11 API Server       │
-                    │          Port 4000               │
-                    │  TypeScript · Swagger · Passport │
-                    └──┬──────────┬──────────┬────────┘
-                       │          │          │
-          ┌────────────▼──┐  ┌───▼────┐  ┌──▼──────────────────┐
-          │   MongoDB      │  │ Redis  │  │  External Services  │
-          │   Atlas        │  │ Cloud  │  │                     │
-          │                │  │        │  │  • Stripe Payments  │
-          │  • Users       │  │ • Seat │  │  • Cloudinary Media │
-          │  • Movies      │  │   Locks│  │  • SMTP Email       │
-          │  • Theatres    │  │ • QR   │  │  • Google OAuth     │
-          │  • Bookings    │  │   Nonce│  │                     │
-          │  • Audit Logs  │  │   Store│  │                     │
-          │  • Seat Scores │  │ • Bull │  │                     │
-          │  • User Prefs  │  │   MQ   │  │                     │
-          └────────────────┘  └────────┘  └─────────────────────┘
+```mermaid
+flowchart TD
+    Client["Client Devices (PWA)\nBrowser · Mobile · Desktop"]
+    Frontend["Next.js 16 (App Router) · Port 3000\nReact 19 · Tailwind · Framer\nThree.js · Zustand · React Query"]
+    Backend["NestJS 11 API Server · Port 4000\nTypeScript · Swagger · Passport"]
+    Mongo["MongoDB Atlas\n• Users • Movies\n• Theatres • Bookings\n• Audit Logs • Seat Scores\n• User Prefs"]
+    Redis["Redis Cloud\n• Seat Locks • QR Nonce Store\n• BullMQ"]
+    External["External Services\n• Stripe Payments\n• Cloudinary Media\n• SMTP Email\n• Google OAuth"]
+
+    Client -->|HTTPS| Frontend
+    Frontend -->|REST / JSON| Backend
+    Backend --> Mongo
+    Backend --> Redis
+    Backend --> External
 ```
 
 ---
@@ -139,21 +122,20 @@ Returns a primary recommendation + 3 alternates, each with a human-readable expl
 
 Prevents double-booking under high-concurrency conditions using a **distributed locking mechanism**.
 
-```
-Customer selects seats
-        │
-        ▼
- ┌─────────────────┐     ┌────────────────┐     ┌─────────────────┐
- │  Redis Atomic    │────▶│  Stripe        │────▶│  Booking        │
- │  Seat Lock       │     │  Checkout      │     │  Confirmed      │
- │  (10-min TTL)    │     │  Session       │     │  (Webhook)      │
- └─────────────────┘     └────────────────┘     └─────────────────┘
-        │                                               │
-        ▼ (on timeout or failure)                       ▼
- ┌─────────────────┐                           ┌─────────────────┐
- │  Lock Released   │                           │  Ticket + QR    │
- │  Seats Available │                           │  Generated      │
- └─────────────────┘                           └─────────────────┘
+```mermaid
+flowchart TD
+    Select["Customer selects seats"]
+    Lock["Redis Atomic Seat Lock\n(10-min TTL)"]
+    Stripe["Stripe Checkout Session"]
+    Confirmed["Booking Confirmed\n(Webhook)"]
+    Released["Lock Released\nSeats Available"]
+    Ticket["Ticket + QR Generated"]
+
+    Select --> Lock
+    Lock --> Stripe
+    Stripe --> Confirmed
+    Lock -->|timeout / failure| Released
+    Confirmed --> Ticket
 ```
 
 - **Atomic Redis seat locks** with 600-second TTL (10 minutes) during payment checkout — implemented via `RedisService.lockSeats()` with automatic rollback if any individual seat lock fails
@@ -554,35 +536,16 @@ ViewMax uses **GitHub Actions** with a multi-stage pipeline defined in [`.github
 
 **Node.js version:** `20.x` (pinned via `NODE_VERSION` env)
 
-```
-┌───────────────────┐     ┌───────────────────┐
-│  backend-test     │     │  frontend-test    │
-│                   │     │                   │
-│  • npm ci         │     │  • npm ci         │
-│  • npm run lint   │     │  • npm run lint   │
-│  • npx tsc        │     │  • npx tsc        │
-│    --noEmit       │     │    --noEmit       │
-│  • npm run build  │     │  • npm run build  │
-└────────┬──────────┘     └────────┬──────────┘
-         │                         │
-         └─────────┬───────────────┘
-                   │ (both pass)
-          ┌────────▼──────────┐
-          │  security-audit   │
-          │                   │
-          │  • npm audit      │
-          │    --audit-level  │
-          │    =high          │
-          │  (both projects)  │
-          └────────┬──────────┘
-                   │ (passes)
-          ┌────────▼──────────┐
-          │  deploy           │
-          │  (main only,      │
-          │   push only)      │
-          │                   │
-          │  production env   │
-          └───────────────────┘
+```mermaid
+flowchart TD
+    BT["backend-test\n• npm ci\n• npm run lint\n• npx tsc --noEmit\n• npm run build"]
+    FT["frontend-test\n• npm ci\n• npm run lint\n• npx tsc --noEmit\n• npm run build"]
+    SA["security-audit\n• npm audit --audit-level=high\n(both projects)"]
+    Deploy["deploy\n(main only, push only)\nproduction env"]
+
+    BT --> SA
+    FT --> SA
+    SA --> Deploy
 ```
 
 **Pipeline stages:**
