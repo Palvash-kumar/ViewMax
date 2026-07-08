@@ -9,7 +9,7 @@
 [![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)](#technology-stack)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=next.js&logoColor=white)](#technology-stack)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](#technology-stack)
-[![License](https://img.shields.io/badge/License-UNLICENSED-gray)](#license)
+[![License](https://img.shields.io/badge/License-MIT-yellow?logo=opensourceinitiative&logoColor=white)](#license)
 
 An enterprise-grade, full-stack cinema booking and experience ecosystem — featuring a **Next.js Progressive Web App**, a high-throughput **NestJS API**, **Redis-backed seat locking**, **Stripe payment processing**, and a **geometry-based seating intelligence engine**.
 
@@ -661,7 +661,7 @@ Contributions are welcome. Please follow these guidelines:
 
 ## License
 
-This project is **UNLICENSED** — proprietary and confidential. All rights reserved.
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
 
