@@ -154,7 +154,12 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
       })}
 
       {/* 5. Side Walls with Acoustic Slats and Speaker Boxes */}
-      {[-1, 1].map((side) => (
+      {[-1, 1].map((side) => {
+        // ponytail: ScreenX uses the front 60% of each wall as projection surface — skip
+        // acoustic panels, speakers, and LEDs in that zone so the wall stays clean for projection
+        const screenXProjectionZ = screen?.screenType === 'SCREEN_X' ? floor.depth * 0.6 : 0;
+
+        return (
         <group key={`side-wall-${side}`} position={[side * (floor.width / 2), 0, 0]}>
           {/* Main Wall Mesh (Dark grey acoustic fabric) */}
           <mesh position={[side * 0.05, roomHeight / 2, roomDepth / 2]}>
@@ -166,8 +171,10 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
             />
           </mesh>
 
-          {/* Premium Acoustic Slat Wood Panels */}
-          {acousticPanels.map((panel, idx) => (
+          {/* Premium Acoustic Slat Wood Panels — skipped in ScreenX projection zone */}
+          {acousticPanels
+            .filter((panel) => panel.z > screenXProjectionZ)
+            .map((panel, idx) => (
             <mesh
               key={`ac-panel-${idx}`}
               position={[side * 0.07, panel.y, panel.z]}
@@ -181,8 +188,10 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
             </mesh>
           ))}
 
-          {/* Surround Speakers (Dolby design) */}
-          {acousticPanels.map((panel, idx) => (
+          {/* Surround Speakers (Dolby design) — skipped in ScreenX projection zone */}
+          {acousticPanels
+            .filter((panel) => panel.z > screenXProjectionZ)
+            .map((panel, idx) => (
             <group key={`wall-speaker-${idx}`} position={[side * 0.12, panel.y + 1.5, panel.z]}>
               <mesh rotation={[0.15, side * -0.2, 0]}>
                 <boxGeometry args={[0.22, 0.38, 0.2]} />
@@ -196,8 +205,10 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
             </group>
           ))}
 
-          {/* Accent vertical LED strips (dimmed during video playback) */}
-          {wallLeds.map((led, idx) => (
+          {/* Accent vertical LED strips — skipped in ScreenX projection zone */}
+          {wallLeds
+            .filter((led) => led.z > screenXProjectionZ)
+            .map((led, idx) => (
             <group key={`led-${idx}`} position={[side * 0.06, led.y, led.z]}>
               {/* Glowing LED core */}
               <mesh>
@@ -217,7 +228,8 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
             </group>
           ))}
         </group>
-      ))}
+        );
+      })}
 
       {/* 6. Back Wall with Projector Window */}
       <group>

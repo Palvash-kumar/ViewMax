@@ -276,7 +276,7 @@ const TEMPLATES: TemplateSeed[] = [
     rowSpacing: 1.15,
     rakeAngle: 15,
     description:
-      '270° panoramic cinema format with immersive side-wall projections wrapping around the audience.',
+      '270° panoramic cinema format (70mm film base screen) with immersive side-wall projections wrapping around the audience.',
     isDefault: true,
     cameraPresets: [],
   },

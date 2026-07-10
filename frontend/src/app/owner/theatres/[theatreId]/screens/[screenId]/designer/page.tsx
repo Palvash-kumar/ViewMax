@@ -81,8 +81,16 @@ export default function DesignerPage({ params }: PageProps) {
             (t: any) => t.screenType === screen.screenType
           );
 
-          if (matchingTemplate) {
-            await createLayout(theatreId, screenId, matchingTemplate._id, `${screen.name} Layout`);
+          // ponytail: ScreenX uses 70mm film as its base screen — fall back to FILM_70MM if
+          // dedicated SCREEN_X template isn't seeded yet
+          const fallbackTemplate = !matchingTemplate && screen.screenType === 'SCREEN_X'
+            ? templatesList.find((t: any) => t.screenType === 'FILM_70MM')
+            : null;
+
+          const resolvedTemplate = matchingTemplate || fallbackTemplate;
+
+          if (resolvedTemplate) {
+            await createLayout(theatreId, screenId, resolvedTemplate._id, `${screen.name} Layout`);
           } else {
             // Fallback if no matching template is found in database
             await loadTemplates();
@@ -91,6 +99,7 @@ export default function DesignerPage({ params }: PageProps) {
         }
       } catch (err) {
         console.error('Failed to auto-resolve layout template:', err);
+        // Last resort: try fetching templates for manual selection
         await loadTemplates();
         setShowTemplateSelector(true);
       } finally {
