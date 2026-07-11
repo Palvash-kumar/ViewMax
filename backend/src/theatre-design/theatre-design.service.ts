@@ -373,6 +373,32 @@ export class TheatreDesignService {
 
     const coordinates = await this.getCoordinates(layoutId);
 
+    // Resolve screenType from the live screen document at read time — stored
+    // generated3DData may predate screenType support (e.g. layouts generated
+    // before ScreenX side-wall projections were added), and the frontend needs
+    // it to render format-specific screens (SCREEN_X, IMAX, DOLBY, ...).
+    let screenType = layout.generated3DData.screen?.screenType;
+    if (layout.screenId) {
+      try {
+        const screen = await this.screensService.findById(
+          layout.screenId.toString(),
+        );
+        if (screen?.screenType) {
+          screenType = screen.screenType;
+        }
+      } catch {
+        // Screen lookup failed — keep whatever the stored 3D data has
+      }
+    }
+
+    const generated3DData = {
+      ...layout.generated3DData,
+      screen: {
+        ...layout.generated3DData.screen,
+        screenType,
+      },
+    };
+
     return {
       layout: {
         _id: layout._id,
@@ -384,7 +410,7 @@ export class TheatreDesignService {
         rows: layout.rows,
         seatMap: layout.seatMap,
       },
-      generated3DData: layout.generated3DData,
+      generated3DData,
       geometryData: layout.geometryData,
       coordinates,
     };

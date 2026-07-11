@@ -23,11 +23,16 @@ export default function ScreenMesh({
   isMuted = true,
   volume = 0.8,
 }: ScreenMeshProps) {
-  // ponytail: ScreenX main screen gets moderate curvature; the 270° comes from side wall projections
+  // ponytail: ScreenX main screen gets moderate curvature; the 270° comes from side wall projections.
+  // The front screen visually spans the full front wall so its edges land exactly
+  // on the side wall corners — the wall projections continue seamlessly from there.
   const screen = useMemo((): Generated3DScreen => {
     if (rawScreen.screenType !== 'SCREEN_X') return rawScreen;
-    return { ...rawScreen, curvature: 0.08 };
-  }, [rawScreen]);
+    const visualWidth = floor
+      ? Math.max(rawScreen.width, floor.width - 0.16)
+      : rawScreen.width;
+    return { ...rawScreen, curvature: 0.08, width: visualWidth };
+  }, [rawScreen, floor]);
 
   const meshRef = useRef<THREE.Mesh>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -286,6 +291,11 @@ export default function ScreenMesh({
 
   // Compute fitted video display dimensions based on video aspect ratio
   const { displayWidth, displayHeight } = useMemo(() => {
+    // ScreenX content always fills the entire front screen — the side wall
+    // projections continue from the exact screen edges, so no letterboxing.
+    if (screen.screenType === 'SCREEN_X') {
+      return { displayWidth: screen.width, displayHeight: screen.height };
+    }
     if (!aspectRatio) {
       return { displayWidth: screen.width, displayHeight: screen.height };
     }
@@ -303,14 +313,7 @@ export default function ScreenMesh({
         displayHeight: screen.height,
       };
     }
-  }, [aspectRatio, screen.width, screen.height]);
-
-  console.log('ScreenMesh debug:', {
-    screen,
-    aspectRatio,
-    displayWidth,
-    displayHeight
-  });
+  }, [aspectRatio, screen.width, screen.height, screen.screenType]);
 
   // Dynamic video screen geometry (fits the video aspect ratio exactly)
   const videoGeometry = useMemo(() => {
@@ -422,7 +425,98 @@ export default function ScreenMesh({
     return new THREE.PlaneGeometry(w, h);
   }, [screen]);
 
+  // ─── ScreenX 270° side wall projection assets ─────────────────────────────
+  // Wall panel placement: flush against each side wall, starting at the front
+  // wall corner and running ~60% of the theatre depth backward (matches the
+  // clean projection zone reserved in FloorMesh).
+  const wallDims = useMemo(() => {
+    if (screen.screenType !== 'SCREEN_X' || !floor) return null;
+    return {
+      length: floor.depth * 0.6,
+      x: floor.width / 2 - 0.08,
+      // local Z (relative to the screen group) where the panels start, flush
+      // with the front wall of the room at world z ≈ 0
+      frontZ: 0.08 - (screen.position[2] ?? 0),
+    };
+  }, [screen, floor]);
 
+  // Flat wall panels with a vertex-color brightness gradient: full brightness
+  // at the screen corner, quadratic falloff toward the audience end.
+  // Left wall rotates +90° (local +X → world −Z): its screen corner is at u=1.
+  // Right wall rotates −90° (local +X → world +Z): its screen corner is at u=0.
+  const wallGeometries = useMemo(() => {
+    if (!wallDims) return null;
+
+    const buildWallGeo = (brightAtU1: boolean) => {
+      const segs = 24;
+      const geo = new THREE.PlaneGeometry(wallDims.length, screen.height, segs, 1);
+      const colors = new Float32Array((segs + 1) * 2 * 3);
+      for (let i = 0; i <= segs; i++) {
+        const t = i / segs;
+        const d = brightAtU1 ? 1 - t : t; // distance from the screen corner
+        const brightness = 1.0 - d * d * 0.55; // fades to 45% at the far end
+        for (let j = 0; j <= 1; j++) {
+          const idx = (i + j * (segs + 1)) * 3;
+          colors[idx] = brightness;
+          colors[idx + 1] = brightness;
+          colors[idx + 2] = brightness;
+        }
+      }
+      geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      return geo;
+    };
+
+    return {
+      left: buildWallGeo(true),
+      right: buildWallGeo(false),
+      backing: new THREE.PlaneGeometry(wallDims.length + 0.25, screen.height + 0.25),
+    };
+  }, [wallDims, screen.height]);
+
+  // Cloned video textures that mirror-extend the front frame onto each wall:
+  // sampling starts at the frame's outer edge and reflects outward
+  // (MirroredRepeatWrapping), preserving the front screen's horizontal scale
+  // so the image wraps around the corner without a visible seam.
+  const wallTextures = useMemo(() => {
+    if (!wallDims || !videoReady || !textureRef.current) return null;
+    const scale = wallDims.length / displayWidth;
+
+    const makeWallTexture = () => {
+      const tex = textureRef.current!.clone();
+      tex.wrapS = THREE.MirroredRepeatWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      tex.needsUpdate = true;
+      return tex;
+    };
+
+    // Sampled u = offset + u · repeat
+    const left = makeWallTexture();
+    left.repeat.set(scale, 1);
+    left.offset.set(-scale, 0); // u=1 (corner) → 0, u=0 (far end) → −scale, mirrored
+
+    const right = makeWallTexture();
+    right.repeat.set(scale, 1);
+    right.offset.set(1, 0); // u=0 (corner) → 1, u=1 (far end) → 1+scale, mirrored
+
+    return { left, right };
+  }, [wallDims, videoReady, displayWidth]);
+
+  // Dispose wall texture clones when they are replaced or removed
+  useEffect(() => {
+    if (!wallTextures) return;
+    return () => {
+      wallTextures.left.dispose();
+      wallTextures.right.dispose();
+    };
+  }, [wallTextures]);
+
+  // Keep the wall texture clones in sync with the playing video
+  useFrame(() => {
+    if (wallTextures && videoRef.current && !videoRef.current.paused) {
+      wallTextures.left.needsUpdate = true;
+      wallTextures.right.needsUpdate = true;
+    }
+  });
   // Curated premium design system for different screen templates
   const { neonColor, borderColor, standbyNeonColor } = useMemo(() => {
     switch (screen.screenType) {
@@ -510,8 +604,10 @@ export default function ScreenMesh({
         </mesh>
       )}
 
-      {/* 3. Golden Yellow Border Frame Light — visible during video playback */}
-      {videoReady && (
+      {/* 3. Golden Yellow Border Frame Light — visible during video playback.
+          Skipped for ScreenX: the image wraps seamlessly onto the side walls,
+          so no frame may interrupt the 270° wrap. */}
+      {videoReady && screen.screenType !== 'SCREEN_X' && (
         <>
           {/* Yellow glowing frame border — slightly larger than video, behind it */}
           <mesh geometry={frameGeometry} position={[0, 0, 0.005]}>
@@ -602,184 +698,99 @@ export default function ScreenMesh({
       />
 
       {/* ═══ 7. ScreenX 270° Seamless Side Wall Projection Wrap ═══ */}
-      {/* ponytail: Real ScreenX uses projectors that extend the 70mm front screen onto
-         both side walls seamlessly. Each wall panel starts at the front screen edge
-         and runs backward along the wall with subtle curvature + gradient fade-out. */}
-      {screen.screenType === 'SCREEN_X' && floor && (() => {
-        const wallLength = floor.depth * 0.6;       // projection extends ~60% of theatre depth
-        const wallHeight = screen.height;             // matches front screen height exactly
-        const wallX = floor.width / 2 - 0.08;        // flush against side wall inner surface
-        const screenZ = screen.position[2] ?? 0;      // front screen Z position
-        const wallCurveRadius = 120;                  // subtle inward concave curvature
-        const wallSegsX = 24;                         // horizontal subdivisions for curvature
-        const wallSegsY = 1;                          // single vertical span
+      {/* ponytail: Real ScreenX extends the front image onto both side walls.
+         Each panel sits flat and flush against its wall, starting at the front
+         corner (where the full-width front screen meets the wall) and mirror-
+         extends the video backward with a brightness falloff toward the
+         audience — one continuous picture wrapping around the room. */}
+      {wallDims && wallGeometries && (
+        <>
+          {[
+            { key: 'L', sign: -1 as const, geo: wallGeometries.left },
+            { key: 'R', sign: 1 as const, geo: wallGeometries.right },
+          ].map(({ key, sign, geo }) => {
+            const tex = wallTextures
+              ? sign === -1
+                ? wallTextures.left
+                : wallTextures.right
+              : null;
 
-        // Build custom curved wall geometry with vertex alpha for gradient fade
-        const buildWallGeo = (length: number, height: number, fadeAlpha: boolean) => {
-          const geo = new THREE.PlaneGeometry(length, height, wallSegsX, wallSegsY);
-          const posAttr = geo.attributes.position;
+            return (
+              <group
+                key={key}
+                // Local coords: this group already lives inside the screen-
+                // position group, so Y=0 aligns the panel with the screen center
+                position={[
+                  sign * wallDims.x - (screen.position[0] ?? 0),
+                  0,
+                  wallDims.frontZ + wallDims.length / 2,
+                ]}
+                // Face inward: left wall +90°, right wall −90°
+                rotation={[0, sign * -(Math.PI / 2), 0]}
+              >
+                {/* Wall base surface — dark matte screen with standby glow */}
+                <mesh geometry={geo}>
+                  <meshStandardMaterial
+                    color={videoReady ? '#000000' : '#06090e'}
+                    emissive={videoReady ? '#000000' : standbyNeonColor}
+                    emissiveIntensity={videoReady ? 0 : 0.12}
+                    side={THREE.DoubleSide}
+                    roughness={0.35}
+                    metalness={0.08}
+                  />
+                  {!videoReady && (
+                    <Edges color={neonColor} lineWidth={1.0} threshold={15} />
+                  )}
+                </mesh>
 
-          // Apply subtle inward curvature along the wall length
-          for (let i = 0; i <= wallSegsX; i++) {
-            const t = i / wallSegsX;
-            // Concave bend: deepest at the middle of the wall panel
-            const bulge = wallCurveRadius * (1 - Math.cos(t * Math.PI * 0.12));
-            for (let j = 0; j <= wallSegsY; j++) {
-              const idx = i + j * (wallSegsX + 1);
-              posAttr.setZ(idx, posAttr.getZ(idx) + bulge);
-            }
-          }
-
-          // Vertex colors for gradient fade at the far end (toward audience)
-          if (fadeAlpha) {
-            const colors = new Float32Array((wallSegsX + 1) * (wallSegsY + 1) * 4);
-            for (let i = 0; i <= wallSegsX; i++) {
-              const t = i / wallSegsX;
-              // Fade from full brightness near screen edge to dim at far end
-              const alpha = 1.0 - t * t * 0.55; // quadratic falloff — subtle
-              for (let j = 0; j <= wallSegsY; j++) {
-                const idx = (i + j * (wallSegsX + 1)) * 4;
-                colors[idx] = alpha;     // R
-                colors[idx + 1] = alpha; // G
-                colors[idx + 2] = alpha; // B
-                colors[idx + 3] = 1.0;   // A (always opaque, tint via color channels)
-              }
-            }
-            geo.setAttribute('color', new THREE.BufferAttribute(colors, 4));
-          }
-
-          posAttr.needsUpdate = true;
-          geo.computeVertexNormals();
-          return geo;
-        };
-
-        const wallGeo = buildWallGeo(wallLength, wallHeight, true);
-        const wallFrameGeo = buildWallGeo(wallLength + 0.12, wallHeight + 0.12, false);
-        const wallBackGeo = buildWallGeo(wallLength + 0.25, wallHeight + 0.25, false);
-
-        // Each side: the panel is rotated 90° to face inward, positioned so its
-        // front edge aligns exactly with the front screen's left/right edge.
-        const sides = [
-          { key: 'L', sign: -1 as const },
-          { key: 'R', sign: 1 as const },
-        ];
-
-        return (
-          <>
-            {sides.map(({ key, sign }) => {
-              // Position: X flush against wall, Y same as screen center, Z starts at screen front
-              // The panel extends from screenZ backward (positive Z toward audience)
-              const panelX = sign * wallX;
-              const panelY = screen.position[1];
-              const panelZ = screenZ + wallLength / 2;
-              // Rotation: face inward — left wall faces right (+90°), right wall faces left (-90°)
-              const yRot = sign * (-Math.PI / 2);
-
-              return (
-                <group
-                  key={key}
-                  position={[panelX, panelY, panelZ]}
-                  rotation={[0, yRot, 0]}
-                >
-                  {/* Wall base surface — dark matte screen with standby glow */}
-                  <mesh geometry={wallGeo}>
-                    <meshStandardMaterial
-                      color={videoReady ? '#000000' : '#06090e'}
-                      emissive={videoReady ? '#000000' : standbyNeonColor}
-                      emissiveIntensity={videoReady ? 0 : 0.12}
+                {/* Wall video projection — mirror-extended continuation of the
+                    front frame, slightly dimmed for peripheral immersion */}
+                {videoReady && tex && (
+                  <mesh geometry={geo} position={[0, 0, 0.02]}>
+                    <meshBasicMaterial
+                      map={tex}
+                      color="#c9c9d6"
                       side={THREE.DoubleSide}
-                      roughness={0.35}
-                      metalness={0.08}
+                      toneMapped={false}
                       vertexColors={true}
                     />
-                    {!videoReady && (
-                      <Edges color={neonColor} lineWidth={1.0} threshold={15} />
-                    )}
                   </mesh>
+                )}
 
-                  {/* Wall video projection — dimmed for peripheral immersion */}
-                  {videoReady && textureRef.current && (
-                    <mesh geometry={wallGeo} position={[0, 0, 0.02]}>
-                      <meshBasicMaterial
-                        map={textureRef.current}
-                        color="#8585b0"
-                        side={THREE.DoubleSide}
-                        toneMapped={false}
-                        vertexColors={true}
-                      />
-                    </mesh>
-                  )}
-
-                  {/* Continuous gold frame border — matches front screen border */}
-                  {videoReady && (
-                    <>
-                      <mesh geometry={wallFrameGeo} position={[0, 0, 0.005]}>
-                        <meshBasicMaterial
-                          color="#fbbf24"
-                          toneMapped={false}
-                          transparent
-                          opacity={0.45}
-                          side={THREE.DoubleSide}
-                        />
-                      </mesh>
-                      <mesh geometry={wallGeo} position={[0, 0, 0.021]}>
-                        <meshBasicMaterial visible={false} />
-                        <Edges color="#fbbf24" lineWidth={1.2} threshold={15} />
-                      </mesh>
-                      {/* Warm projection glow cast onto wall behind panel */}
-                      <pointLight
-                        position={[0, 0, -0.3]}
-                        intensity={0.35}
-                        color="#fbbf24"
-                        distance={wallLength * 0.5}
-                      />
-                    </>
-                  )}
-
-                  {/* Standby neon backlight glow */}
-                  {!videoReady && (
-                    <mesh position={[0, 0, -0.05]} geometry={wallGeo}>
-                      <meshBasicMaterial
-                        color={standbyNeonColor}
-                        toneMapped={false}
-                        transparent
-                        opacity={0.18}
-                        side={THREE.DoubleSide}
-                        vertexColors={true}
-                      />
-                    </mesh>
-                  )}
-
-                  {/* Wall panel backing (matte black frame) */}
-                  <mesh geometry={wallBackGeo} position={[0, 0, -0.03]}>
-                    <meshStandardMaterial
-                      color="#030508"
-                      roughness={0.9}
+                {/* Standby neon backlight glow */}
+                {!videoReady && (
+                  <mesh position={[0, 0, -0.05]} geometry={geo}>
+                    <meshBasicMaterial
+                      color={standbyNeonColor}
+                      toneMapped={false}
+                      transparent
+                      opacity={0.18}
                       side={THREE.DoubleSide}
                     />
                   </mesh>
+                )}
 
-                  {/* Neon accent glow cast (standby mode) */}
-                  <pointLight
-                    position={[0, 0, -0.25]}
-                    intensity={videoReady ? 0 : 0.30}
-                    color={neonColor}
-                    distance={wallLength * 0.7}
+                {/* Wall panel backing (matte black frame) */}
+                <mesh geometry={wallGeometries.backing} position={[0, 0, -0.03]}>
+                  <meshStandardMaterial
+                    color="#030508"
+                    roughness={0.9}
+                    side={THREE.DoubleSide}
                   />
+                </mesh>
 
-                  {/* Ambient wrap light at the screen-edge junction */}
-                  <pointLight
-                    position={[sign * 0.5, 0, -wallLength / 2 + 0.5]}
-                    intensity={videoReady ? 0.2 : 0.15}
-                    color={videoReady ? '#fbbf24' : neonColor}
-                    distance={4}
-                  />
-                </group>
-              );
-            })}
-          </>
-        );
-      })()}
+                {/* Neon accent glow cast onto the wall (standby mode only) */}
+                <pointLight
+                  position={[0, 0, -0.25]}
+                  intensity={videoReady ? 0 : 0.3}
+                  color={neonColor}
+                  distance={wallDims.length * 0.7}
+                />
+              </group>
+            );
+          })}
+        </>
+      )}
 
     </group>
   );
