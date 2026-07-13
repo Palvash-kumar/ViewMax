@@ -454,7 +454,7 @@ export default function ScreenMesh({
       for (let i = 0; i <= segs; i++) {
         const t = i / segs;
         const d = brightAtU1 ? 1 - t : t; // distance from the screen corner
-        const brightness = 1.0 - d * d * 0.55; // fades to 45% at the far end
+        const brightness = 1.0 - d * d * 0.3; // gentle fade to 70% at the far end
         for (let j = 0; j <= 1; j++) {
           const idx = (i + j * (segs + 1)) * 3;
           colors[idx] = brightness;
@@ -473,33 +473,54 @@ export default function ScreenMesh({
     };
   }, [wallDims, screen.height]);
 
-  // Cloned video textures that mirror-extend the front frame onto each wall:
-  // sampling starts at the frame's outer edge and reflects outward
-  // (MirroredRepeatWrapping), preserving the front screen's horizontal scale
-  // so the image wraps around the corner without a visible seam.
+  // Cloned video textures that distribute the frame around the 270° wrap.
+  // Real ScreenX projection: the content is one ultra-wide canvas split
+  // across the three surfaces — left wall band | front screen band | right
+  // wall band — proportionally to their physical widths, so pixels-per-meter
+  // stays constant across the corners and the video wraps as ONE picture.
   const wallTextures = useMemo(() => {
     if (!wallDims || !videoReady || !textureRef.current) return null;
-    const scale = wallDims.length / displayWidth;
+    // Fraction of the video frame projected onto each side wall
+    const sideBand = wallDims.length / (2 * wallDims.length + screen.width);
 
     const makeWallTexture = () => {
       const tex = textureRef.current!.clone();
-      tex.wrapS = THREE.MirroredRepeatWrapping;
+      tex.wrapS = THREE.ClampToEdgeWrapping;
       tex.wrapT = THREE.ClampToEdgeWrapping;
       tex.needsUpdate = true;
       return tex;
     };
 
     // Sampled u = offset + u · repeat
+    // Left wall: u runs from the audience end (u=0) to the screen corner
+    // (u=1) → shows the frame's leftmost band [0, sideBand], meeting the
+    // front screen's band exactly at the corner.
     const left = makeWallTexture();
-    left.repeat.set(scale, 1);
-    left.offset.set(-scale, 0); // u=1 (corner) → 0, u=0 (far end) → −scale, mirrored
+    left.repeat.set(sideBand, 1);
+    left.offset.set(0, 0);
 
+    // Right wall: u runs from the screen corner (u=0) to the audience end
+    // (u=1) → shows the frame's rightmost band [1 − sideBand, 1].
     const right = makeWallTexture();
-    right.repeat.set(scale, 1);
-    right.offset.set(1, 0); // u=0 (corner) → 1, u=1 (far end) → 1+scale, mirrored
+    right.repeat.set(sideBand, 1);
+    right.offset.set(1 - sideBand, 0);
 
-    return { left, right };
-  }, [wallDims, videoReady, displayWidth]);
+    return { left, right, sideBand };
+  }, [wallDims, videoReady, screen.width]);
+
+  // The front screen shows only the middle band of the frame — the side
+  // bands wrap onto the walls. Restore the full frame when not in ScreenX.
+  useEffect(() => {
+    const tex = textureRef.current;
+    if (!tex || !videoReady) return;
+    if (wallTextures) {
+      tex.repeat.set(1 - 2 * wallTextures.sideBand, 1);
+      tex.offset.set(wallTextures.sideBand, 0);
+    } else {
+      tex.repeat.set(1, 1);
+      tex.offset.set(0, 0);
+    }
+  }, [videoReady, wallTextures]);
 
   // Dispose wall texture clones when they are replaced or removed
   useEffect(() => {
@@ -698,11 +719,12 @@ export default function ScreenMesh({
       />
 
       {/* ═══ 7. ScreenX 270° Seamless Side Wall Projection Wrap ═══ */}
-      {/* ponytail: Real ScreenX extends the front image onto both side walls.
-         Each panel sits flat and flush against its wall, starting at the front
-         corner (where the full-width front screen meets the wall) and mirror-
-         extends the video backward with a brightness falloff toward the
-         audience — one continuous picture wrapping around the room. */}
+      {/* ponytail: Real ScreenX treats the content as one ultra-wide canvas and
+         splits it across three projection surfaces: the frame's center band on
+         the main screen, its left/right bands on the side walls — one
+         continuous picture wrapping 270° around the audience. Each panel sits
+         flat and flush against its wall, starting at the front corner where
+         the full-width front screen meets the wall. */}
       {wallDims && wallGeometries && (
         <>
           {[
@@ -743,13 +765,13 @@ export default function ScreenMesh({
                   )}
                 </mesh>
 
-                {/* Wall video projection — mirror-extended continuation of the
-                    front frame, slightly dimmed for peripheral immersion */}
+                {/* Wall video projection — the frame's side band, continuing
+                    the front screen picture around the corner at 270° */}
                 {videoReady && tex && (
                   <mesh geometry={geo} position={[0, 0, 0.02]}>
                     <meshBasicMaterial
                       map={tex}
-                      color="#c9c9d6"
+                      color="#dcdce4"
                       side={THREE.DoubleSide}
                       toneMapped={false}
                       vertexColors={true}
