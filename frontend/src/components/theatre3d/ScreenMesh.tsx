@@ -478,10 +478,29 @@ export default function ScreenMesh({
   // across the three surfaces — left wall band | front screen band | right
   // wall band — proportionally to their physical widths, so pixels-per-meter
   // stays constant across the corners and the video wraps as ONE picture.
+  //
+  // Aspect correction: the wrap canvas is far wider than any source video
+  // (e.g. ~6:1 vs 16:9 or 2.39:1 scope). Stretching the frame to fill it
+  // distorts the image, so instead the video is sampled with "cover"
+  // semantics — uniform scale, center crop — exactly like real venues
+  // handle content not mastered for ScreenX. Pixels are never stretched.
   const wallTextures = useMemo(() => {
     if (!wallDims || !videoReady || !textureRef.current) return null;
-    // Fraction of the video frame projected onto each side wall
-    const sideBand = wallDims.length / (2 * wallDims.length + screen.width);
+
+    const wrapWidth = 2 * wallDims.length + screen.width;
+    const canvasAspect = wrapWidth / screen.height;
+    // No metadata yet → assume the source matches the canvas (no crop)
+    const videoAspect = aspectRatio ?? canvasAspect;
+
+    // Cover-fit sample window, centered in the frame (u/v in [0, 1])
+    const uSpan = Math.min(1, canvasAspect / videoAspect);
+    const vSpan = Math.min(1, videoAspect / canvasAspect);
+    const uStart = (1 - uSpan) / 2;
+    const vStart = (1 - vSpan) / 2;
+
+    // Split the sample window horizontally by physical arc length
+    const sideBand = (wallDims.length / wrapWidth) * uSpan;
+    const frontBand = (screen.width / wrapWidth) * uSpan;
 
     const makeWallTexture = () => {
       const tex = textureRef.current!.clone();
@@ -493,29 +512,36 @@ export default function ScreenMesh({
 
     // Sampled u = offset + u · repeat
     // Left wall: u runs from the audience end (u=0) to the screen corner
-    // (u=1) → shows the frame's leftmost band [0, sideBand], meeting the
-    // front screen's band exactly at the corner.
+    // (u=1) → shows the window's leftmost band, meeting the front screen's
+    // band exactly at the corner.
     const left = makeWallTexture();
-    left.repeat.set(sideBand, 1);
-    left.offset.set(0, 0);
+    left.repeat.set(sideBand, vSpan);
+    left.offset.set(uStart, vStart);
 
     // Right wall: u runs from the screen corner (u=0) to the audience end
-    // (u=1) → shows the frame's rightmost band [1 − sideBand, 1].
+    // (u=1) → shows the window's rightmost band.
     const right = makeWallTexture();
-    right.repeat.set(sideBand, 1);
-    right.offset.set(1 - sideBand, 0);
+    right.repeat.set(sideBand, vSpan);
+    right.offset.set(uStart + sideBand + frontBand, vStart);
 
-    return { left, right, sideBand };
-  }, [wallDims, videoReady, screen.width]);
+    return {
+      left,
+      right,
+      frontBand,
+      frontOffset: uStart + sideBand,
+      vSpan,
+      vStart,
+    };
+  }, [wallDims, videoReady, screen.width, screen.height, aspectRatio]);
 
-  // The front screen shows only the middle band of the frame — the side
-  // bands wrap onto the walls. Restore the full frame when not in ScreenX.
+  // The front screen shows only the middle band of the sample window — the
+  // side bands wrap onto the walls. Restore the full frame when not in ScreenX.
   useEffect(() => {
     const tex = textureRef.current;
     if (!tex || !videoReady) return;
     if (wallTextures) {
-      tex.repeat.set(1 - 2 * wallTextures.sideBand, 1);
-      tex.offset.set(wallTextures.sideBand, 0);
+      tex.repeat.set(wallTextures.frontBand, wallTextures.vSpan);
+      tex.offset.set(wallTextures.frontOffset, wallTextures.vStart);
     } else {
       tex.repeat.set(1, 1);
       tex.offset.set(0, 0);
