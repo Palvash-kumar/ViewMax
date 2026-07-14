@@ -119,3 +119,15 @@ dist
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# AI assistant configs
+.claude/
+.agents/
+.gemini/
+.cursor/
+.windsurf/
+.augment/
+.copilot/
+CLAUDE.md
+.cursorrules
+.cursorignore
