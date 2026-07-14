@@ -155,9 +155,13 @@ export default function FloorMesh({ floor, stage, isVideoPlaying = false, screen
 
       {/* 5. Side Walls with Acoustic Slats and Speaker Boxes */}
       {[-1, 1].map((side) => {
-        // ponytail: ScreenX uses the front 60% of each wall as projection surface — skip
-        // acoustic panels, speakers, and LEDs in that zone so the wall stays clean for projection
-        const screenXProjectionZ = screen?.screenType === 'SCREEN_X' ? floor.depth * 0.6 : 0;
+        // ponytail: ScreenX uses the front of each wall as projection surface — skip
+        // acoustic panels, speakers, and LEDs in that zone so the wall stays clean.
+        // Mirrors ScreenMesh's wall length: 0.75 × visual screen width, clamped to depth.
+        const screenXProjectionZ =
+          screen?.screenType === 'SCREEN_X'
+            ? Math.min(0.75 * (floor.width - 0.16), floor.depth * 0.85) + 0.5
+            : 0;
 
         return (
         <group key={`side-wall-${side}`} position={[side * (floor.width / 2), 0, 0]}>

@@ -26,12 +26,33 @@ export default function ScreenMesh({
   // ponytail: ScreenX main screen gets moderate curvature; the 270° comes from side wall projections.
   // The front screen visually spans the full front wall so its edges land exactly
   // on the side wall corners — the wall projections continue seamlessly from there.
+  // It also grows floor-to-ceiling (like a real ScreenX auditorium) aiming for an
+  // unfolded wrap of 2.39:1 — walls(0.75W) + screen(W) + walls(0.75W) = 2.5W wide,
+  // so the ideal height is 2.5W / 2.39 ≈ 1.046·W, clamped to the room shell.
   const screen = useMemo((): Generated3DScreen => {
     if (rawScreen.screenType !== 'SCREEN_X') return rawScreen;
-    const visualWidth = floor
-      ? Math.max(rawScreen.width, floor.width - 0.16)
-      : rawScreen.width;
-    return { ...rawScreen, curvature: 0.08, width: visualWidth };
+    if (!floor) return { ...rawScreen, curvature: 0.08 };
+
+    const visualWidth = Math.max(rawScreen.width, floor.width - 0.16);
+
+    // Room height — same formula FloorMesh uses, so the enlarged screen
+    // always stays inside the auditorium shell
+    const maxElevation = floor.segments.length
+      ? Math.max(...floor.segments.map((s) => s.y))
+      : 0;
+    const rawTop = rawScreen.position[1] + rawScreen.height / 2;
+    const roomHeight = Math.max(maxElevation + 10.0, rawTop + 3.0);
+
+    const visualHeight = Math.min(1.046 * visualWidth, roomHeight - 0.85);
+    const yCenter = 0.35 + visualHeight / 2; // bottom edge just above the stage
+
+    return {
+      ...rawScreen,
+      curvature: 0.08,
+      width: visualWidth,
+      height: visualHeight,
+      position: [rawScreen.position[0], yCenter, rawScreen.position[2]],
+    };
   }, [rawScreen, floor]);
 
   const meshRef = useRef<THREE.Mesh>(null);
@@ -432,7 +453,9 @@ export default function ScreenMesh({
   const wallDims = useMemo(() => {
     if (screen.screenType !== 'SCREEN_X' || !floor) return null;
     return {
-      length: floor.depth * 0.6,
+      // 0.75 × screen width makes the 0.3 | 0.4 | 0.3 frame split physically
+      // proportional (walls + screen unfold to 2.5W), clamped to room depth
+      length: Math.min(0.75 * screen.width, floor.depth * 0.85),
       x: floor.width / 2 - 0.08,
       // local Z (relative to the screen group) where the panels start, flush
       // with the front wall of the room at world z ≈ 0
@@ -473,34 +496,54 @@ export default function ScreenMesh({
     };
   }, [wallDims, screen.height]);
 
-  // Cloned video textures that distribute the frame around the 270° wrap.
-  // Real ScreenX projection: the content is one ultra-wide canvas split
-  // across the three surfaces — left wall band | front screen band | right
-  // wall band — proportionally to their physical widths, so pixels-per-meter
-  // stays constant across the corners and the video wraps as ONE picture.
+  // Cloned video textures that distribute the frame around the 270° wrap:
+  // left wall band | front screen band | right wall band — one continuous
+  // picture, seam-matched at both corners.
   //
-  // Aspect correction: the wrap canvas is far wider than any source video
-  // (e.g. ~6:1 vs 16:9 or 2.39:1 scope). Stretching the frame to fill it
-  // distorts the image, so instead the video is sampled with "cover"
-  // semantics — uniform scale, center crop — exactly like real venues
-  // handle content not mastered for ScreenX. Pixels are never stretched.
+  // Aspect handling: every source is first center-cropped to a 2.39:1
+  // cinemascope window (uniform scale — a 16:9 video keeps ~75% of its
+  // height). That scope window is then dealt out with a fixed split:
+  //
+  //   |––– left band –––|––––– center band –––––|––– right band –––|
+  //   0                0.3                      0.7                 1
+  //          ↓                      ↓                      ↓
+  //      LEFT WALL            FRONT SCREEN             RIGHT WALL
+  //   (back → corner)       (corner → corner)        (corner → back)
+  //
+  // Anti-stretch anchor: the vertical sample fraction is derived from the
+  // front screen's physical aspect so the center band lands on it with
+  // pixel-perfect proportions (band aspect 0.4·2.39 ÷ vFrac ≡ W/H). With
+  // walls at 0.75·W and height ≈ 1.046·W the whole unfolded wrap is
+  // 2.39:1 and vFrac → 1, i.e. the entire scope window fits distortion-free.
   const wallTextures = useMemo(() => {
     if (!wallDims || !videoReady || !textureRef.current) return null;
 
-    const wrapWidth = 2 * wallDims.length + screen.width;
-    const canvasAspect = wrapWidth / screen.height;
-    // No metadata yet → assume the source matches the canvas (no crop)
-    const videoAspect = aspectRatio ?? canvasAspect;
+    const SCOPE_ASPECT = 2.39; // cinemascope crop target
+    const SIDE_SPLIT = 0.3;    // frame fraction per side wall
+    const FRONT_SPLIT = 1 - 2 * SIDE_SPLIT; // 0.40 for the front screen
 
-    // Cover-fit sample window, centered in the frame (u/v in [0, 1])
-    const uSpan = Math.min(1, canvasAspect / videoAspect);
-    const vSpan = Math.min(1, videoAspect / canvasAspect);
+    // No metadata yet → assume the source is already scope (no crop)
+    const videoAspect = aspectRatio ?? SCOPE_ASPECT;
+
+    // Cover-fit the 2.39:1 window, centered in the frame (u/v in [0, 1]):
+    // wider sources crop the sides, narrower sources crop top/bottom.
+    const uSpan = Math.min(1, SCOPE_ASPECT / videoAspect);
+    const scopeVSpan = Math.min(1, videoAspect / SCOPE_ASPECT);
+
+    // Vertical fraction of the scope window that keeps the front screen's
+    // center band exactly proportional (no horizontal stretch in the middle)
+    const vFrac = Math.min(
+      1,
+      (FRONT_SPLIT * SCOPE_ASPECT * screen.height) / screen.width,
+    );
+
+    const vSpan = scopeVSpan * vFrac;
     const uStart = (1 - uSpan) / 2;
     const vStart = (1 - vSpan) / 2;
 
-    // Split the sample window horizontally by physical arc length
-    const sideBand = (wallDims.length / wrapWidth) * uSpan;
-    const frontBand = (screen.width / wrapWidth) * uSpan;
+    // Split the scope window horizontally by the fixed bands
+    const sideBand = SIDE_SPLIT * uSpan;
+    const frontBand = FRONT_SPLIT * uSpan;
 
     const makeWallTexture = () => {
       const tex = textureRef.current!.clone();
@@ -532,7 +575,7 @@ export default function ScreenMesh({
       vSpan,
       vStart,
     };
-  }, [wallDims, videoReady, screen.width, screen.height, aspectRatio]);
+  }, [wallDims, videoReady, aspectRatio, screen.width, screen.height]);
 
   // The front screen shows only the middle band of the sample window — the
   // side bands wrap onto the walls. Restore the full frame when not in ScreenX.
