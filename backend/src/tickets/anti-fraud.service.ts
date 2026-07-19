@@ -80,20 +80,24 @@ export class AntiFraudService {
   async markCheckedIn(bookingId: string, staffId: string): Promise<boolean> {
     const key = `checkin:${bookingId}`;
 
-    // Idempotency guard — only the first call succeeds
-    const existing = await this.redisService.get(key);
-    if (existing) {
+    // FIX #2: Use SET NX for true atomicity — the original GET-then-SET had a
+    // TOCTOU race where two staff devices could both pass the existence check.
+    const client = this.redisService.getClient();
+    const result = await client.set(
+      key,
+      JSON.stringify({ staffId, at: Date.now() }),
+      'EX',
+      this.CHECKIN_TTL,
+      'NX',
+    );
+
+    if (result !== 'OK') {
       this.logger.warn(
         `Duplicate check-in attempt for booking ${bookingId} by staff ${staffId}`,
       );
       return false;
     }
 
-    await this.redisService.set(
-      key,
-      JSON.stringify({ staffId, at: Date.now() }),
-      this.CHECKIN_TTL,
-    );
     return true;
   }
 
