@@ -324,8 +324,9 @@ export class AuthService {
 
   async forgotPassword(email: string) {
     const user = await this.usersService.findByEmail(email);
+    // FIX #1: Don't reveal whether the email exists — prevents user enumeration attacks
     if (!user) {
-      throw new NotFoundException('No account associated with this email address');
+      return { message: 'If an account exists with this email, a verification OTP has been sent' };
     }
 
     // Generate 6-digit OTP
@@ -340,7 +341,7 @@ export class AuthService {
 
     await this.sendOtpEmail(email, otp, `${user.firstName} ${user.lastName}`);
 
-    return { message: 'Verification OTP has been sent to your email' };
+    return { message: 'If an account exists with this email, a verification OTP has been sent' };
   }
 
   async verifyOtp(email: string, token: string) {
@@ -372,20 +373,34 @@ export class AuthService {
       throw new BadRequestException('Invalid OTP code');
     }
 
+    // FIX #7: Clear OTP after first successful verification to prevent reuse
+    await this.usersService.clearPasswordResetToken(user._id.toString());
+
     return { message: 'OTP verified successfully' };
   }
 
   async resetPassword(email: string, token: string, newPassword: string) {
-    // 1. Verify the OTP first
-    await this.verifyOtp(email, token);
-
-    // 2. Find user
+    // 1. Verify the OTP — re-check token validity (verifyOtp clears it, so re-validate the hash directly)
     const user = await this.usersService.findByEmail(email);
     if (!user) {
       throw new BadRequestException('Invalid reset request');
     }
 
-    // 3. Reset password in database
+    const userWithTokens = await this.usersService.findByIdWithTokens(user._id.toString());
+    // FIX #7: After verifyOtp clears the token, resetPassword must be called in the same
+    // session. We verify via the token param matching the stored hash (which verifyOtp already
+    // validated). If the token was already cleared, require the user to re-verify.
+    if (!userWithTokens?.passwordResetToken) {
+      // Token already cleared — either already used or re-requested
+      throw new BadRequestException('OTP has already been used. Please request a new one.');
+    }
+
+    const isValid = await argon2.verify(userWithTokens.passwordResetToken, token);
+    if (!isValid) {
+      throw new BadRequestException('Invalid OTP code');
+    }
+
+    // 2. Reset password in database (also clears reset token)
     await this.usersService.resetPassword(user._id.toString(), newPassword);
 
     // 4. Send confirmation email
@@ -524,7 +539,10 @@ export class AuthService {
   }
 
   private async sendOtpEmail(email: string, otp: string, userName: string) {
-    this.logger.debug(`[DEV ONLY] OTP code for ${email}: ${otp}`);
+    // FIX #8: Only log OTP in development — prevents accidental production exposure
+    if (process.env.NODE_ENV === 'development') {
+      this.logger.debug(`[DEV ONLY] OTP code for ${email}: ${otp}`);
+    }
     try {
       await this.mailService.sendMail(
         email,
