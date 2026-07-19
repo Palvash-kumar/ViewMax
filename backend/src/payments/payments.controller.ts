@@ -78,7 +78,10 @@ export class PaymentsController {
     }
   }
 
+  // FIX #3: This endpoint was unprotected — anyone could query payment status for any booking
   @Get(':bookingId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get payment status for a booking' })
   findByBooking(@Param('bookingId') bookingId: string) {
     return this.paymentsService.findByBookingId(bookingId);
