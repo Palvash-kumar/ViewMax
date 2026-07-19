@@ -39,11 +39,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
         }
       }
     } else if (exception instanceof Error) {
-      message = exception.message;
+      // FIX #13: Don't leak internal error messages (stack traces, DB errors, paths)
+      // to the client in production. Always log the real error server-side.
       this.logger.error(
         `Unhandled exception: ${exception.message}`,
         exception.stack,
       );
+      if (process.env.NODE_ENV === 'development') {
+        message = exception.message;
+      }
     }
 
     response.status(status).json({

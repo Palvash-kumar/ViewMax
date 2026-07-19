@@ -223,6 +223,14 @@ export class UsersService {
     });
   }
 
+  // FIX #7: Clear OTP after first successful verification to prevent reuse
+  async clearPasswordResetToken(id: string): Promise<void> {
+    await this.userModel.findByIdAndUpdate(id, {
+      passwordResetToken: null,
+      passwordResetExpires: null,
+    });
+  }
+
   async resetPassword(id: string, newPassword: string): Promise<void> {
     const passwordHash = await argon2.hash(newPassword);
     await this.userModel.findByIdAndUpdate(id, {

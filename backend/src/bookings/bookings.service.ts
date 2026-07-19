@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
   Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -377,7 +378,13 @@ export class BookingsService {
       throw new BadRequestException('Booking is already cancelled');
     }
 
+    // FIX #12: Reject cancellation of transferred bookings
+    if (booking.bookingStatus === BookingStatus.TRANSFERRED) {
+      throw new BadRequestException('Cannot cancel a transferred booking');
+    }
+
     // Process Stripe refund if there is a payment intent ID
+    let refundSucceeded = false;
     if (
       booking.paymentStatus === PaymentStatus.COMPLETED &&
       booking.stripePaymentIntentId
@@ -387,6 +394,7 @@ export class BookingsService {
           booking.stripePaymentIntentId,
           booking.totalAmount,
         );
+        refundSucceeded = true;
         this.logger.log(
           `Successfully processed Stripe refund of ₹${booking.totalAmount} for booking ${booking._id}`,
         );
@@ -413,7 +421,10 @@ export class BookingsService {
     );
 
     booking.bookingStatus = BookingStatus.CANCELLED;
-    booking.paymentStatus = PaymentStatus.REFUNDED;
+    // FIX #11: Only set REFUNDED when Stripe refund actually succeeded
+    booking.paymentStatus = refundSucceeded
+      ? PaymentStatus.REFUNDED
+      : PaymentStatus.FAILED;
     await booking.save();
 
     this.logger.log(`Booking ${booking._id} cancelled`);
@@ -481,7 +492,9 @@ export class BookingsService {
     page = 1,
     limit = 10,
   ): Promise<PaginatedResult<BookingDocument>> {
-    const skip = (page - 1) * limit;
+    // FIX #14: Cap pagination limit to prevent DoS
+    const safeLimit = Math.min(Math.max(1, limit), 100);
+    const skip = (page - 1) * safeLimit;
 
     const [data, total] = await Promise.all([
       this.bookingModel
@@ -496,7 +509,7 @@ export class BookingsService {
         })
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit)
+        .limit(safeLimit)
         .exec(),
       this.bookingModel.countDocuments({ userId }).exec(),
     ]);
@@ -532,12 +545,13 @@ export class BookingsService {
       data: mappedData as any,
       total,
       page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit),
     };
   }
 
-  async findById(id: string): Promise<BookingDocument> {
+  // FIX #4/#10: Added userId param for ownership validation — prevents IDOR
+  async findById(id: string, userId?: string): Promise<BookingDocument> {
     const booking = await this.bookingModel
       .findById(id)
       .populate({
@@ -550,6 +564,11 @@ export class BookingsService {
       })
       .exec();
     if (!booking) throw new NotFoundException('Booking not found');
+
+    // Ownership check: if a userId is provided, verify it matches the booking owner
+    if (userId && booking.userId.toString() !== userId.toString()) {
+      throw new ForbiddenException('You can only view your own bookings');
+    }
 
     const bookingObj = booking.toObject ? booking.toObject() : booking;
     if (!bookingObj.showtimeId && bookingObj.completedShowtimeDetails) {
@@ -604,8 +623,8 @@ export class BookingsService {
     return booking;
   }
 
-  async generateBookingIcs(bookingId: string): Promise<string> {
-    const booking = await this.findById(bookingId);
+  async generateBookingIcs(bookingId: string, userId?: string): Promise<string> {
+    const booking = await this.findById(bookingId, userId);
     const showtime = booking.showtimeId as any;
     if (!showtime) {
       throw new BadRequestException(
@@ -752,6 +771,7 @@ export class BookingsService {
       ? await this.bookingModel
           .find(statsFilter)
           .populate({ path: 'showtimeId', select: 'theatreId' })
+          .limit(10000) // FIX #16: Cap stats query to prevent OOM on large datasets
           .exec()
           .then((bookings) =>
             bookings.filter((b) => {

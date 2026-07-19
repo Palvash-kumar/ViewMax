@@ -19,12 +19,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       host: this.configService.get<string>('redis.host'),
       port: this.configService.get<number>('redis.port'),
       password: this.configService.get<string>('redis.password'),
+      // Don't kill individual commands when reconnecting — let them wait
+      maxRetriesPerRequest: null,
       retryStrategy: (times) => {
-        if (times > 3) {
-          this.logger.error('Redis connection failed after 3 retries');
-          return null;
-        }
-        return Math.min(times * 200, 2000);
+        // Never return null — that permanently kills the connection.
+        // Exponential backoff: 200ms, 400ms, 800ms... capped at 30s.
+        const delay = Math.min(times * 200, 30_000);
+        this.logger.warn(
+          `Redis reconnect attempt #${times}, retrying in ${delay}ms`,
+        );
+        return delay;
       },
     });
 
@@ -207,20 +211,17 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  // --- Rate Limiting ---
-
-  /**
-   * Simple sliding window rate limiter.
-   * Returns the current count after increment.
-   */
+  // FIX #9: The original always called EXPIRE on every increment, which reset
+  // the TTL each time — turning a "fixed window" into a perpetually sliding one.
+  // Now only sets EXPIRE when the key is first created (count === 1).
   async incrementRateLimit(
     key: string,
     windowSeconds: number,
   ): Promise<number> {
-    const multi = this.client.multi();
-    multi.incr(key);
-    multi.expire(key, windowSeconds);
-    const results = await multi.exec();
-    return results?.[0]?.[1] as number;
+    const count = await this.client.incr(key);
+    if (count === 1) {
+      await this.client.expire(key, windowSeconds);
+    }
+    return count;
   }
 }

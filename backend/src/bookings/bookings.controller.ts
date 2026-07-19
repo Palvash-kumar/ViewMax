@@ -56,12 +56,13 @@ export class BookingsController {
     return this.bookingsService.findAllAdmin(query);
   }
 
+  // FIX #4: Pass userId for ownership check — prevents IDOR
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get booking details' })
-  findOne(@Param('id') id: string) {
-    return this.bookingsService.findById(id);
+  findOne(@Param('id') id: string, @CurrentUser('_id') userId: string) {
+    return this.bookingsService.findById(id, userId);
   }
 
   @Post(':id/cancel')
@@ -88,10 +89,17 @@ export class BookingsController {
     return this.bookingsService.updateReminderSettings(id, userId, dto);
   }
 
+  // FIX #5: Was completely unauthenticated — anyone could download calendar files for any booking
   @Get(':id/calendar/ics')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Download ICS calendar file for the show' })
-  async downloadIcs(@Param('id') id: string, @Res() res: any) {
-    const icsContent = await this.bookingsService.generateBookingIcs(id);
+  async downloadIcs(
+    @Param('id') id: string,
+    @CurrentUser('_id') userId: string,
+    @Res() res: any,
+  ) {
+    const icsContent = await this.bookingsService.generateBookingIcs(id, userId);
     res.setHeader('Content-Type', 'text/calendar');
     res.setHeader(
       'Content-Disposition',
