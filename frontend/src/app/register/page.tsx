@@ -379,7 +379,7 @@ export default function RegisterPage() {
                   Terms of Service
                 </Link>{' '}
                 and{' '}
-                <Link href="#" className="text-[var(--color-gold-500)] hover:text-[var(--color-gold-600)] underline decoration-[var(--color-gold-500)]/30 transition-colors">
+                <Link href="/privacy" className="text-[var(--color-gold-500)] hover:text-[var(--color-gold-600)] underline decoration-[var(--color-gold-500)]/30 transition-colors">
                   Privacy Policy
                 </Link>
               </label>
