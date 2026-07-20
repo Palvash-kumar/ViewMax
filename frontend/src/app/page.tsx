@@ -750,7 +750,7 @@ export default function HomePage() {
                 {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((item) => (
                   <li key={item}>
                     <Link
-                      href={item === 'Privacy Policy' ? '/privacy' : '/'}
+                      href={item === 'Privacy Policy' ? '/privacy' : item === 'Terms of Service' ? '/terms' : '/'}
                       className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
                     >
                       {item}
