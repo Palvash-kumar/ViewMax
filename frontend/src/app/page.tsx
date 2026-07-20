@@ -747,13 +747,17 @@ export default function HomePage() {
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-primary)] mb-3">Legal</h4>
               <ul className="space-y-2">
-                {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((item) => (
-                  <li key={item}>
+                {[
+                  { label: 'Privacy Policy', href: '/privacy' },
+                  { label: 'Terms of Service', href: '/terms' },
+                  { label: 'Cookie Policy', href: '/cookies' },
+                ].map((item) => (
+                  <li key={item.label}>
                     <Link
-                      href={item === 'Privacy Policy' ? '/privacy' : item === 'Terms of Service' ? '/terms' : '/'}
+                      href={item.href}
                       className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
                     >
-                      {item}
+                      {item.label}
                     </Link>
                   </li>
                 ))}
