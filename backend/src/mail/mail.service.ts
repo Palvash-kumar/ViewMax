@@ -64,7 +64,11 @@ export class MailService implements OnModuleInit {
     this.transporter = nodemailer.createTransport({
       host: connectHost,
       port,
-      secure: isSecure, // true for 465 (implicit TLS), false for 587 (STARTTLS)
+      secure: isSecure, // true for 465 (implicit TLS), false for 587/2525 (STARTTLS)
+      // On non-465 ports the connection starts in plaintext and upgrades via
+      // STARTTLS. Enforce the upgrade so credentials are never sent unencrypted
+      // (e.g. Brevo/Mailtrap-style relays on port 2525).
+      requireTLS: !isSecure,
       auth: {
         user,
         pass,
