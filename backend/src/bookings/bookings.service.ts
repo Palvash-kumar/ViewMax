@@ -126,16 +126,22 @@ export class BookingsService {
 
     // Retrieve Stripe payment intent if not already stored
     try {
-      const session = await this.paymentsService.retrieveCheckoutSession(stripeSessionId);
-      const paymentIntentId = typeof session.payment_intent === 'string'
-        ? session.payment_intent
-        : session.payment_intent?.id;
+      const session =
+        await this.paymentsService.retrieveCheckoutSession(stripeSessionId);
+      const paymentIntentId =
+        typeof session.payment_intent === 'string'
+          ? session.payment_intent
+          : session.payment_intent?.id;
       if (paymentIntentId) {
         booking.stripePaymentIntentId = paymentIntentId;
-        this.logger.log(`Retrieved payment intent ID for booking ${booking._id}: ${paymentIntentId}`);
+        this.logger.log(
+          `Retrieved payment intent ID for booking ${booking._id}: ${paymentIntentId}`,
+        );
       }
     } catch (err) {
-      this.logger.error(`Failed to retrieve checkout session for intent ID: ${err.message}`);
+      this.logger.error(
+        `Failed to retrieve checkout session for intent ID: ${err.message}`,
+      );
     }
 
     const showtimeIdStr =
@@ -368,7 +374,9 @@ export class BookingsService {
     const userIdStr =
       (booking.userId as any)._id?.toString() || booking.userId.toString();
 
-    this.logger.debug(`userIdStr: "${userIdStr}" (type: ${typeof userIdStr}), userId: "${userId}" (type: ${typeof userId}), userId.toString(): "${userId?.toString()}"`);
+    this.logger.debug(
+      `userIdStr: "${userIdStr}" (type: ${typeof userIdStr}), userId: "${userId}" (type: ${typeof userId}), userId.toString(): "${userId?.toString()}"`,
+    );
 
     if (userIdStr !== userId.toString()) {
       throw new BadRequestException('You can only cancel your own bookings');
@@ -623,7 +631,10 @@ export class BookingsService {
     return booking;
   }
 
-  async generateBookingIcs(bookingId: string, userId?: string): Promise<string> {
+  async generateBookingIcs(
+    bookingId: string,
+    userId?: string,
+  ): Promise<string> {
     const booking = await this.findById(bookingId, userId);
     const showtime = booking.showtimeId as any;
     if (!showtime) {
@@ -675,7 +686,7 @@ export class BookingsService {
     }
 
     // Build the base query with population
-    let dbQuery = this.bookingModel
+    const dbQuery = this.bookingModel
       .find(filter)
       .populate('userId', 'firstName lastName email avatar')
       .populate({
@@ -696,9 +707,7 @@ export class BookingsService {
 
     if (query.theatreId || query.search) {
       // We need to fetch all matching bookings first for post-population filtering
-      const allBookings = await dbQuery
-        .sort({ createdAt: -1 })
-        .exec();
+      const allBookings = await dbQuery.sort({ createdAt: -1 }).exec();
 
       let filtered = allBookings;
 
@@ -707,7 +716,8 @@ export class BookingsService {
         filtered = filtered.filter((b) => {
           const showtime = b.showtimeId as any;
           if (!showtime || !showtime.theatreId) return false;
-          const theatreId = showtime.theatreId._id?.toString() || showtime.theatreId.toString();
+          const theatreId =
+            showtime.theatreId._id?.toString() || showtime.theatreId.toString();
           return theatreId === query.theatreId;
         });
       }
@@ -718,7 +728,8 @@ export class BookingsService {
         filtered = filtered.filter((b) => {
           const user = b.userId as any;
           if (!user) return false;
-          const fullName = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase();
+          const fullName =
+            `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase();
           const email = (user.email || '').toLowerCase();
           return fullName.includes(searchLower) || email.includes(searchLower);
         });
@@ -728,11 +739,7 @@ export class BookingsService {
       allData = filtered.slice(skip, skip + limit);
     } else {
       [allData, total] = await Promise.all([
-        dbQuery
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(limit)
-          .exec(),
+        dbQuery.sort({ createdAt: -1 }).skip(skip).limit(limit).exec(),
         this.bookingModel.countDocuments(filter).exec(),
       ]);
     }
@@ -777,7 +784,10 @@ export class BookingsService {
             bookings.filter((b) => {
               const st = b.showtimeId as any;
               if (!st || !st.theatreId) return false;
-              return (st.theatreId._id?.toString() || st.theatreId.toString()) === query.theatreId;
+              return (
+                (st.theatreId._id?.toString() || st.theatreId.toString()) ===
+                query.theatreId
+              );
             }),
           )
       : await this.bookingModel.find(statsFilter).exec();
@@ -785,14 +795,30 @@ export class BookingsService {
     const stats = {
       totalBookings: allBookingsForStats.length,
       totalRevenue: allBookingsForStats
-        .filter((b) => b.bookingStatus === BookingStatus.CONFIRMED || b.bookingStatus === BookingStatus.CHECKED_IN)
+        .filter(
+          (b) =>
+            b.bookingStatus === BookingStatus.CONFIRMED ||
+            b.bookingStatus === BookingStatus.CHECKED_IN,
+        )
         .reduce((sum, b) => sum + (b.totalAmount || 0), 0),
-      confirmed: allBookingsForStats.filter((b) => b.bookingStatus === BookingStatus.CONFIRMED).length,
-      checkedIn: allBookingsForStats.filter((b) => b.bookingStatus === BookingStatus.CHECKED_IN).length,
-      cancelled: allBookingsForStats.filter((b) => b.bookingStatus === BookingStatus.CANCELLED).length,
-      pending: allBookingsForStats.filter((b) => b.bookingStatus === BookingStatus.PENDING).length,
-      expired: allBookingsForStats.filter((b) => b.bookingStatus === BookingStatus.EXPIRED).length,
-      refunded: allBookingsForStats.filter((b) => b.bookingStatus === BookingStatus.REFUNDED).length,
+      confirmed: allBookingsForStats.filter(
+        (b) => b.bookingStatus === BookingStatus.CONFIRMED,
+      ).length,
+      checkedIn: allBookingsForStats.filter(
+        (b) => b.bookingStatus === BookingStatus.CHECKED_IN,
+      ).length,
+      cancelled: allBookingsForStats.filter(
+        (b) => b.bookingStatus === BookingStatus.CANCELLED,
+      ).length,
+      pending: allBookingsForStats.filter(
+        (b) => b.bookingStatus === BookingStatus.PENDING,
+      ).length,
+      expired: allBookingsForStats.filter(
+        (b) => b.bookingStatus === BookingStatus.EXPIRED,
+      ).length,
+      refunded: allBookingsForStats.filter(
+        (b) => b.bookingStatus === BookingStatus.REFUNDED,
+      ).length,
     };
 
     return {

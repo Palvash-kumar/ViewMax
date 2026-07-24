@@ -1,4 +1,10 @@
-import { IsArray, IsMongoId, IsString, IsOptional, IsEnum } from 'class-validator';
+import {
+  IsArray,
+  IsMongoId,
+  IsString,
+  IsOptional,
+  IsEnum,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { PaginationDto } from '../../common/dto/pagination.dto';
@@ -27,12 +33,18 @@ export class AdminBookingHistoryQueryDto extends PaginationDto {
   @IsMongoId()
   showtimeId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by booking status', enum: BookingStatus })
+  @ApiPropertyOptional({
+    description: 'Filter by booking status',
+    enum: BookingStatus,
+  })
   @IsOptional()
   @IsEnum(BookingStatus)
   bookingStatus?: BookingStatus;
 
-  @ApiPropertyOptional({ description: 'Filter by payment status', enum: PaymentStatus })
+  @ApiPropertyOptional({
+    description: 'Filter by payment status',
+    enum: PaymentStatus,
+  })
   @IsOptional()
   @IsEnum(PaymentStatus)
   paymentStatus?: PaymentStatus;
@@ -42,12 +54,16 @@ export class AdminBookingHistoryQueryDto extends PaginationDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Filter bookings from this date (ISO string)' })
+  @ApiPropertyOptional({
+    description: 'Filter bookings from this date (ISO string)',
+  })
   @IsOptional()
   @IsString()
   dateFrom?: string;
 
-  @ApiPropertyOptional({ description: 'Filter bookings until this date (ISO string)' })
+  @ApiPropertyOptional({
+    description: 'Filter bookings until this date (ISO string)',
+  })
   @IsOptional()
   @IsString()
   dateTo?: string;

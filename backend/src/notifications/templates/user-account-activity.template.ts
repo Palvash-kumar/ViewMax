@@ -96,7 +96,9 @@ export function compileUserAccountActivityEmail(
       ${message}
     </p>
 
-    ${detailRowsHtml ? `
+    ${
+      detailRowsHtml
+        ? `
       <!-- Details Card -->
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #e2e8f0; border-radius: 12px; background-color: #f8fafc; margin-bottom: 28px;">
         <tr>
@@ -107,7 +109,9 @@ export function compileUserAccountActivityEmail(
           </td>
         </tr>
       </table>
-    ` : ''}
+    `
+        : ''
+    }
 
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="text-align: center;">
       <tr>

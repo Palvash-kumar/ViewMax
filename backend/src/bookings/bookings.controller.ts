@@ -99,7 +99,10 @@ export class BookingsController {
     @CurrentUser('_id') userId: string,
     @Res() res: any,
   ) {
-    const icsContent = await this.bookingsService.generateBookingIcs(id, userId);
+    const icsContent = await this.bookingsService.generateBookingIcs(
+      id,
+      userId,
+    );
     res.setHeader('Content-Type', 'text/calendar');
     res.setHeader(
       'Content-Disposition',

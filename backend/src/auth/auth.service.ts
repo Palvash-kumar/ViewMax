@@ -326,7 +326,10 @@ export class AuthService {
     const user = await this.usersService.findByEmail(email);
     // FIX #1: Don't reveal whether the email exists — prevents user enumeration attacks
     if (!user) {
-      return { message: 'If an account exists with this email, a verification OTP has been sent' };
+      return {
+        message:
+          'If an account exists with this email, a verification OTP has been sent',
+      };
     }
 
     // Generate 6-digit OTP
@@ -341,7 +344,10 @@ export class AuthService {
 
     await this.sendOtpEmail(email, otp, `${user.firstName} ${user.lastName}`);
 
-    return { message: 'If an account exists with this email, a verification OTP has been sent' };
+    return {
+      message:
+        'If an account exists with this email, a verification OTP has been sent',
+    };
   }
 
   async verifyOtp(email: string, token: string) {
@@ -386,16 +392,23 @@ export class AuthService {
       throw new BadRequestException('Invalid reset request');
     }
 
-    const userWithTokens = await this.usersService.findByIdWithTokens(user._id.toString());
+    const userWithTokens = await this.usersService.findByIdWithTokens(
+      user._id.toString(),
+    );
     // FIX #7: After verifyOtp clears the token, resetPassword must be called in the same
     // session. We verify via the token param matching the stored hash (which verifyOtp already
     // validated). If the token was already cleared, require the user to re-verify.
     if (!userWithTokens?.passwordResetToken) {
       // Token already cleared — either already used or re-requested
-      throw new BadRequestException('OTP has already been used. Please request a new one.');
+      throw new BadRequestException(
+        'OTP has already been used. Please request a new one.',
+      );
     }
 
-    const isValid = await argon2.verify(userWithTokens.passwordResetToken, token);
+    const isValid = await argon2.verify(
+      userWithTokens.passwordResetToken,
+      token,
+    );
     if (!isValid) {
       throw new BadRequestException('Invalid OTP code');
     }
@@ -404,7 +417,10 @@ export class AuthService {
     await this.usersService.resetPassword(user._id.toString(), newPassword);
 
     // 4. Send confirmation email
-    await this.sendPasswordChangedSuccessEmail(email, `${user.firstName} ${user.lastName}`);
+    await this.sendPasswordChangedSuccessEmail(
+      email,
+      `${user.firstName} ${user.lastName}`,
+    );
 
     return { message: 'Password has been reset successfully' };
   }
@@ -569,17 +585,22 @@ export class AuthService {
             </div>
           </div>
         </div>
-        `
+        `,
       );
       this.logger.debug(`OTP sent successfully to ${email}`);
     } catch (error) {
-      this.logger.error(`Failed to send OTP email to ${email}: ${error.message}`);
+      this.logger.error(
+        `Failed to send OTP email to ${email}: ${error.message}`,
+      );
       // Fallback log for development
       this.logger.debug(`OTP for ${email}: ${otp}`);
     }
   }
 
-  private async sendPasswordChangedSuccessEmail(email: string, userName: string) {
+  private async sendPasswordChangedSuccessEmail(
+    email: string,
+    userName: string,
+  ) {
     try {
       await this.mailService.sendMail(
         email,
@@ -615,11 +636,15 @@ export class AuthService {
             </div>
           </div>
         </div>
-        `
+        `,
       );
-      this.logger.debug(`Password changed success email sent successfully to ${email}`);
+      this.logger.debug(
+        `Password changed success email sent successfully to ${email}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to send password reset confirmation email to ${email}: ${error.message}`);
+      this.logger.error(
+        `Failed to send password reset confirmation email to ${email}: ${error.message}`,
+      );
     }
   }
 }

@@ -44,9 +44,7 @@ export class MailService implements OnModuleInit {
         const ipv4Addresses = await dns.promises.resolve4(host);
         if (ipv4Addresses.length > 0) {
           connectHost = ipv4Addresses[0];
-          this.logger.log(
-            `Resolved SMTP host ${host} → IPv4 ${connectHost}`,
-          );
+          this.logger.log(`Resolved SMTP host ${host} → IPv4 ${connectHost}`);
         }
       } catch (dnsErr) {
         this.logger.warn(

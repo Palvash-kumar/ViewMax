@@ -50,7 +50,7 @@ export class CloudinaryService {
           folder,
           resource_type: 'video',
           chunk_size: 6000000, // 6 MB chunks
-          timeout: 120000,     // 2 minutes timeout per chunk
+          timeout: 120000, // 2 minutes timeout per chunk
         },
         (error, result) => {
           if (error) return reject(new Error(error.message || 'Upload failed'));

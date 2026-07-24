@@ -104,10 +104,14 @@ export class PaymentsService {
         payment_intent: paymentIntentId,
         amount: Math.round(amount * 100),
       });
-      this.logger.log(`Refunded payment intent ${paymentIntentId}: ${refund.id}`);
+      this.logger.log(
+        `Refunded payment intent ${paymentIntentId}: ${refund.id}`,
+      );
       return refund;
     } catch (err) {
-      this.logger.error(`Failed to refund payment intent ${paymentIntentId}: ${err.message}`);
+      this.logger.error(
+        `Failed to refund payment intent ${paymentIntentId}: ${err.message}`,
+      );
       throw err;
     }
   }

@@ -185,16 +185,12 @@ export class UsersService {
     if (!user) throw new NotFoundException('User not found');
 
     // 1. Enqueue email notification prior to deletion
-    await this.queueService.enqueueEmail(
-      'user-account-activity',
-      user.email,
-      {
-        activityType: 'REMOVED',
-        recipientName: `${user.firstName} ${user.lastName}`,
-        email: user.email,
-        subject: 'Your ViewMax Account Has Been Removed',
-      },
-    );
+    await this.queueService.enqueueEmail('user-account-activity', user.email, {
+      activityType: 'REMOVED',
+      recipientName: `${user.firstName} ${user.lastName}`,
+      email: user.email,
+      subject: 'Your ViewMax Account Has Been Removed',
+    });
 
     // 2. Perform deletion
     const result = await this.userModel.findByIdAndDelete(id).exec();
