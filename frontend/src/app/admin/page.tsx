@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Film, Building2, Users, Ticket, BarChart3, Shield, Plus, Search, Loader2, Trash2, X, Monitor, Calendar, Clock, CheckCircle, XCircle, Ban, ChevronDown, ChevronRight, DollarSign, Eye, Filter, RefreshCw, CreditCard, MapPin, Hash, UserCheck, ArrowUpDown, ChevronLeft } from 'lucide-react';
+import { Film, Building2, Users, Ticket, BarChart3, Shield, Plus, Search, Loader2, Trash2, X, Monitor, Calendar, Clock, CheckCircle, XCircle, Ban, ChevronDown, ChevronRight, DollarSign, Eye, Filter, RefreshCw, CreditCard, MapPin, Hash, UserCheck, ArrowUpDown, ChevronLeft, Repeat } from 'lucide-react';
 import api from '@/lib/axios';
 import { useAuthStore } from '@/stores/auth.store';
 import { Button } from '@/components/ui';
@@ -74,6 +74,7 @@ export default function AdminDashboard() {
     ticketPrice: 250,
     isRecurring: false,
     recurringEndDate: '',
+    isWeeklyRecurring: false,
   });
   const [showtimeScreens, setShowtimeScreens] = useState<Screen[]>([]);
   const [loadingShowtimeScreens, setLoadingShowtimeScreens] = useState(false);
@@ -280,6 +281,7 @@ export default function AdminDashboard() {
       ticketPrice: 250,
       isRecurring: false,
       recurringEndDate: '',
+      isWeeklyRecurring: false,
     });
     setShowtimeScreens([]);
     setIsShowtimeModalOpen(true);
@@ -334,6 +336,10 @@ export default function AdminDashboard() {
         payload.recurringEndDate = endDate.toISOString();
       }
 
+      if (showtimeForm.isWeeklyRecurring) {
+        payload.isWeeklyRecurring = true;
+      }
+
       const res = await api.post('/showtimes', payload);
       const created = res.data.data;
       if (Array.isArray(created)) {
@@ -361,6 +367,17 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error(err);
       alert('Failed to delete showtime');
+    }
+  };
+
+  const handleUnmarkWeekly = async (showtimeId: string) => {
+    try {
+      const res = await api.patch(`/showtimes/${showtimeId}/unmark-weekly`);
+      const updated = res.data.data;
+      setShowtimes((prev) => prev.map((s) => s._id === showtimeId ? { ...s, ...updated, isWeeklyRecurring: false } : s));
+    } catch (err) {
+      console.error(err);
+      alert('Failed to unmark weekly recurring');
     }
   };
 
@@ -782,14 +799,30 @@ export default function AdminDashboard() {
                     </span>
                     <span className="font-semibold text-[var(--color-gold-400)]">₹{st.ticketPrice}</span>
                     <span>{st.bookedSeats?.length || 0} booked</span>
+                    {st.isWeeklyRecurring && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 text-[9px] font-semibold">
+                        <Repeat className="w-3 h-3" /> Weekly
+                      </span>
+                    )}
                   </div>
-                  <button
-                    onClick={() => handleDeleteShowtime(st._id)}
-                    className="absolute top-4 right-4 p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                    title="Delete Showtime"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="absolute top-4 right-4 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {st.isWeeklyRecurring && (
+                      <button
+                        onClick={() => handleUnmarkWeekly(st._id)}
+                        className="p-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 cursor-pointer"
+                        title="Unmark Weekly Recurring"
+                      >
+                        <Repeat className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDeleteShowtime(st._id)}
+                      className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 cursor-pointer"
+                      title="Delete Showtime"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1736,12 +1769,31 @@ export default function AdminDashboard() {
                   type="checkbox"
                   id="isRecurring"
                   checked={showtimeForm.isRecurring}
-                  onChange={(e) => setShowtimeForm({ ...showtimeForm, isRecurring: e.target.checked })}
+                  onChange={(e) => setShowtimeForm({ ...showtimeForm, isRecurring: e.target.checked, isWeeklyRecurring: e.target.checked ? false : showtimeForm.isWeeklyRecurring })}
                   className="w-4 h-4 rounded border-white/10 bg-white/5 text-[var(--color-gold-500)] focus:ring-[var(--color-gold-500)]/30 cursor-pointer"
                 />
                 <label htmlFor="isRecurring" className="text-sm font-medium text-[var(--color-text-secondary)] cursor-pointer select-none">
                   Repeat Daily (Schedule for everyday)
                 </label>
+              </div>
+
+              {/* Weekly Recurring Switch */}
+              <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-4">
+                <input
+                  type="checkbox"
+                  id="isWeeklyRecurring"
+                  checked={showtimeForm.isWeeklyRecurring}
+                  onChange={(e) => setShowtimeForm({ ...showtimeForm, isWeeklyRecurring: e.target.checked, isRecurring: e.target.checked ? false : showtimeForm.isRecurring, recurringEndDate: e.target.checked ? '' : showtimeForm.recurringEndDate })}
+                  className="w-4 h-4 rounded border-white/10 bg-white/5 text-purple-500 focus:ring-purple-500/30 cursor-pointer"
+                />
+                <div>
+                  <label htmlFor="isWeeklyRecurring" className="text-sm font-medium text-[var(--color-text-secondary)] cursor-pointer select-none">
+                    Repeat Infinitely Weekly (Schedule for week)
+                  </label>
+                  <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">
+                    Show repeats every week on the same day at the same time, forever.
+                  </p>
+                </div>
               </div>
 
               {/* Recurring End Date */}

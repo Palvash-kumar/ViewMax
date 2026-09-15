@@ -33,6 +33,9 @@ export class Showtime {
 
   @Prop({ type: [String], default: [] })
   bookedSeats: string[];
+
+  @Prop({ default: false })
+  isWeeklyRecurring: boolean;
 }
 
 export const ShowtimeSchema = SchemaFactory.createForClass(Showtime);

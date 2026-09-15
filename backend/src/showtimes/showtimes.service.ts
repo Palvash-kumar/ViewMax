@@ -104,6 +104,11 @@ export class ShowtimesService implements OnModuleInit, OnModuleDestroy {
               await booking.save();
             }
           }
+
+          // ponytail: weekly-recurring auto-creation — runs inside the existing cleanup loop, no new cron needed
+          if (showtime.isWeeklyRecurring) {
+            await this.recreateWeeklyShowtime(showtime);
+          }
         }
 
         const ids = completedShowtimes.map((s) => s._id);
@@ -120,6 +125,56 @@ export class ShowtimesService implements OnModuleInit, OnModuleDestroy {
         error.stack,
       );
     }
+  }
+
+  /**
+   * Create next week's copy of a weekly-recurring showtime.
+   * Skips (and logs) if there's a conflict on that screen.
+   */
+  private async recreateWeeklyShowtime(
+    showtime: ShowtimeDocument,
+  ): Promise<void> {
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+    const nextStart = new Date(showtime.startTime.getTime() + weekMs);
+    const nextEnd = new Date(showtime.endTime.getTime() + weekMs);
+
+    const bufferMs = 10 * 60 * 1000;
+    const checkStart = new Date(nextStart.getTime() - bufferMs);
+    const checkEnd = new Date(nextEnd.getTime() + bufferMs);
+
+    const screenId = (showtime.screenId as any)?._id ?? showtime.screenId;
+    const movieId = (showtime.movieId as any)?._id ?? showtime.movieId;
+    const theatreId = (showtime.theatreId as any)?._id ?? showtime.theatreId;
+
+    const overlap = await this.showtimeModel.findOne({
+      screenId,
+      status: ShowtimeStatus.SCHEDULED,
+      startTime: { $lt: checkEnd },
+      endTime: { $gt: checkStart },
+    });
+
+    if (overlap) {
+      this.logger.warn(
+        `Weekly recreation skipped for screen ${screenId}: conflict at ${nextStart.toISOString()}. Chain broken.`,
+      );
+      return;
+    }
+
+    await this.showtimeModel.create({
+      movieId,
+      theatreId,
+      screenId,
+      startTime: nextStart,
+      endTime: nextEnd,
+      ticketPrice: showtime.ticketPrice,
+      status: ShowtimeStatus.SCHEDULED,
+      bookedSeats: [],
+      isWeeklyRecurring: true,
+    });
+
+    this.logger.log(
+      `Weekly recurring: created next showtime for ${nextStart.toISOString()} on screen ${screenId}`,
+    );
   }
 
   async create(
@@ -171,6 +226,7 @@ export class ShowtimesService implements OnModuleInit, OnModuleDestroy {
           ticketPrice: dto.ticketPrice,
           status: ShowtimeStatus.SCHEDULED,
           bookedSeats: [],
+          isWeeklyRecurring: dto.isWeeklyRecurring || false,
         });
 
         // Advance to next day
@@ -205,6 +261,7 @@ export class ShowtimesService implements OnModuleInit, OnModuleDestroy {
         ticketPrice: dto.ticketPrice,
         status: ShowtimeStatus.SCHEDULED,
         bookedSeats: [],
+        isWeeklyRecurring: dto.isWeeklyRecurring || false,
       });
     }
 
@@ -389,6 +446,17 @@ export class ShowtimesService implements OnModuleInit, OnModuleDestroy {
   async delete(id: string): Promise<void> {
     const result = await this.showtimeModel.findByIdAndDelete(id).exec();
     if (!result) throw new NotFoundException('Showtime not found');
+  }
+
+  async unmarkWeeklyRecurring(id: string): Promise<ShowtimeDocument> {
+    const showtime = await this.showtimeModel
+      .findByIdAndUpdate(id, { isWeeklyRecurring: false }, { new: true })
+      .populate('movieId', 'title poster duration')
+      .populate('theatreId', 'name city')
+      .populate('screenId', 'name screenType')
+      .exec();
+    if (!showtime) throw new NotFoundException('Showtime not found');
+    return showtime;
   }
 
   /**

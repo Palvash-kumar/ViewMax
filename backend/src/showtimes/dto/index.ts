@@ -46,6 +46,11 @@ export class CreateShowtimeDto {
   @IsOptional()
   @IsDateString()
   recurringEndDate?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isWeeklyRecurring?: boolean;
 }
 
 export class UpdateShowtimeDto {

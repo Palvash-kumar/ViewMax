@@ -78,6 +78,7 @@ export interface Showtime {
   ticketPrice: number;
   status: 'SCHEDULED' | 'CANCELLED' | 'COMPLETED';
   bookedSeats: string[];
+  isWeeklyRecurring?: boolean;
 }
 
 export interface Booking {

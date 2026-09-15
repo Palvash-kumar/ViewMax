@@ -66,4 +66,15 @@ export class ShowtimesController {
   remove(@Param('id') id: string) {
     return this.showtimesService.delete(id);
   }
+
+  @Patch(':id/unmark-weekly')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.THEATRE_OWNER, Role.THEATRE_MODERATOR, Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Unmark showtime as weekly recurring (Owner/Moderator)',
+  })
+  unmarkWeekly(@Param('id') id: string) {
+    return this.showtimesService.unmarkWeeklyRecurring(id);
+  }
 }
