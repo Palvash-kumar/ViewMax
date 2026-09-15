@@ -1659,7 +1659,19 @@ export default function AdminDashboard() {
                 <select
                   required
                   value={showtimeForm.movieId}
-                  onChange={(e) => setShowtimeForm({ ...showtimeForm, movieId: e.target.value })}
+                  onChange={(e) => {
+                    const newMovieId = e.target.value;
+                    const update: any = { ...showtimeForm, movieId: newMovieId };
+                    // Recompute endTime if startTime is already set
+                    const selectedMovie = movies.find((m) => m._id === newMovieId);
+                    if (selectedMovie && showtimeForm.startTime) {
+                      const start = new Date(showtimeForm.startTime);
+                      const end = new Date(start.getTime() + selectedMovie.duration * 60 * 1000);
+                      const pad = (n: number) => n.toString().padStart(2, '0');
+                      update.endTime = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
+                    }
+                    setShowtimeForm(update);
+                  }}
                   className={selectClass}
                 >
                   <option value="" className="bg-[var(--color-bg-primary)]">— Select a movie —</option>
@@ -1734,7 +1746,19 @@ export default function AdminDashboard() {
                     type="datetime-local"
                     required
                     value={showtimeForm.startTime}
-                    onChange={(e) => setShowtimeForm({ ...showtimeForm, startTime: e.target.value })}
+                    onChange={(e) => {
+                      const newStartTime = e.target.value;
+                      const update: any = { ...showtimeForm, startTime: newStartTime };
+                      // Auto-fill endTime from selected movie's duration
+                      const selectedMovie = movies.find((m) => m._id === showtimeForm.movieId);
+                      if (selectedMovie && newStartTime) {
+                        const start = new Date(newStartTime);
+                        const end = new Date(start.getTime() + selectedMovie.duration * 60 * 1000);
+                        const pad = (n: number) => n.toString().padStart(2, '0');
+                        update.endTime = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
+                      }
+                      setShowtimeForm(update);
+                    }}
                     className={inputClass}
                   />
                 </div>
