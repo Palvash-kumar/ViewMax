@@ -1324,18 +1324,34 @@ export default function AdminDashboard() {
           ) : (
             users.map((u) => {
               const initials = `${u.firstName?.charAt(0) || ''}${u.lastName?.charAt(0) || ''}`.toUpperCase() || '?';
+              const isAdmin = u.role === 'ADMIN';
+              const isSelf = u._id === currentUser?._id;
               return (
                 <div key={u._id} className="glass-card p-4 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--color-gold-500)]/20 to-[var(--color-gold-600)]/20 border border-[var(--color-gold-500)]/30 flex items-center justify-center text-[var(--color-gold-400)] font-bold text-sm shrink-0">
-                      {initials}
-                    </div>
+                    {/* Avatar — real image or initials fallback */}
+                    {u.avatar ? (
+                      <img
+                        src={u.avatar}
+                        alt={`${u.firstName} ${u.lastName}`}
+                        className="w-10 h-10 rounded-full object-cover border border-[var(--color-gold-500)]/30 shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--color-gold-500)]/20 to-[var(--color-gold-600)]/20 border border-[var(--color-gold-500)]/30 flex items-center justify-center text-[var(--color-gold-400)] font-bold text-sm shrink-0">
+                        {initials}
+                      </div>
+                    )}
                     <div>
-                      <h3 className="font-medium text-sm flex items-center gap-2">
+                      <h3 className="font-medium text-sm flex items-center gap-2 flex-wrap">
                         {u.firstName} {u.lastName}
-                        {u._id === currentUser?._id && (
+                        {isSelf && (
                           <span className="px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase bg-white/10 text-[var(--color-text-muted)]">
                             You
+                          </span>
+                        )}
+                        {isAdmin && (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase bg-[var(--color-gold-500)]/15 text-[var(--color-gold-400)] border border-[var(--color-gold-500)]/25 flex items-center gap-0.5">
+                            <Shield className="w-2.5 h-2.5" /> Protected
                           </span>
                         )}
                         {u.isBlocked && (
@@ -1345,16 +1361,39 @@ export default function AdminDashboard() {
                         )}
                       </h3>
                       <p className="text-xs text-[var(--color-text-muted)]">{u.email}</p>
+                      {/* Metadata row */}
+                      <div className="flex items-center gap-3 mt-1 flex-wrap">
+                        {u.isVerified ? (
+                          <span className="flex items-center gap-0.5 text-[10px] text-emerald-400">
+                            <CheckCircle className="w-3 h-3" /> Verified
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-0.5 text-[10px] text-[var(--color-text-muted)]">
+                            <XCircle className="w-3 h-3" /> Unverified
+                          </span>
+                        )}
+                        {u.provider && (
+                          <span className="text-[10px] text-[var(--color-text-muted)] capitalize">
+                            via {u.provider}
+                          </span>
+                        )}
+                        {u.createdAt && (
+                          <span className="flex items-center gap-0.5 text-[10px] text-[var(--color-text-muted)]">
+                            <Calendar className="w-3 h-3" /> Joined {new Date(u.createdAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {updatingUserId === u._id && (
                       <Loader2 className="w-4 h-4 text-[var(--color-gold-400)] animate-spin" />
                     )}
+                    {/* ponytail: disable role change for admins — mirrors backend ForbiddenException guard */}
                     <select
                       value={u.role}
                       onChange={(e) => handleRoleChange(u._id, e.target.value as Role)}
-                      disabled={updatingUserId === u._id || u._id === currentUser?._id}
+                      disabled={updatingUserId === u._id || isSelf || isAdmin}
                       className="bg-white/5 border border-white/10 hover:border-white/20 text-[var(--color-text-primary)] rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--color-gold-500)] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       <option value="CUSTOMER" className="bg-[var(--color-bg-primary)]">Customer</option>
@@ -1365,7 +1404,7 @@ export default function AdminDashboard() {
 
                     <button
                       onClick={() => handleToggleBlock(u._id, !!u.isBlocked)}
-                      disabled={updatingUserId === u._id || u._id === currentUser?._id}
+                      disabled={updatingUserId === u._id || isSelf}
                       className={`p-1.5 rounded-lg border transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                         u.isBlocked
                           ? 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30'
@@ -1378,7 +1417,7 @@ export default function AdminDashboard() {
 
                     <button
                       onClick={() => handleDeleteUser(u._id)}
-                      disabled={updatingUserId === u._id || u._id === currentUser?._id}
+                      disabled={updatingUserId === u._id || isSelf}
                       className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/30 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Delete User"
                     >

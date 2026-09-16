@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto, UpdateUserDto, UpdateRoleDto } from './dto';
+import { Role } from '../common/constants/roles.enum';
 import { PaginationDto, PaginatedResult } from '../common/dto/pagination.dto';
 import * as argon2 from 'argon2';
 import { QueueService } from '../queue/queue.service';
@@ -86,6 +87,11 @@ export class UsersService {
   ): Promise<UserDocument> {
     const user = await this.userModel.findById(id).exec();
     if (!user) throw new NotFoundException('User not found');
+
+    // ponytail: admin role is immutable — only block/unblock is allowed
+    if (user.role === Role.ADMIN) {
+      throw new ForbiddenException('Cannot change the role of an Admin user');
+    }
 
     const oldRole = user.role;
     user.role = updateRoleDto.role;
